@@ -6,6 +6,11 @@ import compression from 'compression';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { WatcherManager } from './WatcherManager.js';
@@ -18,9 +23,10 @@ dotenv.config();
 // Configuration
 const PORT = parseInt(process.env.PORT || '5201', 10);
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5200';
+// Resolve presentations path relative to project root (server/src -> server -> project root)
 const PRESENTATIONS_ROOT =
   process.env.PRESENTATIONS_ROOT ||
-  path.join(process.cwd(), 'presentations');
+  path.resolve(__dirname, '../..', 'presentations');
 
 // Express app
 const app = express();

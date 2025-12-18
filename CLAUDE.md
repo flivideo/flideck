@@ -108,6 +108,22 @@ npm start
 6. File changes trigger UI refresh
 7. Basic navigation (back, forward, home) works
 
+## Git Hooks
+
+### Pre-commit: Gitleaks
+
+A pre-commit hook using [gitleaks](https://github.com/gitleaks/gitleaks) prevents committing secrets (API keys, passwords, tokens).
+
+**If secrets are detected:**
+1. Remove the secret from your code
+2. Use environment variables instead (add to `.env`, reference via `process.env`)
+3. For false positives, add to `.gitleaksignore`
+
+**To bypass (not recommended):**
+```bash
+git commit --no-verify
+```
+
 ## Related Documentation
 
 - `docs/planning/requirements.md` - Full requirements specification
