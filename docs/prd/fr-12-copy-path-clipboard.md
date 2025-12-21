@@ -1,6 +1,6 @@
 # FR-12: Copy Path to Clipboard
 
-**Status:** Pending
+**Status:** Implemented
 **Added:** 2025-12-21
 **Source:** Brainstorm session
 
@@ -72,16 +72,16 @@ Click any button → copies ALL paths (newline-separated) to clipboard.
 
 ## Acceptance Criteria
 
-- [ ] Modifier key (suggest Alt/Option) + hover on slide row shows [URL] [Abs] [Rel] buttons
-- [ ] Buttons appear below the slide name (name stays visible)
-- [ ] Clicking [URL] copies iframe URL to clipboard
-- [ ] Clicking [Abs] copies absolute file path to clipboard
-- [ ] Clicking [Rel] copies relative file path to clipboard
-- [ ] Toast notification confirms copy (e.g., "Copied absolute path")
-- [ ] Modifier + hover on "Assets" header shows same three buttons
-- [ ] Header buttons copy ALL slide paths (newline-separated)
-- [ ] Releasing modifier key hides buttons
-- [ ] Normal click behavior (navigation) unaffected when modifier not held
+- [x] Modifier key (suggest Alt/Option) + hover on slide row shows [URL] [Abs] [Rel] buttons
+- [x] Buttons appear below the slide name (name stays visible)
+- [x] Clicking [URL] copies iframe URL to clipboard
+- [x] Clicking [Abs] copies absolute file path to clipboard
+- [x] Clicking [Rel] copies relative file path to clipboard
+- [x] Toast notification confirms copy (e.g., "Copied absolute path")
+- [x] Modifier + hover on "Assets" header shows same three buttons
+- [x] Header buttons copy ALL slide paths (newline-separated)
+- [x] Releasing modifier key hides buttons
+- [x] Normal click behavior (navigation) unaffected when modifier not held
 
 ## Technical Notes
 
@@ -101,4 +101,23 @@ Click any button → copies ALL paths (newline-separated) to clipboard.
 
 ## Completion Notes
 
-*(To be filled by developer after implementation)*
+**Implemented:** 2025-12-21
+
+**What was done:**
+- Created `useModifierKey` hook to track Alt/Option key state globally
+- Added hover tracking for asset rows and "Assets" header
+- When Alt + hover on asset row, three copy buttons appear (URL, ABS, REL)
+- When Alt + hover on "Assets" header, same buttons copy ALL asset paths (newline-separated)
+- Toast notifications (via sonner) confirm successful copy
+- Uses `navigator.clipboard.writeText()` for clipboard access
+
+**Path formats:**
+- URL: Full iframe URL from asset.url
+- ABS: `presentation.path + '/' + asset.filename`
+- REL: `presentation.id + '/' + asset.filename` (relative to presentationsRoot)
+
+**Files created:**
+- `client/src/hooks/useModifierKey.ts`
+
+**Files modified:**
+- `client/src/components/layout/Sidebar.tsx`

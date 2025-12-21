@@ -6,6 +6,10 @@ Implementation history for FliDeck.
 
 | Date | What | FRs |
 |------|------|-----|
+| 2025-12-21 | Copy path to clipboard (Alt+hover reveals URL/ABS/REL buttons) | FR-12 |
+| 2025-12-21 | Claude skill for FliDeck | FR-11 |
+| 2025-12-21 | Query API for external systems | FR-10 |
+| 2025-12-21 | Real-time file watching | NFR-1 |
 | 2025-12-19 | Simplified config UI (text input, removed folder browser) | FR-6 |
 | 2025-12-19 | Presentation controls with keyboard navigation | FR-5 |
 | 2025-12-19 | AppyDave branding applied to UI | FR-4 |
@@ -17,6 +21,92 @@ Implementation history for FliDeck.
 ---
 
 ## Detailed History
+
+### 2025-12-21 - Real-Time File Watching
+
+**Commit:** `pending`
+**FRs:** NFR-1
+
+**What was done:**
+- Server emits granular socket events: `content:changed` for file modifications, `structure:changed` for add/remove/rename
+- Added `parseAssetPath()` helper to extract presentationId/assetId from file paths
+- New `useContentChanges()` hook listens for content changes and triggers iframe reload via `reloadKey`
+- AssetViewer accepts `reloadKey` prop to force iframe refresh without full page reload
+- Reduced debounce from 500ms to 200ms for faster response
+
+**Files modified:**
+- `server/src/index.ts` - Added parseAssetPath, handlePresentationChange, granular event emission
+- `client/src/hooks/useSocket.ts` - Added useContentChanges hook
+- `client/src/pages/PresentationPage.tsx` - Integrated useContentChanges hook
+- `client/src/components/ui/AssetViewer.tsx` - Added reloadKey prop support
+- `shared/src/types.ts` - Added content:changed and structure:changed event types
+
+---
+
+### 2025-12-21 - Query API for External Systems
+
+**Commit:** `pending`
+**FRs:** FR-10
+
+**What was done:**
+- Created `/api/query/routes` endpoint - lists available presentation routes
+- Created `/api/query/routes/:route` endpoint - returns presentations for a route
+- Created `/api/query/presentations/:id` endpoint - returns detailed asset info with file sizes
+- All endpoints return proper JSON with consistent structure
+- 404 errors for non-existent routes or presentations
+
+**Files created:**
+- `server/src/routes/query.ts`
+
+**Files modified:**
+- `server/src/routes/index.ts` - Register query routes
+
+---
+
+### 2025-12-21 - Claude Skill for FliDeck
+
+**Commit:** `pending`
+**FRs:** FR-11
+
+**What was done:**
+- Created FliDeck Claude skill at `~/.claude/skills/flideck/`
+- SKILL.md with proper YAML frontmatter (name, description)
+- health-command.md documenting health endpoint
+- routes-command.md documenting routes list and detail endpoints
+- presentations-command.md documenting presentation detail endpoint
+- Follows FliHub skill pattern and structure
+
+**Files created:**
+- `~/.claude/skills/flideck/SKILL.md`
+- `~/.claude/skills/flideck/health-command.md`
+- `~/.claude/skills/flideck/routes-command.md`
+- `~/.claude/skills/flideck/presentations-command.md`
+
+---
+
+### 2025-12-21 - Copy Path to Clipboard
+
+**Commit:** `pending`
+**FRs:** FR-12
+
+**What was done:**
+- Alt/Option + hover on asset row reveals copy buttons (URL, ABS, REL)
+- Alt/Option + hover on "Assets" header reveals buttons to copy ALL paths
+- Clicking a button copies the path format to clipboard
+- Toast notification confirms successful copy
+- Created `useModifierKey` hook for tracking Alt key state
+
+**Keyboard interaction:**
+- Hold `Alt` (Option on Mac) + hover over asset → shows copy buttons
+- Hold `Alt` (Option on Mac) + hover over "Assets" header → shows copy-all buttons
+
+**Files created:**
+- `client/src/hooks/useModifierKey.ts`
+
+**Files modified:**
+- `client/src/components/layout/Sidebar.tsx`
+
+---
 
 ### 2025-12-19 - Simplified Config UI
 

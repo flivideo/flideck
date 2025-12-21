@@ -74,8 +74,11 @@ npm start
 | `Cmd/Ctrl + →` | Next asset |
 | `Cmd/Ctrl + Home` | First asset |
 | `Cmd/Ctrl + End` | Last asset |
+| `Alt/Option + hover` | Reveal copy path buttons (URL, ABS, REL) |
 
 **Note:** Modifier keys (`Cmd` on Mac, `Ctrl` on Windows/Linux) are required for navigation to avoid conflicts with presentation's internal controls.
+
+**Copy Path:** Hold `Alt` (Option on Mac) and hover over an asset row or the "Assets" header to reveal copy buttons for URL, absolute path, or relative path.
 
 ## File Discovery Rules
 
