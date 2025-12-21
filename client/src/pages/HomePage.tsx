@@ -1,9 +1,12 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePresentations } from '../hooks/usePresentations';
 import { usePresentationUpdates } from '../hooks/useSocket';
+import { useQuickFilter } from '../hooks/useQuickFilter';
 import { Header } from '../components/layout/Header';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { EmptyState } from '../components/ui/EmptyState';
+import { QuickFilter, QuickFilterItem } from '../components/ui/QuickFilter';
 import type { Presentation } from '@flideck/shared';
 
 /**
@@ -12,12 +15,27 @@ import type { Presentation } from '@flideck/shared';
 export function HomePage() {
   const navigate = useNavigate();
   const { data: presentations, isLoading, error } = usePresentations();
+  const [isQuickFilterOpen, , closeQuickFilter] = useQuickFilter();
 
   // Subscribe to real-time updates
   usePresentationUpdates();
 
   const handleSelectPresentation = (presentation: Presentation) => {
     navigate(`/presentation/${presentation.id}`);
+  };
+
+  // Convert presentations to quick filter items
+  const quickFilterItems: QuickFilterItem[] = useMemo(() => {
+    if (!presentations) return [];
+    return presentations.map((p) => ({
+      id: p.id,
+      name: p.name,
+      subtitle: `${p.assets.length} asset${p.assets.length !== 1 ? 's' : ''}`,
+    }));
+  }, [presentations]);
+
+  const handleQuickFilterSelect = (id: string) => {
+    navigate(`/presentation/${id}`);
   };
 
   return (
@@ -87,6 +105,15 @@ export function HomePage() {
           </div>
         )}
       </main>
+
+      {/* Quick Filter Modal */}
+      <QuickFilter
+        isOpen={isQuickFilterOpen}
+        onClose={closeQuickFilter}
+        items={quickFilterItems}
+        onSelect={handleQuickFilterSelect}
+        placeholder="Search presentations..."
+      />
     </div>
   );
 }

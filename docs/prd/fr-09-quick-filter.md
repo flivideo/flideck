@@ -1,6 +1,6 @@
 # FR-9: Quick Filter (Cmd+K)
 
-**Status:** Pending
+**Status:** Implemented
 **Added:** 2025-12-21
 **Source:** Brainstorm session
 
@@ -56,15 +56,15 @@ Minimal overlay modal (VS Code / Raycast pattern):
 
 ## Acceptance Criteria
 
-- [ ] Cmd+K opens quick filter overlay from any page
-- [ ] On dashboard: filters presentation list
-- [ ] Inside presentation: filters asset/slide list
-- [ ] Typing filters results in real-time
-- [ ] Arrow Up/Down navigates results
-- [ ] Enter selects and navigates to item
-- [ ] Escape closes overlay
-- [ ] Empty search shows all items
-- [ ] No results shows "No matches" message
+- [x] Cmd+K opens quick filter overlay from any page
+- [x] On dashboard: filters presentation list
+- [x] Inside presentation: filters asset/slide list
+- [x] Typing filters results in real-time
+- [x] Arrow Up/Down navigates results
+- [x] Enter selects and navigates to item
+- [x] Escape closes overlay
+- [x] Empty search shows all items
+- [x] No results shows "No matches" message
 
 ## Technical Notes
 
@@ -81,4 +81,22 @@ Minimal overlay modal (VS Code / Raycast pattern):
 
 ## Completion Notes
 
-*(To be filled by developer after implementation)*
+**Implemented:** 2025-12-21
+
+**What was done:**
+- Created `QuickFilter` modal component using React Portal
+- VS Code/Raycast-style UI with search input, results list, keyboard hints
+- Created `useQuickFilter` hook for global Cmd+K (Mac) / Ctrl+K (Windows/Linux) shortcut
+- Integrated into both HomePage (presentations) and PresentationPage (assets)
+- Full keyboard support: arrows navigate, Enter selects, Escape closes
+- Click outside also closes the modal
+- Case-insensitive substring filtering
+- Shows subtitle info (asset count for presentations, "index" badge for index assets)
+
+**Files created:**
+- `client/src/components/ui/QuickFilter.tsx`
+- `client/src/hooks/useQuickFilter.ts`
+
+**Files modified:**
+- `client/src/pages/HomePage.tsx`
+- `client/src/pages/PresentationPage.tsx`

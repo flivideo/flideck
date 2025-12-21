@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePresentations, usePresentation, useAsset } from '../hooks/usePresentations';
 import { usePresentationRoom, usePresentationUpdates, useContentChanges } from '../hooks/useSocket';
+import { useQuickFilter } from '../hooks/useQuickFilter';
 import { Header } from '../components/layout/Header';
 import { Sidebar } from '../components/layout/Sidebar';
 import { AssetViewer } from '../components/ui/AssetViewer';
+import { QuickFilter, QuickFilterItem } from '../components/ui/QuickFilter';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { EmptyState } from '../components/ui/EmptyState';
 
@@ -23,6 +25,7 @@ export function PresentationPage() {
   const navigate = useNavigate();
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [isQuickFilterOpen, , closeQuickFilter] = useQuickFilter();
 
   const { data: presentations } = usePresentations();
   const { data: presentation, isLoading, error } = usePresentation(id);
@@ -159,6 +162,20 @@ export function PresentationPage() {
     setSelectedAssetId(assetId);
   };
 
+  // Convert assets to quick filter items
+  const quickFilterItems: QuickFilterItem[] = useMemo(() => {
+    if (!presentation) return [];
+    return presentation.assets.map((a) => ({
+      id: a.id,
+      name: a.name,
+      subtitle: a.isIndex ? 'index' : undefined,
+    }));
+  }, [presentation]);
+
+  const handleQuickFilterSelect = (assetId: string) => {
+    setSelectedAssetId(assetId);
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col h-screen">
@@ -274,6 +291,15 @@ export function PresentationPage() {
           )}
         </main>
       </div>
+
+      {/* Quick Filter Modal */}
+      <QuickFilter
+        isOpen={isQuickFilterOpen}
+        onClose={closeQuickFilter}
+        items={quickFilterItems}
+        onSelect={handleQuickFilterSelect}
+        placeholder="Search assets..."
+      />
     </div>
   );
 }

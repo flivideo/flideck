@@ -68,8 +68,9 @@ npm start
 
 | Key | Action |
 |-----|--------|
+| `Cmd/Ctrl + K` | Open quick filter (search presentations/assets) |
 | `F` | Toggle presentation mode (hide chrome) |
-| `Escape` | Exit presentation mode |
+| `Escape` | Exit presentation mode / close quick filter |
 | `Cmd/Ctrl + ←` | Previous asset |
 | `Cmd/Ctrl + →` | Next asset |
 | `Cmd/Ctrl + Home` | First asset |

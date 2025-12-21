@@ -6,6 +6,7 @@ Implementation history for FliDeck.
 
 | Date | What | FRs |
 |------|------|-----|
+| 2025-12-21 | Quick filter (Cmd+K) for presentations and assets | FR-9 |
 | 2025-12-21 | Copy path to clipboard (Alt+hover reveals URL/ABS/REL buttons) | FR-12 |
 | 2025-12-21 | Claude skill for FliDeck | FR-11 |
 | 2025-12-21 | Query API for external systems | FR-10 |
@@ -21,6 +22,30 @@ Implementation history for FliDeck.
 ---
 
 ## Detailed History
+
+### 2025-12-21 - Quick Filter (Cmd+K)
+
+**Commit:** `pending`
+**FRs:** FR-9
+
+**What was done:**
+- Created QuickFilter modal component with VS Code/Raycast-style UI
+- Created useQuickFilter hook for global Cmd+K keyboard shortcut
+- On HomePage: filters and navigates to presentations
+- On PresentationPage: filters and navigates to assets
+- Keyboard support: Arrow keys navigate, Enter selects, Escape closes
+- Real-time filtering with case-insensitive substring matching
+- Uses React Portal for proper overlay stacking
+
+**Files created:**
+- `client/src/components/ui/QuickFilter.tsx`
+- `client/src/hooks/useQuickFilter.ts`
+
+**Files modified:**
+- `client/src/pages/HomePage.tsx`
+- `client/src/pages/PresentationPage.tsx`
+
+---
 
 ### 2025-12-21 - Real-Time File Watching
 
