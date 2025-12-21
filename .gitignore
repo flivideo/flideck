@@ -16,6 +16,9 @@ out/
 .env.local
 .env.*.local
 
+# User config (use config.example.json as template)
+config.json
+
 # IDE
 .idea/
 .vscode/

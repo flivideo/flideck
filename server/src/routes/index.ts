@@ -2,19 +2,25 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { createPresentationRoutes } from './presentations.js';
 import { createAssetRoutes } from './assets.js';
+import { createConfigRoutes } from './config.js';
+import { createQueryRoutes } from './query.js';
+import type { WatcherManager } from '../WatcherManager.js';
 
 interface RouteConfig {
   io: Server;
+  watcherManager: WatcherManager;
 }
 
 /**
  * Create and aggregate all API routes.
  */
-export function createRoutes({ io }: RouteConfig): Router {
+export function createRoutes({ io, watcherManager }: RouteConfig): Router {
   const router = Router();
 
   router.use('/presentations', createPresentationRoutes({ io }));
   router.use('/assets', createAssetRoutes());
+  router.use('/config', createConfigRoutes({ io, watcherManager }));
+  router.use('/query', createQueryRoutes());
 
   return router;
 }

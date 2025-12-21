@@ -13,13 +13,17 @@ interface EmptyStateProps {
 export function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
-      <div className="w-16 h-16 mb-4 rounded-full bg-slate-700 flex items-center justify-center">
+      <div
+        className="w-16 h-16 mb-4 rounded-full flex items-center justify-center"
+        style={{ backgroundColor: '#4a4040' }}
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-8 w-8 text-slate-400"
+          className="h-8 w-8"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          style={{ color: '#ccba9d' }}
         >
           <path
             strokeLinecap="round"
@@ -29,14 +33,32 @@ export function EmptyState({ title, description, action }: EmptyStateProps) {
           />
         </svg>
       </div>
-      <h3 className="text-lg font-medium text-slate-200 mb-1">{title}</h3>
+      <h3
+        className="text-lg font-medium mb-1"
+        style={{
+          color: '#ffffff',
+          fontFamily: "'Oswald', Arial, sans-serif",
+          textTransform: 'uppercase'
+        }}
+      >
+        {title}
+      </h3>
       {description && (
-        <p className="text-sm text-slate-400 mb-4 max-w-xs">{description}</p>
+        <p className="text-sm mb-4 max-w-xs" style={{ color: '#ccba9d' }}>{description}</p>
       )}
       {action && (
         <button
           onClick={action.onClick}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-4 py-2 rounded-lg transition-all"
+          style={{
+            backgroundColor: '#ffde59',
+            color: '#342d2d',
+            fontFamily: "'Bebas Neue', Arial, sans-serif",
+            fontSize: '1rem',
+            letterSpacing: '0.5px'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.filter = 'brightness(1)'}
         >
           {action.label}
         </button>

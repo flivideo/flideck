@@ -6,12 +6,141 @@ Implementation history for FliDeck.
 
 | Date | What | FRs |
 |------|------|-----|
+| 2025-12-19 | Simplified config UI (text input, removed folder browser) | FR-6 |
+| 2025-12-19 | Presentation controls with keyboard navigation | FR-5 |
+| 2025-12-19 | AppyDave branding applied to UI | FR-4 |
+| 2025-12-18 | Configuration UI | FR-3 |
+| 2025-12-18 | JSON-based configuration with hot reload | FR-2 |
 | 2025-12-18 | Documentation scaffolding | - |
 | 2025-12-18 | Initial project setup | FR-1 |
 
 ---
 
 ## Detailed History
+
+### 2025-12-19 - Simplified Config UI
+
+**Commit:** `pending`
+**FRs:** FR-6
+
+**What was done:**
+- Removed FolderBrowser component and server-side browse endpoint
+- Simplified ConfigPage to three sections: Current Folder, History, Add Folder
+- Add Folder now uses simple text input (paste path, press Enter)
+- Removed unused types, hooks, and query keys
+
+**Files deleted:**
+- `client/src/components/config/FolderBrowser.tsx`
+
+**Files modified:**
+- `server/src/routes/config.ts` - removed browse endpoint
+- `client/src/pages/ConfigPage.tsx` - simplified UI
+- `client/src/hooks/useConfig.ts` - removed useBrowseDirectory
+- `client/src/utils/constants.ts` - removed browse query key
+- `shared/src/types.ts` - removed DirectoryEntry, BrowseResponse
+
+---
+
+### 2025-12-19 - Presentation Controls
+
+**Commit:** `pending`
+**FRs:** FR-5
+
+**What was done:**
+- Implemented presentation mode (`F` key) - hides header/sidebar for distraction-free viewing
+- Added keyboard navigation with modifier keys (`Cmd/Ctrl+Arrow`, `Cmd/Ctrl+Home/End`)
+- Added progress indicator (hidden in presentation mode)
+- Added presentation mode button to header for discoverability
+- Implemented postMessage bridge for keyboard events from iframe
+- Presentation's internal controls work normally (no conflicts)
+
+**Keyboard shortcuts:**
+- `F` - Toggle presentation mode
+- `Escape` - Exit presentation mode
+- `Cmd/Ctrl + ←/→` - Previous/next asset
+- `Cmd/Ctrl + Home/End` - First/last asset
+
+**Files changed:**
+- `client/src/pages/PresentationPage.tsx` (modified)
+- `client/src/components/layout/Header.tsx` (modified)
+- `client/src/components/ui/AssetViewer.tsx` (modified)
+
+---
+
+### 2025-12-19 - AppyDave Branding
+
+**Commit:** `pending`
+**FRs:** FR-4
+
+**What was done:**
+- Added Google Fonts (Bebas Neue, Oswald, Roboto) to index.html
+- Created brand color CSS variables with semantic mappings
+- Implemented AppyDave two-tone logo ("Appy" gold, "Dave" yellow) in Header
+- Applied brand typography: BebasNeue for h1/buttons, Oswald for h2-h6 (uppercase), Roboto for body
+- Updated all components with brand color scheme (brown, gold, yellow, blue)
+- Implemented consistent hover states and 200ms transition animations
+
+**Files changed:**
+- `client/index.html` (modified)
+- `client/src/index.css` (modified)
+- `client/src/components/layout/Header.tsx` (modified)
+- `client/src/components/layout/Sidebar.tsx` (modified)
+- `client/src/components/ui/EmptyState.tsx` (modified)
+- `client/src/components/ui/LoadingSpinner.tsx` (modified)
+- `client/src/pages/HomePage.tsx` (modified)
+- `client/src/pages/ConfigPage.tsx` (modified)
+
+---
+
+### 2025-12-18 - Configuration UI
+
+**Commit:** `pending`
+**FRs:** FR-3
+
+**What was done:**
+- Added configuration screen accessible via gear icon in header
+- Created ConfigPage with current folder display, history list, and folder input
+- Implemented server endpoints: GET/PUT /api/config
+- Real-time updates via Socket.io config:changed event
+
+**Files created:**
+- `server/src/routes/config.ts`
+- `client/src/hooks/useConfig.ts`
+- `client/src/pages/ConfigPage.tsx`
+
+**Files modified:**
+- `server/src/routes/index.ts`
+- `server/src/config.ts`
+- `shared/src/types.ts`
+- `client/src/App.tsx`
+- `client/src/components/layout/Header.tsx`
+- `client/src/utils/api.ts`
+- `client/src/utils/constants.ts`
+
+---
+
+### 2025-12-18 - JSON-Based Configuration
+
+**Commit:** `pending`
+**FRs:** FR-2
+
+**What was done:**
+- Replaced environment variable config with JSON-based configuration
+- Created `config.json` (gitignored) and `config.example.json` (committed)
+- Added tilde (`~`) path expansion for user home directory
+- Implemented hot reload - config changes apply without server restart
+- Added history tracking for previously used presentation roots
+- Enhanced WatcherManager with server-side callbacks
+
+**Files changed:**
+- `config.example.json` (new)
+- `config.json` (new, gitignored)
+- `.gitignore` (modified)
+- `server/src/config.ts` (new)
+- `server/src/index.ts` (modified)
+- `server/src/WatcherManager.ts` (modified)
+
+---
 
 ### 2025-12-18 - Documentation Scaffolding
 

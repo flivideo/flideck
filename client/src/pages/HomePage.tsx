@@ -22,7 +22,7 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col h-screen">
-      <Header title="FliDeck" />
+      <Header />
 
       <main className="flex-1 overflow-auto p-6">
         {isLoading ? (
@@ -45,7 +45,14 @@ export function HomePage() {
           </div>
         ) : (
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-lg font-medium text-slate-200 mb-4">
+            <h2
+              className="text-lg font-medium mb-4"
+              style={{
+                fontFamily: "'Oswald', Arial, sans-serif",
+                textTransform: 'uppercase',
+                color: '#ccba9d'
+              }}
+            >
               Available Presentations
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -53,12 +60,24 @@ export function HomePage() {
                 <button
                   key={presentation.id}
                   onClick={() => handleSelectPresentation(presentation)}
-                  className="bg-slate-800 border border-slate-700 rounded-lg p-4 text-left hover:border-blue-500 hover:bg-slate-750 transition-colors"
+                  className="rounded-lg p-4 text-left transition-all duration-200 border"
+                  style={{
+                    backgroundColor: '#3d3535',
+                    borderColor: '#4a4040'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#ffde59';
+                    e.currentTarget.style.backgroundColor = '#4a4040';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#4a4040';
+                    e.currentTarget.style.backgroundColor = '#3d3535';
+                  }}
                 >
                   <h3 className="text-white font-medium mb-1">
                     {presentation.name}
                   </h3>
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm" style={{ color: '#ccba9d' }}>
                     {presentation.assets.length} asset
                     {presentation.assets.length !== 1 ? 's' : ''}
                   </p>

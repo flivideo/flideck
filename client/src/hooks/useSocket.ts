@@ -4,6 +4,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { WS_URL } from '../config';
 import { queryKeys } from '../utils/constants';
 
+interface ContentChangedEvent {
+  presentationId: string;
+  assetId: string;
+  filename: string;
+}
+
 // Singleton socket instance
 let socket: Socket | null = null;
 
@@ -82,7 +88,7 @@ export function useSocketInvalidation(event: string, queryKey: readonly unknown[
 
 /**
  * Hook for real-time presentation updates.
- * Invalidates presentation queries when files change.
+ * Handles both content changes (iframe reload) and structure changes (sidebar refresh).
  */
 export function usePresentationUpdates() {
   const queryClient = useQueryClient();
@@ -90,16 +96,72 @@ export function usePresentationUpdates() {
   useEffect(() => {
     const s = getSocket();
 
-    const handler = () => {
-      // Invalidate all presentation-related queries
+    // Structure changes (file add/remove) - refresh sidebar
+    const handleStructureChange = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.presentations });
     };
 
-    s.on('presentations:updated', handler);
+    // Legacy event - treat as structure change for backwards compatibility
+    const handleLegacyUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.presentations });
+    };
+
+    s.on('structure:changed', handleStructureChange);
+    s.on('presentations:updated', handleLegacyUpdate);
+
     return () => {
-      s.off('presentations:updated', handler);
+      s.off('structure:changed', handleStructureChange);
+      s.off('presentations:updated', handleLegacyUpdate);
     };
   }, [queryClient]);
+}
+
+/**
+ * Hook for content changes that require iframe reload.
+ * Returns a reload key that changes when content is modified.
+ * Also invalidates asset query to refresh content from server.
+ */
+export function useContentChanges(
+  presentationId: string | undefined,
+  assetId: string | undefined
+): number {
+  const queryClient = useQueryClient();
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    if (!presentationId) return;
+
+    const s = getSocket();
+
+    const handleContentChanged = (event: ContentChangedEvent) => {
+      // Check if this change affects the current presentation
+      if (event.presentationId !== presentationId) return;
+
+      // Determine if this affects the current view
+      const isCurrentAsset = event.assetId === assetId;
+      const isSupportingFile = event.filename.endsWith('.css') || event.filename.endsWith('.js');
+
+      if (isCurrentAsset || isSupportingFile) {
+        // Invalidate the asset query to get fresh content from server
+        if (assetId) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.asset(presentationId, assetId),
+          });
+        }
+
+        // Increment reload key to force iframe refresh
+        setReloadKey((prev) => prev + 1);
+        console.log(`[FliDeck] Content changed: ${event.filename}, reloading iframe`);
+      }
+    };
+
+    s.on('content:changed', handleContentChanged);
+    return () => {
+      s.off('content:changed', handleContentChanged);
+    };
+  }, [queryClient, presentationId, assetId]);
+
+  return reloadKey;
 }
 
 /**

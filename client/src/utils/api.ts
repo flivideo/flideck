@@ -45,6 +45,13 @@ class ApiClient {
       body: body ? JSON.stringify(body) : undefined,
     });
   }
+
+  async put<T>(endpoint: string, body?: unknown): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
 }
 
 export const api = new ApiClient(API_URL);

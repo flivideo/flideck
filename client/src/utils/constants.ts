@@ -6,4 +6,5 @@ export const queryKeys = {
   presentation: (id: string) => ['presentations', id] as const,
   asset: (presentationId: string, assetId: string) =>
     ['assets', presentationId, assetId] as const,
+  config: ['config'] as const,
 } as const;

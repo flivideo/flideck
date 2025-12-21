@@ -1,24 +1,72 @@
 @import 'tailwindcss';
 
+/* AppyDave Brand Colors */
 :root {
-  --color-primary: #3b82f6;
-  --color-primary-dark: #1d4ed8;
-  --color-surface: #1e293b;
-  --color-background: #0f172a;
+  /* Primary */
+  --brand-brown: #342d2d;
+  --brand-gold: #ccba9d;
+  --brand-yellow: #ffde59;
+  --brand-blue: #2E91FC;
+  /* Secondary */
+  --brand-gray: #595959;
+  /* Neutral */
+  --brand-white: #ffffff;
+
+  /* Semantic mappings */
+  --color-background: var(--brand-brown);
+  --color-surface: #3d3535;
+  --color-surface-hover: #4a4040;
+  --color-primary: var(--brand-yellow);
+  --color-accent: var(--brand-gold);
+  --color-interactive: var(--brand-blue);
+
+  /* Text */
+  --text-primary: var(--brand-white);
+  --text-secondary: var(--brand-gold);
+  --text-muted: var(--brand-gray);
 }
 
+/* Typography */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Roboto', Arial, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--color-background);
-  color: #e2e8f0;
+  color: var(--text-primary);
+}
+
+h1, .font-bebas {
+  font-family: 'Bebas Neue', Arial, sans-serif;
+}
+
+h2, h3, h4, h5, h6, .font-oswald {
+  font-family: 'Oswald', Arial, sans-serif;
+  text-transform: uppercase;
 }
 
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* Button base styles */
+.btn-primary {
+  background-color: var(--brand-yellow);
+  color: var(--brand-brown);
+  font-family: 'Bebas Neue', Arial, sans-serif;
+  border-radius: 8px;
+  transition: all 200ms ease-in-out;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.btn-primary:disabled {
+  background-color: var(--color-surface);
+  color: var(--text-muted);
 }

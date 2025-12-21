@@ -2,9 +2,17 @@ import { watch, type FSWatcher } from 'chokidar';
 import type { Server } from 'socket.io';
 
 /**
+ * Change event data passed to callbacks and Socket.io events.
+ */
+export interface ChangeEventData {
+  eventType: string;
+  filePath: string;
+}
+
+/**
  * Configuration for a file system watcher.
  */
-interface WatchConfig {
+export interface WatchConfig {
   /** Unique name for this watcher */
   name: string;
   /** Path or glob pattern to watch */
@@ -15,6 +23,8 @@ interface WatchConfig {
   debounceMs?: number;
   /** Optional Socket.io room for scoped broadcasts */
   room?: string;
+  /** Optional server-side callback when files change */
+  onChangeCallback?: (data: ChangeEventData) => void | Promise<void>;
 }
 
 /**
@@ -24,19 +34,26 @@ interface WatchConfig {
 export class WatcherManager {
   private watchers = new Map<string, FSWatcher>();
   private debounceTimers = new Map<string, NodeJS.Timeout>();
+  private callbacks = new Map<string, (data: ChangeEventData) => void | Promise<void>>();
 
   constructor(private io: Server) {}
 
   /**
    * Start watching a path for changes.
    * Emits Socket.io events when files change (debounced).
+   * Optionally calls a server-side callback.
    */
   watch(config: WatchConfig): void {
-    const { name, path, event, debounceMs = 300, room } = config;
+    const { name, path, event, debounceMs = 300, room, onChangeCallback } = config;
 
     if (this.watchers.has(name)) {
       console.log(`Watcher "${name}" already exists, skipping`);
       return;
+    }
+
+    // Store callback if provided
+    if (onChangeCallback) {
+      this.callbacks.set(name, onChangeCallback);
     }
 
     const watcher = watch(path, {
@@ -63,13 +80,14 @@ export class WatcherManager {
 
   /**
    * Debounced event emission to prevent rapid-fire updates.
+   * Also calls the server-side callback if registered.
    */
   private debounceEmit(
     name: string,
     event: string,
     ms: number,
     room?: string,
-    data?: unknown
+    data?: ChangeEventData
   ): void {
     const timerKey = `${name}:${event}`;
     const existing = this.debounceTimers.get(timerKey);
@@ -80,12 +98,24 @@ export class WatcherManager {
 
     this.debounceTimers.set(
       timerKey,
-      setTimeout(() => {
+      setTimeout(async () => {
+        // Emit to Socket.io clients
         if (room) {
           this.io.to(room).emit(event, data);
         } else {
           this.io.emit(event, data);
         }
+
+        // Call server-side callback if registered
+        const callback = this.callbacks.get(name);
+        if (callback && data) {
+          try {
+            await callback(data);
+          } catch (error) {
+            console.error(`Callback error for watcher "${name}":`, error);
+          }
+        }
+
         this.debounceTimers.delete(timerKey);
       }, ms)
     );
@@ -99,6 +129,7 @@ export class WatcherManager {
     if (watcher) {
       watcher.close();
       this.watchers.delete(name);
+      this.callbacks.delete(name);
       console.log(`Stopped watcher "${name}"`);
     }
   }

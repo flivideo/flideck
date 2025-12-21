@@ -34,6 +34,8 @@ export interface Asset {
   isIndex: boolean;
   /** Timestamp when asset was last modified */
   lastModified: number;
+  /** Full URL to view this asset in the browser */
+  url?: string;
 }
 
 /**
@@ -69,7 +71,21 @@ export interface SocketEvents {
   'presentations:updated': { eventType: string; filePath: string };
   'presentation:joined': { presentationId: string };
   'presentation:left': { presentationId: string };
-  'asset:changed': { presentationId: string; assetId: string };
+  'config:changed': { presentationsRoot: string };
+
+  // Granular file change events for real-time updates
+  'content:changed': { presentationId: string; assetId: string; filename: string };
+  'structure:changed': { eventType: string; filePath: string; presentationId?: string };
+}
+
+/**
+ * Configuration response from /api/config
+ */
+export interface ConfigResponse {
+  /** Current presentations root path (with tilde notation) */
+  presentationsRoot: string;
+  /** Previously used presentation roots */
+  history: string[];
 }
 
 /**
@@ -84,4 +100,24 @@ export interface FileChangeEvent {
   eventType: WatcherEventType;
   filePath: string;
   presentationId?: string;
+}
+
+/**
+ * FliDeck manifest file structure (flideck.json)
+ * Used for custom asset ordering within presentations
+ */
+export interface FlideckManifest {
+  /** Asset configuration */
+  assets?: {
+    /** Custom ordering of assets by filename (e.g., ["intro.html", "main.html"]) */
+    order?: string[];
+  };
+}
+
+/**
+ * Request body for updating asset order
+ */
+export interface UpdateAssetOrderRequest {
+  /** Ordered array of asset filenames */
+  order: string[];
 }

@@ -61,5 +61,36 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
     })
   );
 
+  /**
+   * PUT /api/presentations/:id/order
+   * Update asset order for a presentation.
+   */
+  router.put(
+    '/:id/order',
+    asyncHandler(async (req, res) => {
+      const { id } = req.params;
+      const { order } = req.body;
+
+      // Validate request body
+      if (!order || !Array.isArray(order)) {
+        throw new AppError('Invalid request: order must be an array of filenames', 400);
+      }
+
+      // Verify presentation exists
+      const presentation = await presentationService.getById(id);
+      if (!presentation) {
+        throw new AppError('Presentation not found', 404);
+      }
+
+      // Save the new order
+      await presentationService.saveAssetOrder(id, order);
+
+      // Notify clients about the change
+      io.emit('presentations:updated', { reason: 'order-changed', presentationId: id });
+
+      res.json({ success: true });
+    })
+  );
+
   return router;
 }

@@ -16,9 +16,15 @@ export function LoadingSpinner({ size = 'md', message }: LoadingSpinnerProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3">
       <div
-        className={`${sizeClasses[size]} border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin`}
+        className={`${sizeClasses[size]} rounded-full animate-spin`}
+        style={{
+          borderWidth: '2px',
+          borderStyle: 'solid',
+          borderColor: '#4a4040',
+          borderTopColor: '#ffde59'
+        }}
       />
-      {message && <p className="text-sm text-slate-400">{message}</p>}
+      {message && <p className="text-sm" style={{ color: '#ccba9d' }}>{message}</p>}
     </div>
   );
 }

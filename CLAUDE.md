@@ -6,7 +6,7 @@ FliDeck is a **local-first presentation harness** that discovers, mounts, and di
 
 **Purpose:** Viewing and navigating generated visual assets without manual file management or browser tab chaos.
 
-**What it is NOT:** A presentation builder, editor, or templating engine.
+**What it is NOT:** A presentation builder, editor, or templating engine. FliDeck supports minimal editing capabilities (e.g., asset ordering via drag-and-drop) but is primarily a viewer.
 
 ## Quick Start
 
@@ -51,6 +51,7 @@ npm start
 | GET | `/api/presentations` | List all presentations |
 | GET | `/api/presentations/:id` | Get single presentation |
 | POST | `/api/presentations/refresh` | Force refresh cache |
+| PUT | `/api/presentations/:id/order` | Update asset order |
 | GET | `/api/assets/:presentationId/:assetId` | Get asset content |
 | GET | `/api/health` | Health check |
 
@@ -59,15 +60,71 @@ npm start
 | Event | Direction | Description |
 |-------|-----------|-------------|
 | `presentations:updated` | Server -> Client | File system changed |
+| `config:changed` | Server -> Client | Config reloaded (hot reload) |
 | `join:presentation` | Client -> Server | Join presentation room |
 | `leave:presentation` | Client -> Server | Leave presentation room |
 
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `F` | Toggle presentation mode (hide chrome) |
+| `Escape` | Exit presentation mode |
+| `Cmd/Ctrl + ←` | Previous asset |
+| `Cmd/Ctrl + →` | Next asset |
+| `Cmd/Ctrl + Home` | First asset |
+| `Cmd/Ctrl + End` | Last asset |
+
+**Note:** Modifier keys (`Cmd` on Mac, `Ctrl` on Windows/Linux) are required for navigation to avoid conflicts with presentation's internal controls.
+
 ## File Discovery Rules
 
-1. FliDeck watches `PRESENTATIONS_ROOT` directory
+1. FliDeck watches `presentationsRoot` from config.json
 2. Any subfolder containing `index.html` is a valid presentation
 3. All `.html` files in the folder are considered assets
-4. No manifest required (convention over configuration)
+4. Asset order: Uses `flideck.json` manifest if present, otherwise default (index first, then alphabetical)
+
+## Asset Ordering
+
+Assets can be reordered via drag-and-drop in the sidebar. The order is persisted in a `flideck.json` manifest file within each presentation folder.
+
+**Manifest Structure:**
+```json
+{
+  "assets": {
+    "order": ["intro.html", "main.html", "conclusion.html", "index.html"]
+  }
+}
+```
+
+**Self-healing behavior:**
+- Missing files in manifest are silently skipped
+- New files not in manifest appear at end (alphabetically)
+- Invalid/corrupted manifest falls back to default ordering
+
+## Configuration
+
+FliDeck uses a JSON configuration file for dynamic settings.
+
+**Files:**
+- `config.json` - User config (gitignored)
+- `config.example.json` - Template with defaults
+
+**Config Structure:**
+```json
+{
+  "presentationsRoot": "~/path/to/presentations",
+  "history": ["~/previous/path"]
+}
+```
+
+**Features:**
+- Tilde (`~`) paths expanded to home directory
+- Hot reload - changes apply without restart
+- History tracks previously used roots (max 10)
+- Falls back to `config.example.json` if `config.json` missing
+
+**To configure:** Copy `config.example.json` to `config.json` and edit.
 
 ## Environment Variables
 
@@ -75,7 +132,6 @@ npm start
 |----------|---------|-------------|
 | `PORT` | 5201 | Server port |
 | `CLIENT_URL` | http://localhost:5200 | CORS origin |
-| `PRESENTATIONS_ROOT` | ./presentations | Where to find presentations |
 | `NODE_ENV` | development | Environment mode |
 
 ## Common Tasks
