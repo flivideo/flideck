@@ -9,6 +9,7 @@ import { AssetViewer } from '../components/ui/AssetViewer';
 import { QuickFilter, QuickFilterItem } from '../components/ui/QuickFilter';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { EmptyState } from '../components/ui/EmptyState';
+import { getSidebarOrder } from '../utils/sidebarOrder';
 
 /**
  * Presentation page with asset navigation and viewer.
@@ -53,14 +54,20 @@ export function PresentationPage() {
     }
   }, [presentation, selectedAssetId]);
 
-  // Get current asset index for navigation
-  const currentIndex = presentation?.assets.findIndex((a) => a.id === selectedAssetId) ?? -1;
-  const totalAssets = presentation?.assets.length ?? 0;
+  // Get sidebar-ordered assets for navigation (matches visual order in sidebar)
+  const sidebarOrderedAssets = useMemo(
+    () => getSidebarOrder(presentation),
+    [presentation]
+  );
 
-  // Navigate to adjacent asset
+  // Get current asset index for navigation (using sidebar order)
+  const currentIndex = sidebarOrderedAssets.findIndex((a) => a.id === selectedAssetId);
+  const totalAssets = sidebarOrderedAssets.length;
+
+  // Navigate to adjacent asset (follows sidebar visual order)
   const navigateToAsset = useCallback(
     (direction: 'prev' | 'next' | 'first' | 'last') => {
-      if (!presentation || presentation.assets.length === 0) return;
+      if (sidebarOrderedAssets.length === 0) return;
 
       let newIndex: number;
       switch (direction) {
@@ -68,18 +75,18 @@ export function PresentationPage() {
           newIndex = Math.max(0, currentIndex - 1);
           break;
         case 'next':
-          newIndex = Math.min(presentation.assets.length - 1, currentIndex + 1);
+          newIndex = Math.min(sidebarOrderedAssets.length - 1, currentIndex + 1);
           break;
         case 'first':
           newIndex = 0;
           break;
         case 'last':
-          newIndex = presentation.assets.length - 1;
+          newIndex = sidebarOrderedAssets.length - 1;
           break;
       }
-      setSelectedAssetId(presentation.assets[newIndex].id);
+      setSelectedAssetId(sidebarOrderedAssets[newIndex].id);
     },
-    [presentation, currentIndex]
+    [sidebarOrderedAssets, currentIndex]
   );
 
   // Keyboard handler - uses Ctrl modifier for navigation to avoid conflicts with iframe content
@@ -162,15 +169,14 @@ export function PresentationPage() {
     setSelectedAssetId(assetId);
   };
 
-  // Convert assets to quick filter items
+  // Convert assets to quick filter items (using sidebar order)
   const quickFilterItems: QuickFilterItem[] = useMemo(() => {
-    if (!presentation) return [];
-    return presentation.assets.map((a) => ({
+    return sidebarOrderedAssets.map((a) => ({
       id: a.id,
       name: a.name,
-      subtitle: a.isIndex ? 'index' : undefined,
+      subtitle: a.isIndex ? 'index' : a.group ? a.group : undefined,
     }));
-  }, [presentation]);
+  }, [sidebarOrderedAssets]);
 
   const handleQuickFilterSelect = (assetId: string) => {
     setSelectedAssetId(assetId);

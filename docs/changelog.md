@@ -6,6 +6,9 @@ Implementation history for FliDeck.
 
 | Date | What | FRs |
 |------|------|-----|
+| 2025-12-22 | Rich manifest schema with groups and collapsible sidebar | FR-15 |
+| 2025-12-22 | Rename manifest from flideck.json to index.json | FR-14 |
+| 2025-12-22 | Default creation-time ordering for assets (oldest first) | FR-13 |
 | 2025-12-21 | Quick filter (Cmd+K) for presentations and assets | FR-9 |
 | 2025-12-21 | Copy path to clipboard (Alt+hover reveals URL/ABS/REL buttons) | FR-12 |
 | 2025-12-21 | Claude skill for FliDeck | FR-11 |
@@ -22,6 +25,66 @@ Implementation history for FliDeck.
 ---
 
 ## Detailed History
+
+### 2025-12-22 - Rich Manifest Schema with Groups
+
+**Commit:** `pending`
+**FRs:** FR-15
+
+**What was done:**
+- Added rich schema types: `ManifestMeta`, `ManifestStats`, `GroupDefinition`, `ManifestSlide`
+- Extended Asset type with `group`, `title`, `description`, `recommended` fields
+- Extended Presentation type with `groups` and `meta` fields
+- PresentationService parses both new `slides[]` format and legacy `assets.order`
+- Sidebar groups assets by their `group` property with collapsible sections
+- Groups sorted by `order` value, "Ungrouped" appears last
+- Slides display `title` from manifest, recommended slides show ★ indicator
+- Group collapse state persisted in localStorage
+
+**Files created:**
+- None (types added to existing shared/src/types.ts)
+
+**Files modified:**
+- `shared/src/types.ts` - Added schema types, extended Asset and Presentation
+- `server/src/services/PresentationService.ts` - Parse new schema, apply slide metadata
+- `client/src/components/layout/Sidebar.tsx` - Grouped sections with collapsible UI
+
+---
+
+### 2025-12-22 - Rename Manifest to index.json
+
+**Commit:** `pending`
+**FRs:** FR-14
+
+**What was done:**
+- Changed manifest filename from `flideck.json` to `index.json`
+- Added backwards compatibility: reads `flideck.json` if `index.json` doesn't exist
+- New saves always write to `index.json`
+- Updated CLAUDE.md with new filename and backwards compatibility note
+
+**Files modified:**
+- `server/src/services/PresentationService.ts` - Updated constants, added fallback read logic
+- `shared/src/types.ts` - Updated FlideckManifest comment
+- `CLAUDE.md` - Updated file discovery and asset ordering sections
+
+---
+
+### 2025-12-22 - Default Creation-Time Ordering
+
+**Commit:** `pending`
+**FRs:** FR-13
+
+**What was done:**
+- Changed default asset ordering from alphabetical to creation time (oldest first)
+- Added `createdAt` field to Asset interface using `birthtimeMs` (falls back to `mtimeMs`)
+- `index.html` still always appears first regardless of creation time
+- When manifest exists, custom order is still respected (no change)
+
+**Files modified:**
+- `shared/src/types.ts` - Added createdAt field to Asset interface
+- `server/src/services/PresentationService.ts` - Updated discoverAssets to capture birthtime and sort by creation time
+
+---
 
 ### 2025-12-21 - Quick Filter (Cmd+K)
 

@@ -7,7 +7,7 @@
 export interface Presentation {
   /** Unique identifier (folder name) */
   id: string;
-  /** Display name derived from folder name */
+  /** Display name derived from folder name or manifest meta.name */
   name: string;
   /** Absolute path to the presentation folder */
   path: string;
@@ -15,6 +15,10 @@ export interface Presentation {
   assets: Asset[];
   /** Timestamp when presentation was last modified */
   lastModified: number;
+  /** Group definitions from manifest (if present) */
+  groups?: Record<string, GroupDefinition>;
+  /** Metadata from manifest (if present) */
+  meta?: ManifestMeta;
 }
 
 /**
@@ -24,7 +28,7 @@ export interface Presentation {
 export interface Asset {
   /** Unique identifier (filename without extension) */
   id: string;
-  /** Display name derived from filename */
+  /** Display name derived from filename or manifest title */
   name: string;
   /** Filename (e.g., 'slides.html') */
   filename: string;
@@ -32,10 +36,20 @@ export interface Asset {
   relativePath: string;
   /** Whether this is the index.html entry point */
   isIndex: boolean;
+  /** Timestamp when asset was created (birthtime, falls back to mtime) */
+  createdAt: number;
   /** Timestamp when asset was last modified */
   lastModified: number;
   /** Full URL to view this asset in the browser */
   url?: string;
+  /** Group ID this asset belongs to (from manifest) */
+  group?: string;
+  /** Title from manifest (if provided) */
+  title?: string;
+  /** Description from manifest (if provided) */
+  description?: string;
+  /** Whether this slide is recommended (from manifest) */
+  recommended?: boolean;
 }
 
 /**
@@ -103,11 +117,88 @@ export interface FileChangeEvent {
 }
 
 /**
- * FliDeck manifest file structure (flideck.json)
- * Used for custom asset ordering within presentations
+ * Manifest metadata for presentation-level information
+ */
+export interface ManifestMeta {
+  /** Display name for the presentation */
+  name?: string;
+  /** Purpose or description of the presentation */
+  purpose?: string;
+  /** Source path for collection data */
+  collection_source?: string;
+  /** Path to component library */
+  component_library?: string;
+  /** Creation date (ISO format) */
+  created?: string;
+  /** Last updated date (ISO format) */
+  updated?: string;
+}
+
+/**
+ * Manifest statistics for aggregate counts
+ */
+export interface ManifestStats {
+  /** Total number of slides */
+  total_slides?: number;
+  /** Number of groups */
+  groups?: number;
+  /** Allow additional stats */
+  [key: string]: unknown;
+}
+
+/**
+ * Group definition for organizing slides
+ */
+export interface GroupDefinition {
+  /** Display label for the group */
+  label: string;
+  /** Sort order (lower = earlier) */
+  order: number;
+}
+
+/**
+ * Slide definition in the manifest
+ */
+export interface ManifestSlide {
+  /** Filename (e.g., 'intro.html') */
+  file: string;
+  /** Display title */
+  title?: string;
+  /** Description */
+  description?: string;
+  /** Slide type (e.g., 'cards', 'checklist') */
+  type?: string;
+  /** Group ID this slide belongs to */
+  group?: string;
+  /** Structure description */
+  structure?: string;
+  /** Preview description */
+  preview?: string;
+  /** Tags for categorization */
+  tags?: string[];
+  /** Whether this slide is recommended */
+  recommended?: boolean;
+  /** Additional notes */
+  notes?: string | null;
+}
+
+/**
+ * FliDeck manifest file structure (index.json, or legacy flideck.json)
+ * Supports both new rich schema and legacy format
  */
 export interface FlideckManifest {
-  /** Asset configuration */
+  // New rich format
+  /** Presentation metadata */
+  meta?: ManifestMeta;
+  /** Aggregate statistics */
+  stats?: ManifestStats;
+  /** Group definitions */
+  groups?: Record<string, GroupDefinition>;
+  /** Ordered slides array with metadata */
+  slides?: ManifestSlide[];
+
+  // Legacy format (still supported)
+  /** Legacy asset configuration */
   assets?: {
     /** Custom ordering of assets by filename (e.g., ["intro.html", "main.html"]) */
     order?: string[];
@@ -120,4 +211,12 @@ export interface FlideckManifest {
 export interface UpdateAssetOrderRequest {
   /** Ordered array of asset filenames */
   order: string[];
+}
+
+/**
+ * Request body for updating asset order with groups
+ */
+export interface UpdateAssetOrderWithGroupsRequest {
+  /** Ordered slides with group assignments */
+  slides: Array<{ file: string; group?: string }>;
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import type { Presentation, Asset } from '@flideck/shared';
 import { api } from '../../utils/api';
@@ -15,9 +15,16 @@ interface SidebarProps {
   showPresentations?: boolean;
 }
 
+interface GroupedAssets {
+  groupId: string;
+  label: string;
+  order: number;
+  assets: Asset[];
+}
+
 /**
  * Sidebar for navigating presentations and assets.
- * Supports drag-and-drop reordering of assets.
+ * Supports drag-and-drop reordering of assets and group-based organization.
  */
 export function Sidebar({
   presentations,
@@ -36,10 +43,138 @@ export function Sidebar({
   const [draggedAssetId, setDraggedAssetId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
+  // Undo state - stores previous order for Cmd+Z
+  const previousOrderRef = useRef<{ presentationId: string; order: string[] } | null>(null);
+
+  // Collapsed groups state (persisted in localStorage)
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('flideck-collapsed-groups');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
   // Copy path state
   const isAltPressed = useModifierKey('Alt');
   const [hoveredAssetId, setHoveredAssetId] = useState<string | null>(null);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+
+  // Find the index asset (shown separately at top)
+  const indexAsset = useMemo(() => {
+    return selectedPresentation?.assets.find((a) => a.isIndex) || null;
+  }, [selectedPresentation]);
+
+  // Group assets by their group property (excluding index)
+  const groupedAssets = useMemo((): GroupedAssets[] => {
+    if (!selectedPresentation) return [];
+
+    const groups = selectedPresentation.groups || {};
+    const assetsByGroup = new Map<string, Asset[]>();
+
+    // Group assets (excluding index)
+    for (const asset of selectedPresentation.assets) {
+      if (asset.isIndex) continue; // Index shown separately at top
+      const groupId = asset.group || '__ungrouped__';
+      if (!assetsByGroup.has(groupId)) {
+        assetsByGroup.set(groupId, []);
+      }
+      assetsByGroup.get(groupId)!.push(asset);
+    }
+
+    // Build grouped assets array
+    const result: GroupedAssets[] = [];
+
+    // Add defined groups in order
+    const sortedGroups = Object.entries(groups)
+      .sort(([, a], [, b]) => a.order - b.order);
+
+    for (const [groupId, def] of sortedGroups) {
+      const assets = assetsByGroup.get(groupId) || [];
+      if (assets.length > 0) {
+        result.push({
+          groupId,
+          label: def.label,
+          order: def.order,
+          assets,
+        });
+        assetsByGroup.delete(groupId);
+      }
+    }
+
+    // Add any remaining groups (not defined but referenced by assets)
+    for (const [groupId, assets] of assetsByGroup) {
+      if (groupId !== '__ungrouped__' && assets.length > 0) {
+        result.push({
+          groupId,
+          label: groupId.charAt(0).toUpperCase() + groupId.slice(1).replace(/-/g, ' '),
+          order: 9999,
+          assets,
+        });
+      }
+    }
+
+    return result;
+  }, [selectedPresentation]);
+
+  // Get root-level assets (no group, excluding index) - shown without a header
+  const rootAssets = useMemo(() => {
+    if (!selectedPresentation) return [];
+    return selectedPresentation.assets.filter(
+      (a) => !a.isIndex && !a.group
+    );
+  }, [selectedPresentation]);
+
+  // Toggle group collapse
+  const toggleGroup = useCallback((groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      // Save to localStorage
+      try {
+        localStorage.setItem('flideck-collapsed-groups', JSON.stringify([...next]));
+      } catch {
+        // Ignore localStorage errors
+      }
+      return next;
+    });
+  }, []);
+
+  // Undo last reorder (Cmd+Z / Ctrl+Z)
+  const handleUndo = useCallback(async () => {
+    const prev = previousOrderRef.current;
+    if (!prev) return;
+
+    try {
+      await api.put(`/api/presentations/${prev.presentationId}/order`, { order: prev.order });
+      previousOrderRef.current = null; // Clear after undo
+      onAssetsReordered?.();
+      toast.success('Reorder undone');
+    } catch (error) {
+      console.error('Failed to undo reorder:', error);
+      toast.error('Failed to undo');
+    }
+  }, [onAssetsReordered]);
+
+  // Listen for Cmd+Z / Ctrl+Z
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        if (previousOrderRef.current) {
+          e.preventDefault();
+          handleUndo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo]);
 
   // Copy handlers
   const copyToClipboard = useCallback(async (text: string, label: string) => {
@@ -135,6 +270,13 @@ export function Sidebar({
       return;
     }
 
+    // Save previous order for undo (Cmd+Z)
+    const previousOrder = selectedPresentation.assets.map((a) => a.filename);
+    previousOrderRef.current = {
+      presentationId: selectedPresentation.id,
+      order: previousOrder,
+    };
+
     // Remove dragged item and insert at new position
     const [draggedItem] = assets.splice(draggedIndex, 1);
     assets.splice(targetIndex, 0, draggedItem);
@@ -148,10 +290,192 @@ export function Sidebar({
       onAssetsReordered?.();
     } catch (error) {
       console.error('Failed to save asset order:', error);
+      previousOrderRef.current = null; // Clear on error
     }
 
     handleDragEnd();
   }, [selectedPresentation, draggedAssetId, handleDragEnd, onAssetsReordered]);
+
+  // Render the index row (special styling, shows presentation name)
+  const renderIndexRow = (asset: Asset) => {
+    const isDragging = draggedAssetId === asset.id;
+    const isDropTarget = dropTargetId === asset.id;
+    const isSelected = selectedAssetId === asset.id;
+    const isHovered = hoveredAssetId === asset.id;
+    const showCopyButtons = isAltPressed && isHovered;
+    const displayName = selectedPresentation?.name || 'Index';
+
+    return (
+      <div
+        key={asset.id}
+        className="mb-2"
+        onMouseEnter={() => setHoveredAssetId(asset.id)}
+        onMouseLeave={() => setHoveredAssetId(null)}
+      >
+        <button
+          draggable
+          onDragStart={(e) => handleDragStart(e, asset.id)}
+          onDragOver={(e) => handleDragOver(e, asset.id)}
+          onDragLeave={handleDragLeave}
+          onDragEnd={handleDragEnd}
+          onDrop={(e) => handleDrop(e, asset.id)}
+          onClick={() => onSelectAsset(selectedPresentation!.id, asset.id)}
+          className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
+          style={{
+            backgroundColor: isDropTarget
+              ? '#ffde59'
+              : isSelected
+                ? '#ccba9d' // Gold when selected (distinct from yellow)
+                : '#4a4040', // Subtle background when not selected
+            color: isDropTarget || isSelected ? '#342d2d' : '#ffffff',
+            opacity: isDragging ? 0.5 : 1,
+            cursor: 'grab',
+            borderTop: isDropTarget ? '2px solid #ccba9d' : '2px solid transparent',
+          }}
+        >
+          <span
+            className="mr-2 text-xs cursor-grab"
+            style={{ color: isSelected || isDropTarget ? '#342d2d' : '#595959' }}
+            title="Drag to reorder"
+          >
+            ⋮⋮
+          </span>
+          <span className="truncate font-medium">{displayName}</span>
+        </button>
+        {showCopyButtons && (
+          <div className="flex gap-1 pl-3 pb-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); }}
+              className="px-2 py-0.5 text-xs rounded transition-colors"
+              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
+            >
+              URL
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); }}
+              className="px-2 py-0.5 text-xs rounded transition-colors"
+              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
+            >
+              ABS
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); }}
+              className="px-2 py-0.5 text-xs rounded transition-colors"
+              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
+            >
+              REL
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render a single asset row
+  const renderAssetRow = (asset: Asset) => {
+    const isDragging = draggedAssetId === asset.id;
+    const isDropTarget = dropTargetId === asset.id;
+    const isSelected = selectedAssetId === asset.id;
+    const isHovered = hoveredAssetId === asset.id;
+    const showCopyButtons = isAltPressed && isHovered;
+
+    return (
+      <div
+        key={asset.id}
+        onMouseEnter={() => setHoveredAssetId(asset.id)}
+        onMouseLeave={() => setHoveredAssetId(null)}
+      >
+        <button
+          draggable
+          onDragStart={(e) => handleDragStart(e, asset.id)}
+          onDragOver={(e) => handleDragOver(e, asset.id)}
+          onDragLeave={handleDragLeave}
+          onDragEnd={handleDragEnd}
+          onDrop={(e) => handleDrop(e, asset.id)}
+          onClick={() =>
+            onSelectAsset(selectedPresentation!.id, asset.id)
+          }
+          className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
+          style={{
+            backgroundColor: isDropTarget
+              ? '#ffde59'
+              : isSelected
+                ? '#ffde59'
+                : isHovered
+                  ? '#4a4040'
+                  : 'transparent',
+            color: isDropTarget || isSelected ? '#342d2d' : '#ffffff',
+            opacity: isDragging ? 0.5 : 1,
+            cursor: 'grab',
+            borderTop: isDropTarget ? '2px solid #ccba9d' : '2px solid transparent',
+          }}
+        >
+          <span
+            className="mr-2 text-xs cursor-grab"
+            style={{ color: isSelected || isDropTarget ? '#342d2d' : '#595959' }}
+            title="Drag to reorder"
+          >
+            ⋮⋮
+          </span>
+          {asset.isIndex && (
+            <span
+              className="mr-2 text-xs px-1.5 py-0.5 rounded"
+              style={{ backgroundColor: '#ccba9d', color: '#342d2d' }}
+            >
+              index
+            </span>
+          )}
+          {asset.recommended && (
+            <span
+              className="mr-2 text-xs"
+              style={{ color: '#ffde59' }}
+              title="Recommended"
+            >
+              ★
+            </span>
+          )}
+          <span className="truncate">{asset.name}</span>
+        </button>
+        {showCopyButtons && (
+          <div className="flex gap-1 pl-3 pb-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); }}
+              className="px-2 py-0.5 text-xs rounded transition-colors"
+              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
+            >
+              URL
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); }}
+              className="px-2 py-0.5 text-xs rounded transition-colors"
+              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
+            >
+              ABS
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); }}
+              className="px-2 py-0.5 text-xs rounded transition-colors"
+              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
+            >
+              REL
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <aside
@@ -206,90 +530,51 @@ export function Sidebar({
             )}
           </div>
           <nav className="p-2">
-            {selectedPresentation.assets.map((asset: Asset) => {
-              const isDragging = draggedAssetId === asset.id;
-              const isDropTarget = dropTargetId === asset.id;
-              const isSelected = selectedAssetId === asset.id;
-              const isHovered = hoveredAssetId === asset.id;
-              const showCopyButtons = isAltPressed && isHovered;
+            {/* Index always shown at top, outside groups */}
+            {indexAsset && renderIndexRow(indexAsset)}
+
+            {/* Root-level assets (no group) - shown without a header */}
+            {rootAssets.map(renderAssetRow)}
+
+            {/* Groups with collapsible headers */}
+            {groupedAssets.map((group) => {
+              const isCollapsed = collapsedGroups.has(group.groupId);
 
               return (
-                <div
-                  key={asset.id}
-                  onMouseEnter={() => setHoveredAssetId(asset.id)}
-                  onMouseLeave={() => setHoveredAssetId(null)}
-                >
+                <div key={group.groupId} className="mb-2 mt-2">
+                  {/* Group Header */}
                   <button
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, asset.id)}
-                    onDragOver={(e) => handleDragOver(e, asset.id)}
-                    onDragLeave={handleDragLeave}
-                    onDragEnd={handleDragEnd}
-                    onDrop={(e) => handleDrop(e, asset.id)}
-                    onClick={() =>
-                      onSelectAsset(selectedPresentation.id, asset.id)
-                    }
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
+                    onClick={() => toggleGroup(group.groupId)}
+                    className="w-full text-left px-2 py-1.5 flex items-center text-xs font-semibold uppercase tracking-wide transition-colors rounded"
                     style={{
-                      backgroundColor: isDropTarget
-                        ? '#ffde59'
-                        : isSelected
-                          ? '#ffde59'
-                          : isHovered
-                            ? '#4a4040'
-                            : 'transparent',
-                      color: isDropTarget || isSelected ? '#342d2d' : '#ffffff',
-                      opacity: isDragging ? 0.5 : 1,
-                      cursor: 'grab',
-                      borderTop: isDropTarget ? '2px solid #ccba9d' : '2px solid transparent',
+                      color: '#ccba9d',
+                      fontFamily: "'Oswald', Arial, sans-serif",
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
                   >
                     <span
-                      className="mr-2 text-xs cursor-grab"
-                      style={{ color: isSelected || isDropTarget ? '#342d2d' : '#595959' }}
-                      title="Drag to reorder"
+                      className="mr-2 transition-transform"
+                      style={{
+                        display: 'inline-block',
+                        transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                      }}
                     >
-                      ⋮⋮
+                      ▼
                     </span>
-                    {asset.isIndex && (
-                      <span
-                        className="mr-2 text-xs px-1.5 py-0.5 rounded"
-                        style={{ backgroundColor: '#ccba9d', color: '#342d2d' }}
-                      >
-                        index
-                      </span>
-                    )}
-                    {asset.name}
+                    <span className="flex-1">{group.label}</span>
+                    <span
+                      className="text-xs px-1.5 py-0.5 rounded ml-2"
+                      style={{ backgroundColor: '#4a4040', color: '#ccba9d' }}
+                    >
+                      {group.assets.length}
+                    </span>
                   </button>
-                  {showCopyButtons && (
-                    <div className="flex gap-1 pl-3 pb-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); }}
-                        className="px-2 py-0.5 text-xs rounded transition-colors"
-                        style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
-                      >
-                        URL
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); }}
-                        className="px-2 py-0.5 text-xs rounded transition-colors"
-                        style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
-                      >
-                        ABS
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); }}
-                        className="px-2 py-0.5 text-xs rounded transition-colors"
-                        style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
-                      >
-                        REL
-                      </button>
+
+                  {/* Group Assets */}
+                  {!isCollapsed && (
+                    <div className="pl-4 mt-1">
+                      {group.assets.map(renderAssetRow)}
                     </div>
                   )}
                 </div>

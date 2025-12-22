@@ -86,11 +86,13 @@ npm start
 1. FliDeck watches `presentationsRoot` from config.json
 2. Any subfolder containing `index.html` is a valid presentation
 3. All `.html` files in the folder are considered assets
-4. Asset order: Uses `flideck.json` manifest if present, otherwise default (index first, then alphabetical)
+4. Asset order: Uses `index.json` manifest if present, otherwise default (index first, then by creation time)
 
 ## Asset Ordering
 
-Assets can be reordered via drag-and-drop in the sidebar. The order is persisted in a `flideck.json` manifest file within each presentation folder.
+Assets can be reordered via drag-and-drop in the sidebar. The order is persisted in an `index.json` manifest file within each presentation folder.
+
+**Backwards Compatibility:** FliDeck also reads legacy `flideck.json` files if `index.json` doesn't exist. New saves always go to `index.json`.
 
 **Manifest Structure:**
 ```json

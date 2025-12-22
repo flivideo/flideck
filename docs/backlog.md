@@ -18,6 +18,11 @@ Requirements index for FliDeck.
 | 10 | [FR-10: Query API for External Systems](prd/fr-10-query-api.md) | 2025-12-21 | Implemented |
 | 11 | [FR-11: FliDeck Claude Skill](prd/fr-11-claude-skill.md) | 2025-12-21 | Implemented |
 | 12 | [FR-12: Copy Path to Clipboard](prd/fr-12-copy-path-clipboard.md) | 2025-12-21 | Implemented |
+| 13 | [FR-13: Default Creation-Time Ordering](prd/fr-13-creation-time-ordering.md) | 2025-12-22 | Implemented |
+| 14 | [FR-14: Rename Manifest to index.json](prd/fr-14-rename-manifest.md) | 2025-12-22 | Implemented |
+| 15 | [FR-15: Rich Manifest Schema with Groups](prd/fr-15-rich-manifest-schema.md) | 2025-12-22 | Needs Rework |
+| 16 | [FR-16: Agent Slide Management API](prd/fr-16-agent-slide-api.md) | 2025-12-22 | Pending |
+| 17 | [FR-17: Group Management](prd/fr-17-group-management.md) | 2025-12-22 | Pending |
 
 ## Non-Functional Requirements
 
