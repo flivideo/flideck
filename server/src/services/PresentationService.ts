@@ -430,4 +430,450 @@ export class PresentationService extends EventEmitter {
       .replace(/[-_]/g, ' ')
       .replace(/\b\w/g, (c) => c.toUpperCase());
   }
+
+  // ============================================================
+  // FR-16: Agent Slide Management API Methods
+  // ============================================================
+
+  /**
+   * Create a new presentation folder and manifest.
+   * Does NOT create any HTML files (agent's responsibility).
+   *
+   * @param id - Presentation ID (becomes folder name)
+   * @param name - Optional display name
+   * @param slides - Optional initial slides
+   * @returns Path to the created presentation folder
+   * @throws Error if presentation already exists
+   */
+  async createPresentation(
+    id: string,
+    name?: string,
+    slides?: Array<{ file: string; title?: string; group?: string }>
+  ): Promise<string> {
+    const folderPath = path.join(this.presentationsRoot, id);
+
+    // Check if folder already exists
+    if (await fs.pathExists(folderPath)) {
+      throw new Error(`Presentation already exists: ${id}`);
+    }
+
+    // Create folder
+    await fs.ensureDir(folderPath);
+
+    // Build manifest
+    const manifest: FlideckManifest = {
+      meta: {
+        name: name || this.formatName(id),
+        created: new Date().toISOString().split('T')[0],
+        updated: new Date().toISOString().split('T')[0],
+      },
+      slides: slides?.map((s) => ({
+        file: s.file,
+        title: s.title,
+        group: s.group,
+      })) || [],
+    };
+
+    // Write manifest
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache();
+
+    return folderPath;
+  }
+
+  /**
+   * Add a slide to a presentation's manifest.
+   * Does NOT create the HTML file (agent's responsibility).
+   *
+   * @param presentationId - Presentation ID
+   * @param slide - Slide metadata
+   * @throws Error if presentation not found or slide already exists
+   */
+  async addSlide(
+    presentationId: string,
+    slide: {
+      file: string;
+      title?: string;
+      group?: string;
+      description?: string;
+      recommended?: boolean;
+    }
+  ): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest or create new one
+    let manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      manifest = { slides: [] };
+    }
+
+    // Ensure slides array exists
+    if (!manifest.slides) {
+      // Convert legacy format if present
+      if (manifest.assets?.order) {
+        manifest.slides = manifest.assets.order.map((file) => ({ file }));
+        delete manifest.assets;
+      } else {
+        manifest.slides = [];
+      }
+    }
+
+    // Check if slide already exists
+    const existingIndex = manifest.slides.findIndex((s) => s.file === slide.file);
+    if (existingIndex !== -1) {
+      throw new Error(`Slide already exists: ${slide.file}`);
+    }
+
+    // Build slide entry
+    const newSlide: ManifestSlide = {
+      file: slide.file,
+    };
+    if (slide.title) newSlide.title = slide.title;
+    if (slide.group) newSlide.group = slide.group;
+    if (slide.description) newSlide.description = slide.description;
+    if (slide.recommended !== undefined) newSlide.recommended = slide.recommended;
+
+    // Append slide
+    manifest.slides.push(newSlide);
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Update metadata for an existing slide in the manifest.
+   *
+   * @param presentationId - Presentation ID
+   * @param slideId - Slide ID (filename without extension)
+   * @param updates - Fields to update
+   * @throws Error if presentation or slide not found
+   */
+  async updateSlide(
+    presentationId: string,
+    slideId: string,
+    updates: {
+      title?: string;
+      group?: string;
+      description?: string;
+      recommended?: boolean;
+    }
+  ): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Ensure slides array exists
+    if (!manifest.slides) {
+      throw new Error(`Slide not found: ${slideId}`);
+    }
+
+    // Find slide by ID (filename without extension)
+    const filename = slideId.endsWith('.html') ? slideId : `${slideId}.html`;
+    const slideIndex = manifest.slides.findIndex((s) => s.file === filename);
+    if (slideIndex === -1) {
+      throw new Error(`Slide not found: ${slideId}`);
+    }
+
+    // Update slide fields
+    const slide = manifest.slides[slideIndex];
+    if (updates.title !== undefined) {
+      slide.title = updates.title || undefined; // Remove if empty string
+    }
+    if (updates.group !== undefined) {
+      slide.group = updates.group || undefined; // Remove if empty string
+    }
+    if (updates.description !== undefined) {
+      slide.description = updates.description || undefined;
+    }
+    if (updates.recommended !== undefined) {
+      slide.recommended = updates.recommended;
+    }
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Remove a slide from the manifest.
+   * Does NOT delete the HTML file.
+   *
+   * @param presentationId - Presentation ID
+   * @param slideId - Slide ID (filename without extension)
+   * @throws Error if presentation or slide not found
+   */
+  async removeSlide(presentationId: string, slideId: string): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Ensure slides array exists
+    if (!manifest.slides) {
+      throw new Error(`Slide not found: ${slideId}`);
+    }
+
+    // Find slide by ID (filename without extension)
+    const filename = slideId.endsWith('.html') ? slideId : `${slideId}.html`;
+    const slideIndex = manifest.slides.findIndex((s) => s.file === filename);
+    if (slideIndex === -1) {
+      throw new Error(`Slide not found: ${slideId}`);
+    }
+
+    // Remove slide
+    manifest.slides.splice(slideIndex, 1);
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  // ============================================================
+  // FR-17: Group Management Methods
+  // ============================================================
+
+  /**
+   * Reorder groups in the manifest.
+   *
+   * @param presentationId - Presentation ID
+   * @param order - Array of group IDs in desired order
+   * @throws Error if presentation not found
+   */
+  async reorderGroups(presentationId: string, order: string[]): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Ensure groups object exists
+    if (!manifest.groups) {
+      manifest.groups = {};
+    }
+
+    // Update order values based on position in array
+    for (let i = 0; i < order.length; i++) {
+      const groupId = order[i];
+      if (manifest.groups[groupId]) {
+        manifest.groups[groupId].order = i + 1;
+      }
+    }
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Create a new group in the manifest.
+   *
+   * @param presentationId - Presentation ID
+   * @param id - Group ID (unique identifier)
+   * @param label - Display label for the group
+   * @throws Error if presentation not found or group already exists
+   */
+  async createGroup(presentationId: string, id: string, label: string): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest or create new one
+    let manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      manifest = { groups: {}, slides: [] };
+    }
+
+    // Ensure groups object exists
+    if (!manifest.groups) {
+      manifest.groups = {};
+    }
+
+    // Check if group already exists
+    if (manifest.groups[id]) {
+      throw new Error(`Group already exists: ${id}`);
+    }
+
+    // Find next order value
+    const existingOrders = Object.values(manifest.groups).map((g) => g.order);
+    const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
+
+    // Add group
+    manifest.groups[id] = { label, order: nextOrder };
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Update a group's label in the manifest.
+   *
+   * @param presentationId - Presentation ID
+   * @param groupId - Group ID
+   * @param label - New display label
+   * @throws Error if presentation or group not found
+   */
+  async updateGroup(presentationId: string, groupId: string, label: string): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Verify group exists
+    if (!manifest.groups || !manifest.groups[groupId]) {
+      throw new Error(`Group not found: ${groupId}`);
+    }
+
+    // Update label
+    manifest.groups[groupId].label = label;
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Delete a group from the manifest.
+   * Slides in the group move to root level (group property removed).
+   *
+   * @param presentationId - Presentation ID
+   * @param groupId - Group ID to delete
+   * @throws Error if presentation or group not found
+   */
+  async deleteGroup(presentationId: string, groupId: string): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Verify group exists
+    if (!manifest.groups || !manifest.groups[groupId]) {
+      throw new Error(`Group not found: ${groupId}`);
+    }
+
+    // Remove group
+    delete manifest.groups[groupId];
+
+    // Move slides from deleted group to root level
+    if (manifest.slides) {
+      for (const slide of manifest.slides) {
+        if (slide.group === groupId) {
+          delete slide.group;
+        }
+      }
+    }
+
+    // Renumber remaining groups to fill gaps
+    const sortedGroups = Object.entries(manifest.groups)
+      .sort(([, a], [, b]) => a.order - b.order);
+    for (let i = 0; i < sortedGroups.length; i++) {
+      const [id] = sortedGroups[i];
+      manifest.groups[id].order = i + 1;
+    }
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
 }

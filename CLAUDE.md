@@ -50,8 +50,16 @@ npm start
 |--------|----------|-------------|
 | GET | `/api/presentations` | List all presentations |
 | GET | `/api/presentations/:id` | Get single presentation |
+| POST | `/api/presentations` | Create new presentation (FR-16) |
 | POST | `/api/presentations/refresh` | Force refresh cache |
 | PUT | `/api/presentations/:id/order` | Update asset order |
+| POST | `/api/presentations/:id/slides` | Add slide to manifest (FR-16) |
+| PUT | `/api/presentations/:id/slides/:slideId` | Update slide metadata (FR-16) |
+| DELETE | `/api/presentations/:id/slides/:slideId` | Remove slide from manifest (FR-16) |
+| PUT | `/api/presentations/:id/groups/order` | Reorder groups (FR-17) |
+| POST | `/api/presentations/:id/groups` | Create group (FR-17) |
+| PUT | `/api/presentations/:id/groups/:groupId` | Rename group (FR-17) |
+| DELETE | `/api/presentations/:id/groups/:groupId` | Delete group (FR-17) |
 | GET | `/api/assets/:presentationId/:assetId` | Get asset content |
 | GET | `/api/health` | Health check |
 
@@ -75,11 +83,10 @@ npm start
 | `Cmd/Ctrl + →` | Next asset |
 | `Cmd/Ctrl + Home` | First asset |
 | `Cmd/Ctrl + End` | Last asset |
-| `Alt/Option + hover` | Reveal copy path buttons (URL, ABS, REL) |
 
 **Note:** Modifier keys (`Cmd` on Mac, `Ctrl` on Windows/Linux) are required for navigation to avoid conflicts with presentation's internal controls.
 
-**Copy Path:** Hold `Alt` (Option on Mac) and hover over an asset row or the "Assets" header to reveal copy buttons for URL, absolute path, or relative path.
+**Copy Path:** Click the ⋮ menu on any asset row to copy its URL, absolute path, or relative path. The "Assets" header also has a ⋮ menu to copy all paths at once.
 
 ## File Discovery Rules
 

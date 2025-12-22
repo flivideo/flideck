@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import type { Presentation, Asset } from '@flideck/shared';
 import { api } from '../../utils/api';
-import { useModifierKey } from '../../hooks/useModifierKey';
 
 interface SidebarProps {
   presentations: Presentation[];
@@ -56,10 +55,19 @@ export function Sidebar({
     }
   });
 
-  // Copy path state
-  const isAltPressed = useModifierKey('Alt');
+  // Copy path menu state (FR-17 style dropdown)
+  const [copyMenuOpenAssetId, setCopyMenuOpenAssetId] = useState<string | null>(null);
+  const [isHeaderCopyMenuOpen, setIsHeaderCopyMenuOpen] = useState(false);
   const [hoveredAssetId, setHoveredAssetId] = useState<string | null>(null);
-  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+
+  // Group management state (FR-17)
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupLabel, setEditingGroupLabel] = useState('');
+  const [menuOpenGroupId, setMenuOpenGroupId] = useState<string | null>(null);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [newGroupLabel, setNewGroupLabel] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+  const newGroupInputRef = useRef<HTMLInputElement>(null);
 
   // Find the index asset (shown separately at top)
   const indexAsset = useMemo(() => {
@@ -144,6 +152,118 @@ export function Sidebar({
       return next;
     });
   }, []);
+
+  // FR-17: Group management handlers
+  const startEditingGroup = useCallback((groupId: string, currentLabel: string) => {
+    setEditingGroupId(groupId);
+    setEditingGroupLabel(currentLabel);
+    setMenuOpenGroupId(null);
+    // Focus input after render
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  }, []);
+
+  const cancelEditingGroup = useCallback(() => {
+    setEditingGroupId(null);
+    setEditingGroupLabel('');
+  }, []);
+
+  const saveGroupLabel = useCallback(async () => {
+    if (!selectedPresentation || !editingGroupId || !editingGroupLabel.trim()) {
+      cancelEditingGroup();
+      return;
+    }
+
+    try {
+      await api.put(
+        `/api/presentations/${selectedPresentation.id}/groups/${editingGroupId}`,
+        { label: editingGroupLabel.trim() }
+      );
+      onAssetsReordered?.();
+      toast.success('Group renamed');
+    } catch (error) {
+      console.error('Failed to rename group:', error);
+      toast.error('Failed to rename group');
+    }
+    cancelEditingGroup();
+  }, [selectedPresentation, editingGroupId, editingGroupLabel, cancelEditingGroup, onAssetsReordered]);
+
+  const deleteGroup = useCallback(async (groupId: string) => {
+    if (!selectedPresentation) return;
+
+    try {
+      await api.delete(`/api/presentations/${selectedPresentation.id}/groups/${groupId}`);
+      onAssetsReordered?.();
+      toast.success('Group deleted');
+    } catch (error) {
+      console.error('Failed to delete group:', error);
+      toast.error('Failed to delete group');
+    }
+    setMenuOpenGroupId(null);
+  }, [selectedPresentation, onAssetsReordered]);
+
+  const startCreatingGroup = useCallback(() => {
+    setIsCreatingGroup(true);
+    setNewGroupLabel('');
+    // Focus input after render
+    setTimeout(() => newGroupInputRef.current?.focus(), 0);
+  }, []);
+
+  const cancelCreatingGroup = useCallback(() => {
+    setIsCreatingGroup(false);
+    setNewGroupLabel('');
+  }, []);
+
+  const createGroup = useCallback(async () => {
+    if (!selectedPresentation || !newGroupLabel.trim()) {
+      cancelCreatingGroup();
+      return;
+    }
+
+    // Generate ID from label (kebab-case)
+    const id = newGroupLabel
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    if (!id) {
+      toast.error('Invalid group name');
+      return;
+    }
+
+    try {
+      await api.post(`/api/presentations/${selectedPresentation.id}/groups`, {
+        id,
+        label: newGroupLabel.trim(),
+      });
+      onAssetsReordered?.();
+      toast.success('Group created');
+    } catch (error) {
+      console.error('Failed to create group:', error);
+      toast.error('Failed to create group');
+    }
+    cancelCreatingGroup();
+  }, [selectedPresentation, newGroupLabel, cancelCreatingGroup, onAssetsReordered]);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const anyMenuOpen = menuOpenGroupId || copyMenuOpenAssetId || isHeaderCopyMenuOpen;
+    if (!anyMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-group-menu]')) {
+        setMenuOpenGroupId(null);
+      }
+      if (!target.closest('[data-copy-menu]')) {
+        setCopyMenuOpenAssetId(null);
+        setIsHeaderCopyMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [menuOpenGroupId, copyMenuOpenAssetId, isHeaderCopyMenuOpen]);
 
   // Undo last reorder (Cmd+Z / Ctrl+Z)
   const handleUndo = useCallback(async () => {
@@ -301,16 +421,13 @@ export function Sidebar({
     const isDragging = draggedAssetId === asset.id;
     const isDropTarget = dropTargetId === asset.id;
     const isSelected = selectedAssetId === asset.id;
-    const isHovered = hoveredAssetId === asset.id;
-    const showCopyButtons = isAltPressed && isHovered;
+    const isCopyMenuOpen = copyMenuOpenAssetId === asset.id;
     const displayName = selectedPresentation?.name || 'Index';
 
     return (
       <div
         key={asset.id}
-        className="mb-2"
-        onMouseEnter={() => setHoveredAssetId(asset.id)}
-        onMouseLeave={() => setHoveredAssetId(null)}
+        className="mb-2 relative flex items-center"
       >
         <button
           draggable
@@ -320,13 +437,13 @@ export function Sidebar({
           onDragEnd={handleDragEnd}
           onDrop={(e) => handleDrop(e, asset.id)}
           onClick={() => onSelectAsset(selectedPresentation!.id, asset.id)}
-          className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
+          className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
           style={{
             backgroundColor: isDropTarget
               ? '#ffde59'
               : isSelected
-                ? '#ccba9d' // Gold when selected (distinct from yellow)
-                : '#4a4040', // Subtle background when not selected
+                ? '#ccba9d'
+                : '#4a4040',
             color: isDropTarget || isSelected ? '#342d2d' : '#ffffff',
             opacity: isDragging ? 0.5 : 1,
             cursor: 'grab',
@@ -342,37 +459,58 @@ export function Sidebar({
           </span>
           <span className="truncate font-medium">{displayName}</span>
         </button>
-        {showCopyButtons && (
-          <div className="flex gap-1 pl-3 pb-2">
-            <button
-              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); }}
-              className="px-2 py-0.5 text-xs rounded transition-colors"
-              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
+
+        {/* Copy path menu */}
+        <div className="relative" data-copy-menu>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCopyMenuOpenAssetId(isCopyMenuOpen ? null : asset.id);
+            }}
+            className="p-1 ml-1 rounded transition-colors"
+            style={{ color: '#595959' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
+            title="Copy path"
+          >
+            ⋮
+          </button>
+
+          {isCopyMenuOpen && (
+            <div
+              className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[100px]"
+              style={{ backgroundColor: '#4a4040' }}
             >
-              URL
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); }}
-              className="px-2 py-0.5 text-xs rounded transition-colors"
-              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
-            >
-              ABS
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); }}
-              className="px-2 py-0.5 text-xs rounded transition-colors"
-              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
-            >
-              REL
-            </button>
-          </div>
-        )}
+              <button
+                onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); setCopyMenuOpenAssetId(null); }}
+                className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                style={{ color: '#ffffff' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                Copy URL
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); setCopyMenuOpenAssetId(null); }}
+                className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                style={{ color: '#ffffff' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                Copy Absolute
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); setCopyMenuOpenAssetId(null); }}
+                className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                style={{ color: '#ffffff' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                Copy Relative
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -382,12 +520,13 @@ export function Sidebar({
     const isDragging = draggedAssetId === asset.id;
     const isDropTarget = dropTargetId === asset.id;
     const isSelected = selectedAssetId === asset.id;
+    const isCopyMenuOpen = copyMenuOpenAssetId === asset.id;
     const isHovered = hoveredAssetId === asset.id;
-    const showCopyButtons = isAltPressed && isHovered;
 
     return (
       <div
         key={asset.id}
+        className="relative flex items-center"
         onMouseEnter={() => setHoveredAssetId(asset.id)}
         onMouseLeave={() => setHoveredAssetId(null)}
       >
@@ -401,7 +540,7 @@ export function Sidebar({
           onClick={() =>
             onSelectAsset(selectedPresentation!.id, asset.id)
           }
-          className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
+          className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
           style={{
             backgroundColor: isDropTarget
               ? '#ffde59'
@@ -442,35 +581,58 @@ export function Sidebar({
           )}
           <span className="truncate">{asset.name}</span>
         </button>
-        {showCopyButtons && (
-          <div className="flex gap-1 pl-3 pb-2">
+
+        {/* Copy path menu - visible on hover */}
+        {(isHovered || isCopyMenuOpen) && (
+          <div className="relative" data-copy-menu>
             <button
-              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); }}
-              className="px-2 py-0.5 text-xs rounded transition-colors"
-              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCopyMenuOpenAssetId(isCopyMenuOpen ? null : asset.id);
+              }}
+              className="p-1 rounded transition-colors"
+              style={{ color: '#595959' }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
+              title="Copy path"
             >
-              URL
+              ⋮
             </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); }}
-              className="px-2 py-0.5 text-xs rounded transition-colors"
-              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
-            >
-              ABS
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); }}
-              className="px-2 py-0.5 text-xs rounded transition-colors"
-              style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
-            >
-              REL
-            </button>
+
+            {isCopyMenuOpen && (
+              <div
+                className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[100px]"
+                style={{ backgroundColor: '#4a4040' }}
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); setCopyMenuOpenAssetId(null); }}
+                  className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                  style={{ color: '#ffffff' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  Copy URL
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); setCopyMenuOpenAssetId(null); }}
+                  className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                  style={{ color: '#ffffff' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  Copy Absolute
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); setCopyMenuOpenAssetId(null); }}
+                  className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                  style={{ color: '#ffffff' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  Copy Relative
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -486,10 +648,8 @@ export function Sidebar({
       {selectedPresentation && (
         <div className="flex-1 overflow-y-auto">
           <div
-            className="p-3 border-b"
+            className="p-3 border-b flex items-center justify-between"
             style={{ borderColor: '#4a4040' }}
-            onMouseEnter={() => setIsHeaderHovered(true)}
-            onMouseLeave={() => setIsHeaderHovered(false)}
           >
             <h2
               className="text-xs font-semibold uppercase tracking-wide"
@@ -497,37 +657,58 @@ export function Sidebar({
             >
               Assets
             </h2>
-            {isAltPressed && isHeaderHovered && (
-              <div className="flex gap-1 mt-2">
-                <button
-                  onClick={(e) => { e.stopPropagation(); copyAllPaths('url'); }}
-                  className="px-2 py-0.5 text-xs rounded transition-colors"
-                  style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
+
+            {/* Copy all paths menu */}
+            <div className="relative" data-copy-menu>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsHeaderCopyMenuOpen(!isHeaderCopyMenuOpen);
+                }}
+                className="p-1 rounded transition-colors"
+                style={{ color: '#595959' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
+                title="Copy all paths"
+              >
+                ⋮
+              </button>
+
+              {isHeaderCopyMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[120px]"
+                  style={{ backgroundColor: '#4a4040' }}
                 >
-                  URL
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); copyAllPaths('abs'); }}
-                  className="px-2 py-0.5 text-xs rounded transition-colors"
-                  style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
-                >
-                  ABS
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); copyAllPaths('rel'); }}
-                  className="px-2 py-0.5 text-xs rounded transition-colors"
-                  style={{ backgroundColor: '#4a4040', color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ccba9d'; e.currentTarget.style.color = '#342d2d'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ffffff'; }}
-                >
-                  REL
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); copyAllPaths('url'); setIsHeaderCopyMenuOpen(false); }}
+                    className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                    style={{ color: '#ffffff' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    Copy All URLs
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); copyAllPaths('abs'); setIsHeaderCopyMenuOpen(false); }}
+                    className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                    style={{ color: '#ffffff' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    Copy All Absolute
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); copyAllPaths('rel'); setIsHeaderCopyMenuOpen(false); }}
+                    className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                    style={{ color: '#ffffff' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    Copy All Relative
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <nav className="p-2">
             {/* Index always shown at top, outside groups */}
@@ -539,37 +720,115 @@ export function Sidebar({
             {/* Groups with collapsible headers */}
             {groupedAssets.map((group) => {
               const isCollapsed = collapsedGroups.has(group.groupId);
+              const isEditing = editingGroupId === group.groupId;
+              const isMenuOpen = menuOpenGroupId === group.groupId;
 
               return (
                 <div key={group.groupId} className="mb-2 mt-2">
                   {/* Group Header */}
-                  <button
-                    onClick={() => toggleGroup(group.groupId)}
-                    className="w-full text-left px-2 py-1.5 flex items-center text-xs font-semibold uppercase tracking-wide transition-colors rounded"
-                    style={{
-                      color: '#ccba9d',
-                      fontFamily: "'Oswald', Arial, sans-serif",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                  >
-                    <span
-                      className="mr-2 transition-transform"
-                      style={{
-                        display: 'inline-block',
-                        transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-                      }}
-                    >
-                      ▼
-                    </span>
-                    <span className="flex-1">{group.label}</span>
-                    <span
-                      className="text-xs px-1.5 py-0.5 rounded ml-2"
-                      style={{ backgroundColor: '#4a4040', color: '#ccba9d' }}
-                    >
-                      {group.assets.length}
-                    </span>
-                  </button>
+                  {isEditing ? (
+                    // Inline edit mode
+                    <div className="flex items-center px-2 py-1">
+                      <span className="mr-2" style={{ color: '#ccba9d' }}>▼</span>
+                      <input
+                        ref={editInputRef}
+                        type="text"
+                        value={editingGroupLabel}
+                        onChange={(e) => setEditingGroupLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveGroupLabel();
+                          if (e.key === 'Escape') cancelEditingGroup();
+                        }}
+                        onBlur={saveGroupLabel}
+                        className="flex-1 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide rounded border-none outline-none"
+                        style={{
+                          backgroundColor: '#4a4040',
+                          color: '#ffffff',
+                          fontFamily: "'Oswald', Arial, sans-serif",
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    // Normal display mode
+                    <div className="relative flex items-center">
+                      <button
+                        onClick={() => toggleGroup(group.groupId)}
+                        className="flex-1 text-left px-2 py-1.5 flex items-center text-xs font-semibold uppercase tracking-wide transition-colors rounded"
+                        style={{
+                          color: '#ccba9d',
+                          fontFamily: "'Oswald', Arial, sans-serif",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                      >
+                        <span
+                          className="mr-2 transition-transform"
+                          style={{
+                            display: 'inline-block',
+                            transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                          }}
+                        >
+                          ▼
+                        </span>
+                        <span className="flex-1">{group.label}</span>
+                        <span
+                          className="text-xs px-1.5 py-0.5 rounded ml-2"
+                          style={{ backgroundColor: '#4a4040', color: '#ccba9d' }}
+                        >
+                          {group.assets.length}
+                        </span>
+                      </button>
+
+                      {/* Menu button */}
+                      <div className="relative" data-group-menu>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpenGroupId(isMenuOpen ? null : group.groupId);
+                          }}
+                          className="p-1 rounded transition-colors"
+                          style={{ color: '#ccba9d' }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        >
+                          ⋮
+                        </button>
+
+                        {/* Dropdown menu */}
+                        {isMenuOpen && (
+                          <div
+                            className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[120px]"
+                            style={{ backgroundColor: '#4a4040' }}
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditingGroup(group.groupId, group.label);
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                              style={{ color: '#ffffff' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                            >
+                              Rename
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteGroup(group.groupId);
+                              }}
+                              className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                              style={{ color: '#ff6b6b' }}
+                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Group Assets */}
                   {!isCollapsed && (
@@ -580,6 +839,56 @@ export function Sidebar({
                 </div>
               );
             })}
+
+            {/* New Group button/input */}
+            {selectedPresentation && (
+              <div className="mt-3 mb-2">
+                {isCreatingGroup ? (
+                  <div className="flex items-center px-2 py-1">
+                    <span className="mr-2 text-xs" style={{ color: '#ccba9d' }}>+</span>
+                    <input
+                      ref={newGroupInputRef}
+                      type="text"
+                      value={newGroupLabel}
+                      onChange={(e) => setNewGroupLabel(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') createGroup();
+                        if (e.key === 'Escape') cancelCreatingGroup();
+                      }}
+                      onBlur={() => {
+                        if (newGroupLabel.trim()) {
+                          createGroup();
+                        } else {
+                          cancelCreatingGroup();
+                        }
+                      }}
+                      placeholder="Group name..."
+                      className="flex-1 px-2 py-0.5 text-xs rounded border-none outline-none"
+                      style={{
+                        backgroundColor: '#4a4040',
+                        color: '#ffffff',
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    onClick={startCreatingGroup}
+                    className="w-full text-left px-2 py-1.5 text-xs transition-colors rounded"
+                    style={{ color: '#595959' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#4a4040';
+                      e.currentTarget.style.color = '#ccba9d';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#595959';
+                    }}
+                  >
+                    + New Group
+                  </button>
+                )}
+              </div>
+            )}
           </nav>
         </div>
       )}

@@ -220,3 +220,92 @@ export interface UpdateAssetOrderWithGroupsRequest {
   /** Ordered slides with group assignments */
   slides: Array<{ file: string; group?: string }>;
 }
+
+// ============================================================
+// FR-16: Agent Slide Management API Types
+// ============================================================
+
+/**
+ * Request body for creating a new presentation
+ */
+export interface CreatePresentationRequest {
+  /** Presentation ID (becomes folder name) */
+  id: string;
+  /** Optional display name */
+  name?: string;
+  /** Optional initial slides */
+  slides?: Array<{
+    file: string;
+    title?: string;
+    group?: string;
+  }>;
+}
+
+/**
+ * Response from creating a presentation
+ */
+export interface CreatePresentationResponse {
+  success: boolean;
+  /** Path to the created presentation folder */
+  path: string;
+}
+
+/**
+ * Request body for adding a slide to a presentation
+ */
+export interface AddSlideRequest {
+  /** Filename (e.g., 'new-slide.html') */
+  file: string;
+  /** Display title */
+  title?: string;
+  /** Group ID */
+  group?: string;
+  /** Description */
+  description?: string;
+  /** Whether slide is recommended */
+  recommended?: boolean;
+}
+
+/**
+ * Request body for updating slide metadata
+ */
+export interface UpdateSlideRequest {
+  /** Display title */
+  title?: string;
+  /** Group ID */
+  group?: string;
+  /** Description */
+  description?: string;
+  /** Whether slide is recommended */
+  recommended?: boolean;
+}
+
+// ============================================================
+// FR-17: Group Management API Types
+// ============================================================
+
+/**
+ * Request body for reordering groups
+ */
+export interface ReorderGroupsRequest {
+  /** Ordered array of group IDs */
+  order: string[];
+}
+
+/**
+ * Request body for creating a new group
+ */
+export interface CreateGroupRequest {
+  /** Group ID (must be unique, kebab-case) */
+  id: string;
+  /** Display label */
+  label: string;
+}
+
+/**
+ * Request body for updating a group
+ */
+export interface UpdateGroupRequest {
+  /** Display label */
+  label: string;
+}

@@ -1,6 +1,6 @@
 # FR-16: Agent Slide Management API
 
-## Status: Pending
+## Status: Implemented
 
 **Added:** 2025-12-22
 **Author:** David (via PO agent)
@@ -96,14 +96,14 @@ Removes slide from manifest. Does NOT delete the HTML file.
 
 ## Acceptance Criteria
 
-1. [ ] `POST /api/presentations` creates folder and manifest
-2. [ ] `POST /api/presentations/:id/slides` adds slide to manifest
-3. [ ] `PUT /api/presentations/:id/slides/:slideId` updates slide metadata
-4. [ ] `DELETE /api/presentations/:id/slides/:slideId` removes slide from manifest
-5. [ ] All endpoints validate request body
-6. [ ] All endpoints return proper error codes (400 for bad request, 404 for not found)
-7. [ ] Socket.io emits `presentations:updated` after changes
-8. [ ] Manifest uses FR-15 schema format
+1. [x] `POST /api/presentations` creates folder and manifest
+2. [x] `POST /api/presentations/:id/slides` adds slide to manifest
+3. [x] `PUT /api/presentations/:id/slides/:slideId` updates slide metadata
+4. [x] `DELETE /api/presentations/:id/slides/:slideId` removes slide from manifest
+5. [x] All endpoints validate request body
+6. [x] All endpoints return proper error codes (400 for bad request, 404 for not found, 409 for conflict)
+7. [x] Socket.io emits `presentations:updated` after changes
+8. [x] Manifest uses FR-15 schema format
 
 ---
 
@@ -170,6 +170,29 @@ if (health.ok) {
 
 ## Completion Notes
 
-_To be filled in by developer after implementation._
+**Implemented:** 2025-12-22
+
+**Files changed:**
+- `shared/src/types.ts` - Added `CreatePresentationRequest`, `CreatePresentationResponse`, `AddSlideRequest`, `UpdateSlideRequest` types
+- `server/src/services/PresentationService.ts` - Added `createPresentation`, `addSlide`, `updateSlide`, `removeSlide` methods
+- `server/src/routes/presentations.ts` - Added 4 new endpoints
+
+**API endpoints:**
+- `POST /api/presentations` - Creates folder and index.json manifest
+- `POST /api/presentations/:id/slides` - Appends slide to manifest
+- `PUT /api/presentations/:id/slides/:slideId` - Updates slide metadata (title, group, description, recommended)
+- `DELETE /api/presentations/:id/slides/:slideId` - Removes slide from manifest
+
+**Error handling:**
+- 400: Missing required fields, invalid format
+- 404: Presentation or slide not found
+- 409: Presentation or slide already exists
+
+**Notes:**
+- Presentation IDs validated to be folder-name safe (alphanumeric, hyphens, underscores only)
+- Slide files must end with `.html`
+- All endpoints emit `presentations:updated` socket event with reason field
+- Manifest timestamps (`meta.updated`) automatically updated on changes
+- Legacy `assets.order` format converted to `slides[]` format when adding slides
 
 ---
