@@ -678,14 +678,8 @@ export function Sidebar({
                       className="my-1 border-t"
                       style={{ borderColor: '#595959' }}
                     />
-                    {/* BUG-5: Hide "Tabbed" option when NO container tabs (tabbed mode needs tabs to work) */}
-                    {(['flat', 'grouped', 'tabbed'] as const).filter(m => {
-                      // Hide tabbed mode when NO container tabs are present (would result in empty sidebar)
-                      if (m === 'tabbed' && (!selectedPresentation?.tabs || selectedPresentation.tabs.length === 0)) {
-                        return false;
-                      }
-                      return true;
-                    }).map((m) => (
+                    {/* Only flat and grouped modes - tabbed renderer was removed in FR-24 */}
+                    {(['flat', 'grouped'] as const).map((m) => (
                       <button
                         key={m}
                         onClick={(e) => {

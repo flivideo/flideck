@@ -1,17 +1,46 @@
 import { EventEmitter } from 'events';
 import fs from 'fs-extra';
 import path from 'path';
+import * as cheerio from 'cheerio';
 import type {
   Presentation,
   Asset,
   FlideckManifest,
   ManifestSlide,
   ManifestTemplate,
+  ParsedCard,
+  ParsedIndexResult,
+  SyncFromIndexResponse,
+  TabDefinition,
 } from '@flideck/shared';
+import type { AnyNode } from 'domhandler';
+import type { Cheerio, CheerioAPI } from 'cheerio';
 import { applyTemplate as applyManifestTemplate } from '../utils/manifestTemplates.js';
 
 const MANIFEST_FILENAME = 'index.json';
 const LEGACY_MANIFEST_FILENAME = 'flideck.json';
+
+// Entry point patterns in priority order
+const ENTRY_POINT_PATTERNS = {
+  // Single entry points (priority 1-2)
+  PRESENTATION_HTML: 'presentation.html',
+  INDEX_HTML: 'index.html',
+  // Tabbed patterns (priority 3-4) - use regex
+  PRESENTATION_TAB_REGEX: /^presentation-tab-[\w-]+\.html$/,
+  INDEX_TAB_REGEX: /^index-[\w-]+\.html$/,
+};
+
+/**
+ * Entry point discovery result.
+ */
+interface EntryPointResult {
+  /** The entry point file (null if tabbed with no main entry) */
+  entryFile: string | null;
+  /** Whether this is a tabbed presentation */
+  isTabbed: boolean;
+  /** Tab files if tabbed (sorted) */
+  tabFiles: string[];
+}
 
 /**
  * Service for discovering and managing presentations.
@@ -60,8 +89,68 @@ export class PresentationService extends EventEmitter {
   }
 
   /**
+   * Find the entry point for a presentation folder.
+   * Checks for entry point files in priority order:
+   * 1. presentation.html (preferred)
+   * 2. index.html (legacy fallback)
+   * 3. presentation-tab-*.html files (tabbed, new convention)
+   * 4. index-*.html files (tabbed, legacy pattern)
+   */
+  private async findEntryPoint(folderPath: string): Promise<EntryPointResult | null> {
+    const entries = await fs.readdir(folderPath, { withFileTypes: true });
+    const htmlFiles = entries
+      .filter((e) => e.isFile() && e.name.endsWith('.html'))
+      .map((e) => e.name);
+
+    // Priority 1: presentation.html
+    if (htmlFiles.includes(ENTRY_POINT_PATTERNS.PRESENTATION_HTML)) {
+      return {
+        entryFile: ENTRY_POINT_PATTERNS.PRESENTATION_HTML,
+        isTabbed: false,
+        tabFiles: [],
+      };
+    }
+
+    // Priority 2: index.html
+    if (htmlFiles.includes(ENTRY_POINT_PATTERNS.INDEX_HTML)) {
+      return {
+        entryFile: ENTRY_POINT_PATTERNS.INDEX_HTML,
+        isTabbed: false,
+        tabFiles: [],
+      };
+    }
+
+    // Priority 3: presentation-tab-*.html files
+    const presentationTabFiles = htmlFiles
+      .filter((f) => ENTRY_POINT_PATTERNS.PRESENTATION_TAB_REGEX.test(f))
+      .sort();
+    if (presentationTabFiles.length > 0) {
+      return {
+        entryFile: null, // No main entry, use first tab
+        isTabbed: true,
+        tabFiles: presentationTabFiles,
+      };
+    }
+
+    // Priority 4: index-*.html files (excluding index.html which we already checked)
+    const indexTabFiles = htmlFiles
+      .filter((f) => ENTRY_POINT_PATTERNS.INDEX_TAB_REGEX.test(f))
+      .sort();
+    if (indexTabFiles.length > 0) {
+      return {
+        entryFile: null, // No main entry, use first tab
+        isTabbed: true,
+        tabFiles: indexTabFiles,
+      };
+    }
+
+    // No valid entry point found
+    return null;
+  }
+
+  /**
    * Discover all presentations in the root directory.
-   * A valid presentation is a folder containing index.html.
+   * A valid presentation has an entry point (see findEntryPoint for priority).
    */
   async discoverAll(): Promise<Presentation[]> {
     if (!this.presentationsRoot) {
@@ -81,11 +170,11 @@ export class PresentationService extends EventEmitter {
       if (!entry.isDirectory()) continue;
 
       const folderPath = path.join(this.presentationsRoot, entry.name);
-      const indexPath = path.join(folderPath, 'index.html');
+      const entryPoint = await this.findEntryPoint(folderPath);
 
-      // A valid presentation must have index.html
-      if (await fs.pathExists(indexPath)) {
-        const presentation = await this.loadPresentation(entry.name, folderPath);
+      // A valid presentation must have an entry point
+      if (entryPoint) {
+        const presentation = await this.loadPresentation(entry.name, folderPath, entryPoint);
         presentations.push(presentation);
         this.cache.set(entry.name, presentation);
       }
@@ -108,13 +197,19 @@ export class PresentationService extends EventEmitter {
     }
 
     const folderPath = path.join(this.presentationsRoot, id);
-    const indexPath = path.join(folderPath, 'index.html');
 
-    if (!(await fs.pathExists(indexPath))) {
+    // Check if folder exists
+    if (!(await fs.pathExists(folderPath))) {
       return null;
     }
 
-    const presentation = await this.loadPresentation(id, folderPath);
+    // Check for valid entry point
+    const entryPoint = await this.findEntryPoint(folderPath);
+    if (!entryPoint) {
+      return null;
+    }
+
+    const presentation = await this.loadPresentation(id, folderPath, entryPoint);
     this.cache.set(id, presentation);
     return presentation;
   }
@@ -134,9 +229,13 @@ export class PresentationService extends EventEmitter {
   /**
    * Load a presentation from disk.
    */
-  private async loadPresentation(id: string, folderPath: string): Promise<Presentation> {
+  private async loadPresentation(
+    id: string,
+    folderPath: string,
+    entryPoint?: EntryPointResult
+  ): Promise<Presentation> {
     const manifest = await this.readManifest(folderPath);
-    const assets = await this.discoverAssets(id, folderPath, manifest);
+    const assets = await this.discoverAssets(id, folderPath, manifest, entryPoint);
     const stat = await fs.stat(folderPath);
 
     // Use manifest name if available, otherwise format folder name
@@ -162,10 +261,14 @@ export class PresentationService extends EventEmitter {
   private async discoverAssets(
     presentationId: string,
     folderPath: string,
-    manifest: FlideckManifest | null
+    manifest: FlideckManifest | null,
+    entryPoint?: EntryPointResult
   ): Promise<Asset[]> {
     const entries = await fs.readdir(folderPath, { withFileTypes: true });
     const assetMap = new Map<string, Asset>();
+
+    // Determine the entry file for this presentation
+    const entryFile = this.determineEntryFile(entryPoint, manifest);
 
     // Build map of all HTML assets from filesystem
     for (const entry of entries) {
@@ -173,7 +276,7 @@ export class PresentationService extends EventEmitter {
 
       const filePath = path.join(folderPath, entry.name);
       const stat = await fs.stat(filePath);
-      const isIndex = entry.name === 'index.html';
+      const isIndex = entry.name === entryFile;
       // Use birthtime (creation time) if available, fall back to mtime
       const createdAt = stat.birthtimeMs || stat.mtimeMs;
 
@@ -191,7 +294,7 @@ export class PresentationService extends EventEmitter {
 
     // New format: slides array with metadata
     if (manifest?.slides && Array.isArray(manifest.slides)) {
-      return this.applySlideMetadata(assetMap, manifest.slides);
+      return this.applySlideMetadata(assetMap, manifest.slides, entryFile);
     }
 
     // Legacy format: assets.order array
@@ -199,7 +302,7 @@ export class PresentationService extends EventEmitter {
       return this.applyCustomOrder(assetMap, manifest.assets.order);
     }
 
-    // Default ordering: index first, then by creation time (oldest first)
+    // Default ordering: entry file first, then by creation time (oldest first)
     const assets = Array.from(assetMap.values());
     assets.sort((a, b) => {
       if (a.isIndex) return -1;
@@ -211,12 +314,57 @@ export class PresentationService extends EventEmitter {
   }
 
   /**
+   * Determine the entry file for a presentation.
+   * For tabbed presentations, uses manifest tab order or alphabetical fallback.
+   */
+  private determineEntryFile(
+    entryPoint?: EntryPointResult,
+    manifest?: FlideckManifest | null
+  ): string {
+    // If we have a direct entry file, use it
+    if (entryPoint?.entryFile) {
+      return entryPoint.entryFile;
+    }
+
+    // For tabbed presentations, determine default tab
+    if (entryPoint?.isTabbed && entryPoint.tabFiles.length > 0) {
+      // Try to use manifest tab order
+      if (manifest?.tabs && manifest.tabs.length > 0) {
+        // Sort tabs by order field
+        const sortedTabs = [...manifest.tabs].sort((a, b) => (a.order || 999) - (b.order || 999));
+        const firstTab = sortedTabs[0];
+
+        // Find matching tab file (index-{id}.html or presentation-tab-{id}.html)
+        const indexTabFile = `index-${firstTab.id}.html`;
+        const presentationTabFile = `presentation-tab-${firstTab.id}.html`;
+
+        if (entryPoint.tabFiles.includes(presentationTabFile)) {
+          return presentationTabFile;
+        }
+        if (entryPoint.tabFiles.includes(indexTabFile)) {
+          return indexTabFile;
+        }
+      }
+
+      // Fallback to alphabetically first tab file
+      return entryPoint.tabFiles[0];
+    }
+
+    // Ultimate fallback: index.html
+    return 'index.html';
+  }
+
+  /**
    * Apply slide metadata from manifest to assets.
    * - Preserves order from slides array
    * - Applies title, group, description, recommended from manifest
    * - Self-healing: skips missing files, appends new files
    */
-  private applySlideMetadata(assetMap: Map<string, Asset>, slides: ManifestSlide[]): Asset[] {
+  private applySlideMetadata(
+    assetMap: Map<string, Asset>,
+    slides: ManifestSlide[],
+    _entryFile?: string
+  ): Asset[] {
     const orderedAssets: Asset[] = [];
     const includedFilenames = new Set<string>();
 
@@ -1833,5 +1981,376 @@ export class PresentationService extends EventEmitter {
 
     // Invalidate cache
     this.invalidateCache(presentationId);
+  }
+
+  // ============================================================
+  // FR-26: Sync From Index HTML Methods
+  // ============================================================
+
+  /**
+   * Sync manifest from index HTML files.
+   * Parses index-*.html files to detect tabs and card elements,
+   * then populates the manifest with slide-to-tab mappings.
+   *
+   * @param presentationId - Presentation ID
+   * @param options - Sync options
+   * @returns Detailed sync result
+   */
+  async syncFromIndex(
+    presentationId: string,
+    options: {
+      strategy?: 'merge' | 'replace';
+      inferTabs?: boolean;
+      parseCards?: boolean;
+    } = {}
+  ): Promise<SyncFromIndexResponse> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    const strategy = options.strategy || 'merge';
+    const inferTabs = options.inferTabs !== false; // default true
+    const parseCards = options.parseCards !== false; // default true
+
+    // Initialize result
+    const result: SyncFromIndexResponse = {
+      success: true,
+      format: 'flat',
+      tabs: { created: [], updated: [] },
+      groups: { created: [], updated: [] },
+      slides: { assigned: 0, skipped: 0, orphaned: 0 },
+      warnings: [],
+    };
+
+    // Discover all files in folder
+    const entries = await fs.readdir(folderPath, { withFileTypes: true });
+    const allFiles = entries.filter((e) => e.isFile()).map((e) => e.name);
+    const htmlFiles = allFiles.filter((f) => f.endsWith('.html'));
+
+    // Detect presentation format
+    const indexFiles = htmlFiles.filter((f) => f.match(/^index(-[\w-]+)?\.html$/));
+    const tabbedIndexFiles = indexFiles.filter((f) => f.match(/^index-[\w-]+\.html$/));
+    const isTabbed = inferTabs && tabbedIndexFiles.length > 0;
+    result.format = isTabbed ? 'tabbed' : 'flat';
+
+    // Read existing manifest or start fresh
+    let manifest: FlideckManifest;
+    if (strategy === 'replace') {
+      manifest = { groups: {}, slides: [], tabs: [] };
+    } else {
+      manifest = (await this.readManifest(folderPath)) || { groups: {}, slides: [], tabs: [] };
+      if (!manifest.groups) manifest.groups = {};
+      if (!manifest.slides) manifest.slides = [];
+      if (!manifest.tabs) manifest.tabs = [];
+    }
+
+    // Build map of existing slides for merge
+    const existingSlideMap = new Map(manifest.slides?.map((s) => [s.file, s]) || []);
+
+    // Track which slides are assigned to avoid duplicates
+    const assignedSlides = new Set<string>();
+
+    if (isTabbed && parseCards) {
+      // Process each tabbed index file
+      const parsedResults: ParsedIndexResult[] = [];
+
+      for (const indexFile of tabbedIndexFiles) {
+        const parsed = await this.parseIndexHtml(folderPath, indexFile, result.warnings);
+        if (parsed) {
+          parsedResults.push(parsed);
+        }
+      }
+
+      // Sort by filename to get consistent order
+      parsedResults.sort((a, b) => a.file.localeCompare(b.file));
+
+      // Create/update tabs
+      for (let i = 0; i < parsedResults.length; i++) {
+        const parsed = parsedResults[i];
+        const existingTab = manifest.tabs?.find((t) => t.id === parsed.tabId);
+
+        if (existingTab) {
+          // Update existing tab
+          existingTab.label = parsed.label;
+          existingTab.file = parsed.file;
+          existingTab.order = i + 1;
+          result.tabs.updated.push(parsed.tabId);
+        } else {
+          // Create new tab
+          const newTab: TabDefinition = {
+            id: parsed.tabId,
+            label: parsed.label,
+            file: parsed.file,
+            order: i + 1,
+          };
+          if (!manifest.tabs) manifest.tabs = [];
+          manifest.tabs.push(newTab);
+          result.tabs.created.push(parsed.tabId);
+        }
+
+        // Create group for this tab's slides
+        const groupId = `${parsed.tabId}-slides`;
+        const existingGroup = manifest.groups?.[groupId];
+
+        if (existingGroup) {
+          // Update existing group
+          existingGroup.tabId = parsed.tabId;
+          result.groups.updated.push(groupId);
+        } else {
+          // Create new group
+          if (!manifest.groups) manifest.groups = {};
+          manifest.groups[groupId] = {
+            label: parsed.label,
+            order: i + 1,
+            tabId: parsed.tabId,
+          };
+          result.groups.created.push(groupId);
+        }
+
+        // Assign slides from this index to the group
+        for (const card of parsed.cards) {
+          if (assignedSlides.has(card.file)) {
+            // Slide already assigned to another tab (first wins)
+            result.warnings.push(
+              `Slide '${card.file}' found in multiple index files, assigned to first`
+            );
+            continue;
+          }
+
+          const existingSlide = existingSlideMap.get(card.file);
+          if (existingSlide) {
+            // Update existing slide
+            if (strategy === 'merge') {
+              // Preserve existing metadata, only update group
+              existingSlide.group = groupId;
+              if (card.title && !existingSlide.title) {
+                existingSlide.title = card.title;
+              }
+            } else {
+              existingSlide.group = groupId;
+              if (card.title) existingSlide.title = card.title;
+            }
+          } else {
+            // Create new slide entry
+            const newSlide: ManifestSlide = {
+              file: card.file,
+              group: groupId,
+            };
+            if (card.title) newSlide.title = card.title;
+            manifest.slides!.push(newSlide);
+            existingSlideMap.set(card.file, newSlide);
+          }
+
+          assignedSlides.add(card.file);
+          result.slides.assigned++;
+        }
+      }
+    }
+
+    // Count orphaned slides (HTML files not in any index)
+    const nonIndexHtmlFiles = htmlFiles.filter(
+      (f) => !f.match(/^index(-[\w-]+)?\.html$/)
+    );
+    for (const file of nonIndexHtmlFiles) {
+      if (!assignedSlides.has(file)) {
+        result.slides.orphaned++;
+
+        // For merge strategy, ensure orphaned slides are in manifest
+        if (strategy === 'merge' && !existingSlideMap.has(file)) {
+          manifest.slides!.push({ file });
+          result.warnings.push(`Slide '${file}' not found in any index file`);
+        }
+      }
+    }
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+
+    return result;
+  }
+
+  /**
+   * Parse an index HTML file to extract card elements and their slide references.
+   *
+   * @param folderPath - Path to presentation folder
+   * @param indexFile - Index HTML filename (e.g., 'index-mary.html')
+   * @param warnings - Array to push warnings to
+   * @returns Parsed result or null if parsing fails
+   */
+  private async parseIndexHtml(
+    folderPath: string,
+    indexFile: string,
+    warnings: string[]
+  ): Promise<ParsedIndexResult | null> {
+    const filePath = path.join(folderPath, indexFile);
+
+    try {
+      const htmlContent = await fs.readFile(filePath, 'utf-8');
+      const $ = cheerio.load(htmlContent);
+
+      // Extract tab ID from filename (e.g., 'index-mary.html' -> 'mary')
+      const tabIdMatch = indexFile.match(/^index-([\w-]+)\.html$/);
+      if (!tabIdMatch) {
+        warnings.push(`Could not extract tab ID from filename: ${indexFile}`);
+        return null;
+      }
+
+      const tabId = tabIdMatch[1];
+      const label = this.formatName(tabId);
+
+      // Find all card elements using multiple patterns
+      const cards: ParsedCard[] = [];
+      const seenFiles = new Set<string>();
+
+      // Try multiple selectors for card detection
+      const cardSelectors = [
+        '.card[href$=".html"]', // Link card
+        'a.card[href$=".html"]', // Anchor with card class
+        '.card a[href$=".html"]', // Nested link in card
+        '.asset-card[href$=".html"]',
+        'a.asset-card[href$=".html"]',
+        '.asset-card a[href$=".html"]',
+        '[data-slide]', // Data attribute
+        '[data-file]', // Alternative data attribute
+        'a[href$=".html"]:not([href^="index"])', // Any non-index HTML link
+      ];
+
+      const allCardElements: Cheerio<AnyNode>[] = [];
+
+      for (const selector of cardSelectors) {
+        $(selector).each((_i, el) => {
+          allCardElements.push($(el));
+        });
+      }
+
+      // Process found elements
+      let order = 0;
+      for (const $el of allCardElements) {
+        const slideRef = this.extractSlideReference($, $el);
+
+        if (!slideRef) {
+          // Try to find slide reference in onclick
+          const onclick = $el.attr('onclick') || '';
+          const onclickMatch = onclick.match(/['"]([^'"]+\.html)['"]/);
+          if (onclickMatch) {
+            const file = onclickMatch[1];
+            if (!seenFiles.has(file) && !file.startsWith('index')) {
+              const title = this.extractCardTitle($, $el);
+              cards.push({ file, title, order: order++ });
+              seenFiles.add(file);
+            }
+          }
+          continue;
+        }
+
+        // Skip if already seen or if it's an index file
+        if (seenFiles.has(slideRef) || slideRef.startsWith('index')) {
+          continue;
+        }
+
+        const title = this.extractCardTitle($, $el);
+        cards.push({ file: slideRef, title, order: order++ });
+        seenFiles.add(slideRef);
+      }
+
+      if (cards.length === 0) {
+        warnings.push(`No cards found in ${indexFile}`);
+      }
+
+      return {
+        tabId,
+        label,
+        file: indexFile,
+        cards,
+      };
+    } catch (error) {
+      warnings.push(`Failed to parse ${indexFile}: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Extract slide reference from a card element.
+   * Tries multiple patterns: href, data-slide, data-file.
+   */
+  private extractSlideReference(
+    _$: CheerioAPI,
+    $el: Cheerio<AnyNode>
+  ): string | null {
+    // Try href attribute
+    let href = $el.attr('href');
+    if (href && href.endsWith('.html') && !href.startsWith('index')) {
+      // Remove any path components, just get filename
+      return path.basename(href);
+    }
+
+    // Try nested link
+    const $nestedLink = $el.find('a[href$=".html"]').first();
+    if ($nestedLink.length) {
+      href = $nestedLink.attr('href');
+      if (href && !href.startsWith('index')) {
+        return path.basename(href);
+      }
+    }
+
+    // Try data-slide attribute
+    const dataSlide = $el.attr('data-slide');
+    if (dataSlide && dataSlide.endsWith('.html')) {
+      return path.basename(dataSlide);
+    }
+
+    // Try data-file attribute
+    const dataFile = $el.attr('data-file');
+    if (dataFile && dataFile.endsWith('.html')) {
+      return path.basename(dataFile);
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract title from a card element.
+   * Tries: h1-h6, .title, .card-title, first text node.
+   */
+  private extractCardTitle(
+    _$: CheerioAPI,
+    $el: Cheerio<AnyNode>
+  ): string | undefined {
+    // Try heading elements
+    const $heading = $el.find('h1, h2, h3, h4, h5, h6').first();
+    if ($heading.length) {
+      const text = $heading.text().trim();
+      if (text) return text;
+    }
+
+    // Try title class
+    const $title = $el.find('.title, .card-title').first();
+    if ($title.length) {
+      const text = $title.text().trim();
+      if (text) return text;
+    }
+
+    // Fall back to first line of text content
+    const text = $el.text().trim();
+    if (text) {
+      const firstLine = text.split('\n')[0].trim();
+      // Limit length and clean up
+      if (firstLine && firstLine.length <= 100) {
+        return firstLine;
+      }
+    }
+
+    return undefined;
   }
 }

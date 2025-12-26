@@ -16,6 +16,7 @@ import type {
   UpdateTabRequest,
   ReorderTabsRequest,
   SetGroupParentRequest,
+  SyncFromIndexRequest,
 } from '@flideck/shared';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { PresentationService } from '../services/PresentationService.js';
@@ -977,6 +978,44 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         });
 
         res.json({ success: true });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('not found')) {
+          throw new AppError(error.message, 404);
+        }
+        throw error;
+      }
+    })
+  );
+
+  // ============================================================
+  // FR-26: Sync From Index HTML
+  // ============================================================
+
+  /**
+   * PUT /api/presentations/:id/manifest/sync-from-index
+   * Parse index HTML files to auto-populate the manifest with slide-to-tab mappings.
+   * Detects index-*.html files as tabs and parses card elements to extract slides.
+   */
+  router.put(
+    '/:id/manifest/sync-from-index',
+    asyncHandler(async (req, res) => {
+      const { id } = req.params;
+      const body = (req.body || {}) as SyncFromIndexRequest;
+
+      try {
+        const result = await presentationService.syncFromIndex(id, {
+          strategy: body.strategy,
+          inferTabs: body.inferTabs,
+          parseCards: body.parseCards,
+        });
+
+        // Notify clients
+        io.emit('presentations:updated', {
+          reason: 'manifest-synced-from-index',
+          presentationId: id,
+        });
+
+        res.json(result);
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);

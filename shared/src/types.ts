@@ -550,3 +550,76 @@ export interface BulkOperationResult {
   /** Error message if failed */
   error?: string;
 }
+
+// ============================================================
+// FR-26: Sync From Index HTML Types
+// ============================================================
+
+/**
+ * Request body for syncing manifest from index HTML files
+ */
+export interface SyncFromIndexRequest {
+  /** Strategy for updating manifest: 'merge' adds to existing, 'replace' starts fresh */
+  strategy?: 'merge' | 'replace';
+  /** Auto-detect tabs from index-*.html files (default: true) */
+  inferTabs?: boolean;
+  /** Parse card elements in index HTML to extract slides (default: true) */
+  parseCards?: boolean;
+}
+
+/**
+ * Result from a parsed index HTML file
+ */
+export interface ParsedIndexResult {
+  /** Tab ID derived from filename */
+  tabId: string;
+  /** Display label for the tab */
+  label: string;
+  /** Index file path */
+  file: string;
+  /** Cards/slides found in this index */
+  cards: ParsedCard[];
+}
+
+/**
+ * A card element parsed from index HTML
+ */
+export interface ParsedCard {
+  /** Slide filename reference */
+  file: string;
+  /** Title extracted from card content */
+  title?: string;
+  /** Order within the index (0-based DOM position) */
+  order: number;
+}
+
+/**
+ * Response from sync-from-index operation
+ */
+export interface SyncFromIndexResponse {
+  /** Whether operation succeeded */
+  success: boolean;
+  /** Detected presentation format */
+  format: 'flat' | 'tabbed';
+  /** Tabs created or updated */
+  tabs: {
+    created: string[];
+    updated: string[];
+  };
+  /** Groups created or updated */
+  groups: {
+    created: string[];
+    updated: string[];
+  };
+  /** Slide assignment summary */
+  slides: {
+    /** Slides successfully assigned to groups */
+    assigned: number;
+    /** Cards with undetectable slide references */
+    skipped: number;
+    /** Slides not found in any index file */
+    orphaned: number;
+  };
+  /** Warning messages for issues encountered */
+  warnings: string[];
+}

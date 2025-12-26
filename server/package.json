@@ -12,21 +12,22 @@
   },
   "dependencies": {
     "@flideck/shared": "*",
-    "express": "^5.1.0",
-    "socket.io": "^4.8.1",
+    "cheerio": "^1.1.2",
     "chokidar": "^3.6.0",
-    "fs-extra": "^11.3.0",
-    "dotenv": "^16.4.7",
-    "helmet": "^8.0.0",
     "compression": "^1.7.5",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "fs-extra": "^11.3.0",
+    "helmet": "^8.0.0",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@types/compression": "^1.7.5",
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^22.10.2",
-    "@types/compression": "^1.7.5",
-    "@types/cors": "^2.8.17",
     "nodemon": "^3.1.9",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"

@@ -75,12 +75,14 @@ npm start
 | POST | `/api/presentations/:id/manifest/groups/bulk` | Bulk add groups (FR-21) |
 | PUT | `/api/presentations/:id/manifest/sync` | Sync manifest with filesystem (FR-21) |
 | POST | `/api/presentations/:id/manifest/validate` | Validate manifest with file checking (FR-21) |
+| PUT | `/api/presentations/:id/manifest/sync-from-index` | Parse index HTML to populate manifest (FR-26) |
 | GET | `/api/schema/manifest` | Get JSON Schema for manifest (FR-19) |
 | GET | `/api/templates/manifest` | List available manifest templates (FR-21) |
 | GET | `/api/templates/manifest/:id` | Get specific template (FR-21) |
 | POST | `/api/presentations/:id/manifest/template` | Apply template to presentation (FR-21) |
 | GET | `/api/assets/:presentationId/:assetId` | Get asset content |
 | GET | `/api/health` | Health check |
+| GET | `/api/capabilities` | Agent capability discovery (FR-27) |
 
 ## Socket.io Events
 
@@ -110,9 +112,14 @@ npm start
 ## File Discovery Rules
 
 1. FliDeck watches `presentationsRoot` from config.json
-2. Any subfolder containing `index.html` is a valid presentation
+2. A folder is a valid presentation if it contains ANY of these entry points (checked in priority order):
+   - `presentation.html` (preferred new convention)
+   - `index.html` (legacy fallback)
+   - `presentation-tab-*.html` files (tabbed, new convention)
+   - `index-*.html` files (tabbed, legacy pattern)
 3. All `.html` files in the folder are considered assets
-4. Asset order: Uses `index.json` manifest if present, otherwise default (index first, then by creation time)
+4. Asset order: Uses `index.json` manifest if present, otherwise default (entry point first, then by creation time)
+5. For tabbed presentations without a main entry point, the default view is the first tab by `order` from manifest (or alphabetically if no manifest)
 
 ## Asset Ordering
 

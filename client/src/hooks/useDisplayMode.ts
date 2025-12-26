@@ -2,6 +2,16 @@ import { useState, useEffect, useMemo } from 'react';
 import type { Presentation, DisplayMode } from '@flideck/shared';
 import { detectDisplayMode } from '../utils/displayMode';
 
+// BUG-10: Valid modes for validation (tabbed renderer was removed in FR-24)
+const VALID_MODES: DisplayMode[] = ['flat', 'grouped'];
+
+function validateMode(saved: string | null): DisplayMode | null {
+  if (saved && VALID_MODES.includes(saved as DisplayMode)) {
+    return saved as DisplayMode;
+  }
+  return null;
+}
+
 /**
  * Hook for managing display mode state with localStorage persistence (BUG-4 fix)
  */
@@ -13,7 +23,7 @@ export function useDisplayMode(presentation: Presentation | null | undefined) {
     if (!storageKey) return null;
     try {
       const saved = localStorage.getItem(storageKey);
-      return saved as DisplayMode | null;
+      return validateMode(saved); // BUG-10: Validate stale values
     } catch {
       return null;
     }

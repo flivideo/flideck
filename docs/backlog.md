@@ -30,7 +30,9 @@ Requirements index for FliDeck.
 | 22 | [FR-22: Tab Management](prd/fr-22-tab-management.md) | 2025-12-24 | Implemented |
 | 23 | [FR-23: Group Reorder UI](prd/fr-23-group-reorder-ui.md) | 2025-12-24 | Pending (rewritten 2025-12-24) |
 | 24 | [FR-24: Container Tab Navigation](prd/fr-24-container-tab-navigation.md) | 2025-12-24 | Implemented |
-| 25 | [FR-25: Smart Display Mode with Container Tabs](prd/fr-25-smart-display-mode.md) | 2025-12-24 | Pending |
+| 25 | [FR-25: Smart Display Mode with Container Tabs](prd/fr-25-smart-display-mode.md) | 2025-12-24 | Implemented |
+| 26 | [FR-26: Index HTML Sync (Self-Healing)](prd/fr-26-index-html-sync.md) | 2025-12-26 | Implemented |
+| 27 | [FR-27: Agent Capability Discovery](prd/fr-27-agent-capability-discovery.md) | 2025-12-26 | Implemented |
 
 ## Non-Functional Requirements
 
@@ -50,7 +52,9 @@ Requirements index for FliDeck.
 | 6 | [BUG-6: Groups Don't Auto-Expand During Navigation](prd/bug-06-groups-no-auto-expand.md) | 2025-12-24 | Fixed | - |
 | 7 | [BUG-7: Performance Degradation / Slow Loading](prd/bug-07-performance-slow-loading.md) | 2025-12-24 | Fixed | - |
 | 8 | [BUG-8: Container Tab System Completely Broken](prd/bug-08-tab-system-broken.md) | 2025-12-24 | Fixed (data issue) | - |
-| 9 | [BUG-9: Tabbed Display Mode Still Selectable](prd/bug-09-tabbed-mode-still-selectable.md) | 2025-12-26 | Open | High |
+| 9 | [BUG-9: Tabbed Display Mode Still Selectable](prd/bug-09-tabbed-mode-still-selectable.md) | 2025-12-26 | Fixed | - |
+| 10 | [BUG-10: Stale Tabbed Mode in localStorage](prd/bug-10-stale-tabbed-mode-in-localstorage.md) | 2025-12-26 | Fixed | - |
+| 11 | [BUG-11: Presentation Discovery Rules Outdated](prd/bug-11-presentation-discovery-rules.md) | 2025-12-26 | Fixed | - |
 
 ---
 
