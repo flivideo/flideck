@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { usePresentations, usePresentation, useAsset } from '../hooks/usePresentations';
 import { usePresentationRoom, usePresentationUpdates, useContentChanges } from '../hooks/useSocket';
 import { useQuickFilter } from '../hooks/useQuickFilter';
+import { useContainerTab } from '../hooks/useContainerTab';
 import { Header } from '../components/layout/Header';
 import { Sidebar } from '../components/layout/Sidebar';
 import { AssetViewer } from '../components/ui/AssetViewer';
+import { TabBar } from '../components/ui/TabBar';
 import { QuickFilter, QuickFilterItem } from '../components/ui/QuickFilter';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -28,11 +30,27 @@ export function PresentationPage() {
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [isQuickFilterOpen, , closeQuickFilter] = useQuickFilter();
 
+  // BUG-6: Collapsed groups state (lifted from Sidebar for auto-expand on navigation)
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('flideck-collapsed-groups');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
   const { data: presentations } = usePresentations();
   const { data: presentation, isLoading, error } = usePresentation(id);
   const { data: assetData, isLoading: assetLoading } = useAsset(
     id,
     selectedAssetId || undefined
+  );
+
+  // Container tab management (FR-24)
+  const [activeContainerTabId, setActiveContainerTabId] = useContainerTab(
+    id,
+    presentation?.tabs
   );
 
   // Join presentation room for scoped updates
@@ -41,6 +59,12 @@ export function PresentationPage() {
 
   // Listen for content changes to reload iframe
   const reloadKey = useContentChanges(id, selectedAssetId || undefined);
+
+  // Determine if we're in container tab mode
+  const hasContainerTabs = presentation?.tabs && presentation.tabs.length > 0;
+  const activeContainerTab = hasContainerTabs
+    ? presentation.tabs?.find((t) => t.id === activeContainerTabId)
+    : null;
 
   // Auto-select index asset when presentation loads
   useEffect(() => {
@@ -84,9 +108,31 @@ export function PresentationPage() {
           newIndex = sidebarOrderedAssets.length - 1;
           break;
       }
-      setSelectedAssetId(sidebarOrderedAssets[newIndex].id);
+
+      const newAsset = sidebarOrderedAssets[newIndex];
+      setSelectedAssetId(newAsset.id);
+
+      // BUG-6: Auto-expand collapsed group when navigating into it
+      if (newAsset.group && collapsedGroups.has(newAsset.group)) {
+        setCollapsedGroups(prev => {
+          const next = new Set(prev);
+          next.delete(newAsset.group!);
+          try {
+            localStorage.setItem('flideck-collapsed-groups', JSON.stringify([...next]));
+          } catch {
+            // Ignore localStorage errors
+          }
+          return next;
+        });
+      }
+
+      // Clear container tab when navigating to assets (BUG-2)
+      // This switches from showing index file to showing asset content
+      if (activeContainerTabId) {
+        setActiveContainerTabId(null);
+      }
     },
-    [sidebarOrderedAssets, currentIndex]
+    [sidebarOrderedAssets, currentIndex, activeContainerTabId, setActiveContainerTabId, collapsedGroups]
   );
 
   // Keyboard handler - uses Ctrl modifier for navigation to avoid conflicts with iframe content
@@ -167,6 +213,10 @@ export function PresentationPage() {
 
   const handleSelectAsset = (_presentationId: string, assetId: string) => {
     setSelectedAssetId(assetId);
+    // Clear container tab when selecting individual asset (FR-24)
+    if (activeContainerTabId) {
+      setActiveContainerTabId(null);
+    }
   };
 
   // Convert assets to quick filter items (using sidebar order)
@@ -180,6 +230,26 @@ export function PresentationPage() {
 
   const handleQuickFilterSelect = (assetId: string) => {
     setSelectedAssetId(assetId);
+
+    // BUG-6: Auto-expand collapsed group when selecting via quick filter
+    const selectedAsset = sidebarOrderedAssets.find(a => a.id === assetId);
+    if (selectedAsset?.group && collapsedGroups.has(selectedAsset.group)) {
+      setCollapsedGroups(prev => {
+        const next = new Set(prev);
+        next.delete(selectedAsset.group!);
+        try {
+          localStorage.setItem('flideck-collapsed-groups', JSON.stringify([...next]));
+        } catch {
+          // Ignore localStorage errors
+        }
+        return next;
+      });
+    }
+
+    // Clear container tab when selecting asset via quick filter (BUG-2)
+    if (activeContainerTabId) {
+      setActiveContainerTabId(null);
+    }
   };
 
   if (isLoading) {
@@ -252,17 +322,41 @@ export function PresentationPage() {
             onSelectPresentation={() => {}}
             onSelectAsset={handleSelectAsset}
             showPresentations={false}
+            activeContainerTabId={activeContainerTabId}
+            collapsedGroups={collapsedGroups}
+            onSetCollapsedGroups={setCollapsedGroups}
           />
         )}
 
         <main className="flex-1 flex flex-col overflow-hidden relative">
-          {assetLoading ? (
+          {/* Container Tab Bar (FR-24) - persists in presentation mode */}
+          {hasContainerTabs && presentation.tabs && (
+            <TabBar
+              tabs={presentation.tabs}
+              activeTabId={activeContainerTabId}
+              onTabChange={setActiveContainerTabId}
+              isPresentationMode={isPresentationMode}
+            />
+          )}
+
+          {/* Content Area */}
+          {hasContainerTabs && activeContainerTab ? (
+            // Container tab mode: Load index file via src
+            <AssetViewer
+              presentationId={id!}
+              indexFile={activeContainerTab.file}
+              reloadKey={reloadKey}
+            />
+          ) : assetLoading ? (
+            // Regular mode: Loading state
             <div className="flex-1 flex items-center justify-center bg-slate-900">
               <LoadingSpinner message="Loading asset..." />
             </div>
           ) : assetData ? (
+            // Regular mode: Asset content via srcdoc
             <AssetViewer content={assetData.content} presentationId={id!} reloadKey={reloadKey} />
           ) : (
+            // No asset selected
             <div className="flex-1 flex items-center justify-center bg-slate-900">
               <EmptyState
                 title="Select an asset"
@@ -271,8 +365,8 @@ export function PresentationPage() {
             </div>
           )}
 
-          {/* Progress indicator - hidden in presentation mode */}
-          {assetData && <ProgressIndicator />}
+          {/* Progress indicator - hidden in presentation mode and container tab mode */}
+          {!hasContainerTabs && assetData && <ProgressIndicator />}
 
           {/* Hover-only exit button in presentation mode */}
           {isPresentationMode && (

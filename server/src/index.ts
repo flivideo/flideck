@@ -123,6 +123,11 @@ const presentationService = PresentationService.getInstance();
 const watcherManager = new WatcherManager(io);
 
 /**
+ * Static files for flideck-index.js library
+ */
+app.use(express.static(path.join(process.cwd(), 'public')));
+
+/**
  * Dynamic static file serving middleware
  * Uses current presentations root which can change at runtime
  */

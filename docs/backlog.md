@@ -23,12 +23,34 @@ Requirements index for FliDeck.
 | 15 | [FR-15: Rich Manifest Schema with Groups](prd/fr-15-rich-manifest-schema.md) | 2025-12-22 | Implemented |
 | 16 | [FR-16: Agent Slide Management API](prd/fr-16-agent-slide-api.md) | 2025-12-22 | Implemented |
 | 17 | [FR-17: Group Management](prd/fr-17-group-management.md) | 2025-12-22 | Implemented |
+| 18 | [FR-18: Custom Index Page Integration](prd/fr-18-custom-index-integration.md) | 2025-12-23 | Archived (superseded by FR-20) |
+| 19 | [FR-19: Manifest Schema & Data API](prd/fr-19-manifest-schema-api.md) | 2025-12-24 | Implemented |
+| 20 | [FR-20: UI Rendering Modes](prd/fr-20-ui-rendering-modes.md) | 2025-12-24 | Implemented |
+| 21 | [FR-21: Agent Manifest Tooling](prd/fr-21-agent-manifest-tooling.md) | 2025-12-24 | Implemented |
+| 22 | [FR-22: Tab Management](prd/fr-22-tab-management.md) | 2025-12-24 | Implemented |
+| 23 | [FR-23: Group Reorder UI](prd/fr-23-group-reorder-ui.md) | 2025-12-24 | Pending (rewritten 2025-12-24) |
+| 24 | [FR-24: Container Tab Navigation](prd/fr-24-container-tab-navigation.md) | 2025-12-24 | Implemented |
+| 25 | [FR-25: Smart Display Mode with Container Tabs](prd/fr-25-smart-display-mode.md) | 2025-12-24 | Pending |
 
 ## Non-Functional Requirements
 
 | # | Requirement | Added | Status |
 |---|-------------|-------|--------|
 | 1 | [NFR-1: Real-Time File Watching](prd/nfr-01-real-time-file-watching.md) | 2025-12-21 | Implemented |
+
+## Bugs
+
+| # | Bug | Added | Status | Priority |
+|---|-----|-------|--------|----------|
+| 1 | [BUG-1: Group Creation Fails in Grouped Mode](prd/bug-01-group-creation-fails.md) | 2025-12-24 | Fixed | - |
+| 2 | [BUG-2: Navigation Breaks After Container Tab Click](prd/bug-02-navigation-after-tab-click.md) | 2025-12-24 | Fixed | - |
+| 3 | [BUG-3: Groups Display in Different Order](prd/bug-03-groups-out-of-order.md) | 2025-12-24 | Open | Medium |
+| 4 | [BUG-4: Display Mode Doesn't Persist on Refresh](prd/bug-04-display-mode-no-persist.md) | 2025-12-24 | Fixed | - |
+| 5 | [BUG-5: Tabbed Display Mode Shows Empty Sidebar](prd/bug-05-tabbed-mode-empty-sidebar.md) | 2025-12-24 | Fixed | - |
+| 6 | [BUG-6: Groups Don't Auto-Expand During Navigation](prd/bug-06-groups-no-auto-expand.md) | 2025-12-24 | Fixed | - |
+| 7 | [BUG-7: Performance Degradation / Slow Loading](prd/bug-07-performance-slow-loading.md) | 2025-12-24 | Fixed | - |
+| 8 | [BUG-8: Container Tab System Completely Broken](prd/bug-08-tab-system-broken.md) | 2025-12-24 | Fixed (data issue) | - |
+| 9 | [BUG-9: Tabbed Display Mode Still Selectable](prd/bug-09-tabbed-mode-still-selectable.md) | 2025-12-26 | Open | High |
 
 ---
 

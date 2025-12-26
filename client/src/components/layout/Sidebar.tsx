@@ -1,7 +1,11 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import type { Presentation, Asset } from '@flideck/shared';
 import { api } from '../../utils/api';
+import { useDisplayMode } from '../../hooks/useDisplayMode';
+import { getDisplayModeLabel } from '../../utils/displayMode';
+import { SidebarFlat } from './SidebarFlat';
+import { SidebarGrouped } from './SidebarGrouped';
 
 interface SidebarProps {
   presentations: Presentation[];
@@ -10,8 +14,12 @@ interface SidebarProps {
   onSelectPresentation: (id: string) => void;
   onSelectAsset: (presentationId: string, assetId: string) => void;
   onAssetsReordered?: () => void;
-  /** Whether to show the presentations list (default: true). Set false on PresentationPage. */
   showPresentations?: boolean;
+  /** Active container tab ID for filtering (FR-24) */
+  activeContainerTabId?: string | null;
+  /** BUG-6: Collapsed groups state (lifted to PresentationPage for auto-expand) */
+  collapsedGroups?: Set<string>;
+  onSetCollapsedGroups?: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
 interface GroupedAssets {
@@ -23,7 +31,7 @@ interface GroupedAssets {
 
 /**
  * Sidebar for navigating presentations and assets.
- * Supports drag-and-drop reordering of assets and group-based organization.
+ * Supports multiple rendering modes: flat, grouped, tabbed.
  */
 export function Sidebar({
   presentations,
@@ -33,20 +41,27 @@ export function Sidebar({
   onSelectAsset,
   onAssetsReordered,
   showPresentations = true,
+  activeContainerTabId,
+  collapsedGroups: externalCollapsedGroups,
+  onSetCollapsedGroups,
 }: SidebarProps) {
   const selectedPresentation = presentations.find(
     (p) => p.id === selectedPresentationId
   );
 
+  // Display mode management
+  // FR-25: Display mode is orthogonal to container tabs (flat/grouped affects rendering, tabs filter content)
+  const { mode, autoMode, hasOverride, setOverride, clearOverride } = useDisplayMode(selectedPresentation);
+
   // Drag-and-drop state
   const [draggedAssetId, setDraggedAssetId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
-  // Undo state - stores previous order for Cmd+Z
+  // Undo state
   const previousOrderRef = useRef<{ presentationId: string; order: string[] } | null>(null);
 
-  // Collapsed groups state (persisted in localStorage)
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
+  // BUG-6: Use external collapsed groups state if provided, otherwise fallback to local state
+  const [localCollapsedGroups, setLocalCollapsedGroups] = useState<Set<string>>(() => {
     try {
       const saved = localStorage.getItem('flideck-collapsed-groups');
       return saved ? new Set(JSON.parse(saved)) : new Set();
@@ -55,35 +70,48 @@ export function Sidebar({
     }
   });
 
-  // Copy path menu state (FR-17 style dropdown)
+  const collapsedGroups = externalCollapsedGroups ?? localCollapsedGroups;
+  const setCollapsedGroups = onSetCollapsedGroups ?? setLocalCollapsedGroups;
+
+  // Copy path menu state
   const [copyMenuOpenAssetId, setCopyMenuOpenAssetId] = useState<string | null>(null);
   const [isHeaderCopyMenuOpen, setIsHeaderCopyMenuOpen] = useState(false);
   const [hoveredAssetId, setHoveredAssetId] = useState<string | null>(null);
 
-  // Group management state (FR-17)
+  // Group management state (for grouped mode)
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupLabel, setEditingGroupLabel] = useState('');
   const [menuOpenGroupId, setMenuOpenGroupId] = useState<string | null>(null);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [newGroupLabel, setNewGroupLabel] = useState('');
-  const editInputRef = useRef<HTMLInputElement>(null);
-  const newGroupInputRef = useRef<HTMLInputElement>(null);
 
-  // Find the index asset (shown separately at top)
+
+  // Mode switcher dropdown state
+  const [isModeSwitcherOpen, setIsModeSwitcherOpen] = useState(false);
+
+  // Find the index asset (shown separately at top in grouped mode)
   const indexAsset = useMemo(() => {
     return selectedPresentation?.assets.find((a) => a.isIndex) || null;
   }, [selectedPresentation]);
 
-  // Group assets by their group property (excluding index)
+  // FR-24: Get set of tab index filenames to hide from sidebar
+  const tabIndexFiles = useMemo(() => {
+    if (!selectedPresentation?.tabs) return new Set<string>();
+    return new Set(selectedPresentation.tabs.map((t) => t.file));
+  }, [selectedPresentation?.tabs]);
+
+  // Group assets by their group property (for grouped mode)
+  // FR-24: Filter by active container tab if applicable
   const groupedAssets = useMemo((): GroupedAssets[] => {
     if (!selectedPresentation) return [];
 
     const groups = selectedPresentation.groups || {};
     const assetsByGroup = new Map<string, Asset[]>();
 
-    // Group assets (excluding index)
     for (const asset of selectedPresentation.assets) {
-      if (asset.isIndex) continue; // Index shown separately at top
+      if (asset.isIndex) continue;
+      // FR-24: Hide tab index files from sidebar
+      if (tabIndexFiles.has(asset.filename)) continue;
       const groupId = asset.group || '__ungrouped__';
       if (!assetsByGroup.has(groupId)) {
         assetsByGroup.set(groupId, []);
@@ -91,14 +119,15 @@ export function Sidebar({
       assetsByGroup.get(groupId)!.push(asset);
     }
 
-    // Build grouped assets array
     const result: GroupedAssets[] = [];
-
-    // Add defined groups in order
-    const sortedGroups = Object.entries(groups)
-      .sort(([, a], [, b]) => a.order - b.order);
+    const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.order);
 
     for (const [groupId, def] of sortedGroups) {
+      // FR-24: Filter by container tab if set
+      if (activeContainerTabId && def.tabId && def.tabId !== activeContainerTabId) {
+        continue;
+      }
+
       const assets = assetsByGroup.get(groupId) || [];
       if (assets.length > 0) {
         result.push({
@@ -111,7 +140,6 @@ export function Sidebar({
       }
     }
 
-    // Add any remaining groups (not defined but referenced by assets)
     for (const [groupId, assets] of assetsByGroup) {
       if (groupId !== '__ungrouped__' && assets.length > 0) {
         result.push({
@@ -124,15 +152,18 @@ export function Sidebar({
     }
 
     return result;
-  }, [selectedPresentation]);
+  }, [selectedPresentation, activeContainerTabId, tabIndexFiles]);
 
-  // Get root-level assets (no group, excluding index) - shown without a header
+  // Get root-level assets (no group, excluding index and tab index files)
+  // FR-25: Filter by active container tab if applicable (orphan assets show in all tabs)
   const rootAssets = useMemo(() => {
     if (!selectedPresentation) return [];
     return selectedPresentation.assets.filter(
-      (a) => !a.isIndex && !a.group
+      (a) => !a.isIndex && !a.group && !tabIndexFiles.has(a.filename)
+      // Note: Ungrouped assets (no group property) appear in all tabs
+      // This is the chosen solution for FR-25 open question #1
     );
-  }, [selectedPresentation]);
+  }, [selectedPresentation, tabIndexFiles]);
 
   // Toggle group collapse
   const toggleGroup = useCallback((groupId: string) => {
@@ -143,23 +174,20 @@ export function Sidebar({
       } else {
         next.add(groupId);
       }
-      // Save to localStorage
       try {
         localStorage.setItem('flideck-collapsed-groups', JSON.stringify([...next]));
       } catch {
-        // Ignore localStorage errors
+        // Ignore
       }
       return next;
     });
   }, []);
 
-  // FR-17: Group management handlers
+  // Group management handlers
   const startEditingGroup = useCallback((groupId: string, currentLabel: string) => {
     setEditingGroupId(groupId);
     setEditingGroupLabel(currentLabel);
     setMenuOpenGroupId(null);
-    // Focus input after render
-    setTimeout(() => editInputRef.current?.focus(), 0);
   }, []);
 
   const cancelEditingGroup = useCallback(() => {
@@ -204,8 +232,6 @@ export function Sidebar({
   const startCreatingGroup = useCallback(() => {
     setIsCreatingGroup(true);
     setNewGroupLabel('');
-    // Focus input after render
-    setTimeout(() => newGroupInputRef.current?.focus(), 0);
   }, []);
 
   const cancelCreatingGroup = useCallback(() => {
@@ -214,12 +240,21 @@ export function Sidebar({
   }, []);
 
   const createGroup = useCallback(async () => {
-    if (!selectedPresentation || !newGroupLabel.trim()) {
+    if (!newGroupLabel.trim()) {
       cancelCreatingGroup();
       return;
     }
 
-    // Generate ID from label (kebab-case)
+    if (!selectedPresentation) {
+      console.error('createGroup called but selectedPresentation is undefined', {
+        presentationsLength: presentations.length,
+        selectedPresentationId,
+      });
+      toast.error('Unable to create group: presentation not loaded');
+      cancelCreatingGroup();
+      return;
+    }
+
     const id = newGroupLabel
       .trim()
       .toLowerCase()
@@ -243,11 +278,11 @@ export function Sidebar({
       toast.error('Failed to create group');
     }
     cancelCreatingGroup();
-  }, [selectedPresentation, newGroupLabel, cancelCreatingGroup, onAssetsReordered]);
+  }, [selectedPresentation, newGroupLabel, cancelCreatingGroup, onAssetsReordered, presentations, selectedPresentationId]);
 
   // Close menus when clicking outside
   useEffect(() => {
-    const anyMenuOpen = menuOpenGroupId || copyMenuOpenAssetId || isHeaderCopyMenuOpen;
+    const anyMenuOpen = menuOpenGroupId || copyMenuOpenAssetId || isHeaderCopyMenuOpen || isModeSwitcherOpen;
     if (!anyMenuOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -259,20 +294,23 @@ export function Sidebar({
         setCopyMenuOpenAssetId(null);
         setIsHeaderCopyMenuOpen(false);
       }
+      if (!target.closest('[data-mode-switcher]')) {
+        setIsModeSwitcherOpen(false);
+      }
     };
 
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [menuOpenGroupId, copyMenuOpenAssetId, isHeaderCopyMenuOpen]);
+  }, [menuOpenGroupId, copyMenuOpenAssetId, isHeaderCopyMenuOpen, isModeSwitcherOpen]);
 
-  // Undo last reorder (Cmd+Z / Ctrl+Z)
+  // Undo handler
   const handleUndo = useCallback(async () => {
     const prev = previousOrderRef.current;
     if (!prev) return;
 
     try {
       await api.put(`/api/presentations/${prev.presentationId}/order`, { order: prev.order });
-      previousOrderRef.current = null; // Clear after undo
+      previousOrderRef.current = null;
       onAssetsReordered?.();
       toast.success('Reorder undone');
     } catch (error) {
@@ -281,7 +319,7 @@ export function Sidebar({
     }
   }, [onAssetsReordered]);
 
-  // Listen for Cmd+Z / Ctrl+Z
+  // Undo keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
@@ -350,6 +388,7 @@ export function Sidebar({
     copyToClipboard(text, label);
   }, [selectedPresentation, copyToClipboard]);
 
+  // Drag-and-drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, assetId: string) => {
     setDraggedAssetId(assetId);
     e.dataTransfer.effectAllowed = 'move';
@@ -382,41 +421,82 @@ export function Sidebar({
     }
 
     const assets = [...selectedPresentation.assets];
+    const draggedAsset = assets.find((a) => a.id === draggedAssetId);
+    const targetAsset = assets.find((a) => a.id === targetAssetId);
     const draggedIndex = assets.findIndex((a) => a.id === draggedAssetId);
     const targetIndex = assets.findIndex((a) => a.id === targetAssetId);
 
-    if (draggedIndex === -1 || targetIndex === -1) {
+    if (draggedIndex === -1 || targetIndex === -1 || !draggedAsset || !targetAsset) {
       handleDragEnd();
       return;
     }
 
-    // Save previous order for undo (Cmd+Z)
+    // Check if moving between groups (cross-group drag)
+    const sourceGroup = draggedAsset.group || null;
+    const targetGroup = targetAsset.group || null;
+    const isCrossGroupDrag = sourceGroup !== targetGroup;
+
     const previousOrder = selectedPresentation.assets.map((a) => a.filename);
     previousOrderRef.current = {
       presentationId: selectedPresentation.id,
       order: previousOrder,
     };
 
-    // Remove dragged item and insert at new position
-    const [draggedItem] = assets.splice(draggedIndex, 1);
-    assets.splice(targetIndex, 0, draggedItem);
-
-    // Get new order as filenames
-    const newOrder = assets.map((a) => a.filename);
-
-    // Save to server
     try {
+      // If cross-group drag, update the group assignment first
+      if (isCrossGroupDrag) {
+        await api.put(
+          `/api/presentations/${selectedPresentation.id}/slides/${draggedAsset.id}`,
+          { group: targetGroup }
+        );
+        toast.success(targetGroup ? `Moved to ${targetGroup}` : 'Moved to root');
+      }
+
+      // Then reorder
+      const [draggedItem] = assets.splice(draggedIndex, 1);
+      assets.splice(targetIndex, 0, draggedItem);
+      const newOrder = assets.map((a) => a.filename);
+
       await api.put(`/api/presentations/${selectedPresentation.id}/order`, { order: newOrder });
       onAssetsReordered?.();
     } catch (error) {
       console.error('Failed to save asset order:', error);
-      previousOrderRef.current = null; // Clear on error
+      previousOrderRef.current = null;
+      toast.error('Failed to move slide');
     }
 
     handleDragEnd();
   }, [selectedPresentation, draggedAssetId, handleDragEnd, onAssetsReordered]);
 
-  // Render the index row (special styling, shows presentation name)
+  // Drop to group handler (for grouped mode - dropping onto group headers)
+  const handleDropToGroup = useCallback(async (_e: React.DragEvent, groupId: string | null) => {
+    if (!selectedPresentation || !draggedAssetId) return;
+
+    const draggedAsset = selectedPresentation.assets.find((a) => a.id === draggedAssetId);
+    if (!draggedAsset) return;
+
+    // Check if already in this group
+    const currentGroup = draggedAsset.group || null;
+    if (currentGroup === groupId) {
+      handleDragEnd();
+      return;
+    }
+
+    try {
+      await api.put(
+        `/api/presentations/${selectedPresentation.id}/slides/${draggedAsset.id}`,
+        { group: groupId }
+      );
+      onAssetsReordered?.();
+      toast.success(groupId ? `Moved to ${groupId}` : 'Moved to root');
+    } catch (error) {
+      console.error('Failed to move slide to group:', error);
+      toast.error('Failed to move slide');
+    }
+    handleDragEnd();
+  }, [selectedPresentation, draggedAssetId, onAssetsReordered, handleDragEnd]);
+
+  // Render the index row (for grouped mode)
   const renderIndexRow = (asset: Asset) => {
     const isDragging = draggedAssetId === asset.id;
     const isDropTarget = dropTargetId === asset.id;
@@ -425,10 +505,7 @@ export function Sidebar({
     const displayName = selectedPresentation?.name || 'Index';
 
     return (
-      <div
-        key={asset.id}
-        className="mb-2 relative flex items-center"
-      >
+      <div key={asset.id} className="mb-2 relative flex items-center">
         <button
           draggable
           onDragStart={(e) => handleDragStart(e, asset.id)}
@@ -439,11 +516,7 @@ export function Sidebar({
           onClick={() => onSelectAsset(selectedPresentation!.id, asset.id)}
           className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
           style={{
-            backgroundColor: isDropTarget
-              ? '#ffde59'
-              : isSelected
-                ? '#ccba9d'
-                : '#4a4040',
+            backgroundColor: isDropTarget ? '#ffde59' : isSelected ? '#ccba9d' : '#4a4040',
             color: isDropTarget || isSelected ? '#342d2d' : '#ffffff',
             opacity: isDragging ? 0.5 : 1,
             cursor: 'grab',
@@ -460,7 +533,6 @@ export function Sidebar({
           <span className="truncate font-medium">{displayName}</span>
         </button>
 
-        {/* Copy path menu */}
         <div className="relative" data-copy-menu>
           <button
             onClick={(e) => {
@@ -469,8 +541,14 @@ export function Sidebar({
             }}
             className="p-1 ml-1 rounded transition-colors"
             style={{ color: '#595959' }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#4a4040';
+              e.currentTarget.style.color = '#ccba9d';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#595959';
+            }}
             title="Copy path"
           >
             ⋮
@@ -482,29 +560,53 @@ export function Sidebar({
               style={{ backgroundColor: '#4a4040' }}
             >
               <button
-                onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); setCopyMenuOpenAssetId(null); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyAssetPath(asset, 'url');
+                  setCopyMenuOpenAssetId(null);
+                }}
                 className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                 style={{ color: '#ffffff' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5a5050';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 Copy URL
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); setCopyMenuOpenAssetId(null); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyAssetPath(asset, 'abs');
+                  setCopyMenuOpenAssetId(null);
+                }}
                 className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                 style={{ color: '#ffffff' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5a5050';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 Copy Absolute
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); setCopyMenuOpenAssetId(null); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyAssetPath(asset, 'rel');
+                  setCopyMenuOpenAssetId(null);
+                }}
                 className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                 style={{ color: '#ffffff' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5a5050';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 Copy Relative
               </button>
@@ -515,136 +617,12 @@ export function Sidebar({
     );
   };
 
-  // Render a single asset row
-  const renderAssetRow = (asset: Asset) => {
-    const isDragging = draggedAssetId === asset.id;
-    const isDropTarget = dropTargetId === asset.id;
-    const isSelected = selectedAssetId === asset.id;
-    const isCopyMenuOpen = copyMenuOpenAssetId === asset.id;
-    const isHovered = hoveredAssetId === asset.id;
-
-    return (
-      <div
-        key={asset.id}
-        className="relative flex items-center"
-        onMouseEnter={() => setHoveredAssetId(asset.id)}
-        onMouseLeave={() => setHoveredAssetId(null)}
-      >
-        <button
-          draggable
-          onDragStart={(e) => handleDragStart(e, asset.id)}
-          onDragOver={(e) => handleDragOver(e, asset.id)}
-          onDragLeave={handleDragLeave}
-          onDragEnd={handleDragEnd}
-          onDrop={(e) => handleDrop(e, asset.id)}
-          onClick={() =>
-            onSelectAsset(selectedPresentation!.id, asset.id)
-          }
-          className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
-          style={{
-            backgroundColor: isDropTarget
-              ? '#ffde59'
-              : isSelected
-                ? '#ffde59'
-                : isHovered
-                  ? '#4a4040'
-                  : 'transparent',
-            color: isDropTarget || isSelected ? '#342d2d' : '#ffffff',
-            opacity: isDragging ? 0.5 : 1,
-            cursor: 'grab',
-            borderTop: isDropTarget ? '2px solid #ccba9d' : '2px solid transparent',
-          }}
-        >
-          <span
-            className="mr-2 text-xs cursor-grab"
-            style={{ color: isSelected || isDropTarget ? '#342d2d' : '#595959' }}
-            title="Drag to reorder"
-          >
-            ⋮⋮
-          </span>
-          {asset.isIndex && (
-            <span
-              className="mr-2 text-xs px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: '#ccba9d', color: '#342d2d' }}
-            >
-              index
-            </span>
-          )}
-          {asset.recommended && (
-            <span
-              className="mr-2 text-xs"
-              style={{ color: '#ffde59' }}
-              title="Recommended"
-            >
-              ★
-            </span>
-          )}
-          <span className="truncate">{asset.name}</span>
-        </button>
-
-        {/* Copy path menu - visible on hover */}
-        {(isHovered || isCopyMenuOpen) && (
-          <div className="relative" data-copy-menu>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setCopyMenuOpenAssetId(isCopyMenuOpen ? null : asset.id);
-              }}
-              className="p-1 rounded transition-colors"
-              style={{ color: '#595959' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
-              title="Copy path"
-            >
-              ⋮
-            </button>
-
-            {isCopyMenuOpen && (
-              <div
-                className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[100px]"
-                style={{ backgroundColor: '#4a4040' }}
-              >
-                <button
-                  onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); setCopyMenuOpenAssetId(null); }}
-                  className="w-full text-left px-3 py-1.5 text-sm transition-colors"
-                  style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                >
-                  Copy URL
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); setCopyMenuOpenAssetId(null); }}
-                  className="w-full text-left px-3 py-1.5 text-sm transition-colors"
-                  style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                >
-                  Copy Absolute
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); setCopyMenuOpenAssetId(null); }}
-                  className="w-full text-left px-3 py-1.5 text-sm transition-colors"
-                  style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                >
-                  Copy Relative
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <aside
       className="w-64 flex flex-col overflow-hidden border-r"
       style={{ backgroundColor: '#3d3535', borderColor: '#4a4040' }}
     >
-      {/* Assets List (at top for visibility during recording) */}
+      {/* Assets List */}
       {selectedPresentation && (
         <div className="flex-1 overflow-y-auto">
           <div
@@ -658,244 +636,242 @@ export function Sidebar({
               Assets
             </h2>
 
-            {/* Copy all paths menu */}
-            <div className="relative" data-copy-menu>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsHeaderCopyMenuOpen(!isHeaderCopyMenuOpen);
-                }}
-                className="p-1 rounded transition-colors"
-                style={{ color: '#595959' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
-                title="Copy all paths"
-              >
-                ⋮
-              </button>
-
-              {isHeaderCopyMenuOpen && (
-                <div
-                  className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[120px]"
-                  style={{ backgroundColor: '#4a4040' }}
+            <div className="flex items-center gap-1">
+              {/* Mode switcher */}
+              <div className="relative" data-mode-switcher>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsModeSwitcherOpen(!isModeSwitcherOpen);
+                  }}
+                  className="px-2 py-1 rounded text-xs transition-colors"
+                  style={{ color: '#ccba9d', backgroundColor: '#4a4040' }}
+                  title={`Current mode: ${getDisplayModeLabel(mode)}${hasOverride ? ' (overridden)' : ''}`}
                 >
-                  <button
-                    onClick={(e) => { e.stopPropagation(); copyAllPaths('url'); setIsHeaderCopyMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 text-sm transition-colors"
-                    style={{ color: '#ffffff' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  {mode === 'flat' ? '☰' : mode === 'grouped' ? '⋮⋮⋮' : '▤'}
+                </button>
+
+                {isModeSwitcherOpen && (
+                  <div
+                    className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[140px]"
+                    style={{ backgroundColor: '#4a4040' }}
                   >
-                    Copy All URLs
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); copyAllPaths('abs'); setIsHeaderCopyMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 text-sm transition-colors"
-                    style={{ color: '#ffffff' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                  >
-                    Copy All Absolute
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); copyAllPaths('rel'); setIsHeaderCopyMenuOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 text-sm transition-colors"
-                    style={{ color: '#ffffff' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                  >
-                    Copy All Relative
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-          <nav className="p-2">
-            {/* Index always shown at top, outside groups */}
-            {indexAsset && renderIndexRow(indexAsset)}
-
-            {/* Root-level assets (no group) - shown without a header */}
-            {rootAssets.map(renderAssetRow)}
-
-            {/* Groups with collapsible headers */}
-            {groupedAssets.map((group) => {
-              const isCollapsed = collapsedGroups.has(group.groupId);
-              const isEditing = editingGroupId === group.groupId;
-              const isMenuOpen = menuOpenGroupId === group.groupId;
-
-              return (
-                <div key={group.groupId} className="mb-2 mt-2">
-                  {/* Group Header */}
-                  {isEditing ? (
-                    // Inline edit mode
-                    <div className="flex items-center px-2 py-1">
-                      <span className="mr-2" style={{ color: '#ccba9d' }}>▼</span>
-                      <input
-                        ref={editInputRef}
-                        type="text"
-                        value={editingGroupLabel}
-                        onChange={(e) => setEditingGroupLabel(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveGroupLabel();
-                          if (e.key === 'Escape') cancelEditingGroup();
-                        }}
-                        onBlur={saveGroupLabel}
-                        className="flex-1 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide rounded border-none outline-none"
-                        style={{
-                          backgroundColor: '#4a4040',
-                          color: '#ffffff',
-                          fontFamily: "'Oswald', Arial, sans-serif",
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    // Normal display mode
-                    <div className="relative flex items-center">
-                      <button
-                        onClick={() => toggleGroup(group.groupId)}
-                        className="flex-1 text-left px-2 py-1.5 flex items-center text-xs font-semibold uppercase tracking-wide transition-colors rounded"
-                        style={{
-                          color: '#ccba9d',
-                          fontFamily: "'Oswald', Arial, sans-serif",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                      >
-                        <span
-                          className="mr-2 transition-transform"
-                          style={{
-                            display: 'inline-block',
-                            transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-                          }}
-                        >
-                          ▼
-                        </span>
-                        <span className="flex-1">{group.label}</span>
-                        <span
-                          className="text-xs px-1.5 py-0.5 rounded ml-2"
-                          style={{ backgroundColor: '#4a4040', color: '#ccba9d' }}
-                        >
-                          {group.assets.length}
-                        </span>
-                      </button>
-
-                      {/* Menu button */}
-                      <div className="relative" data-group-menu>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpenGroupId(isMenuOpen ? null : group.groupId);
-                          }}
-                          className="p-1 rounded transition-colors"
-                          style={{ color: '#ccba9d' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                        >
-                          ⋮
-                        </button>
-
-                        {/* Dropdown menu */}
-                        {isMenuOpen && (
-                          <div
-                            className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[120px]"
-                            style={{ backgroundColor: '#4a4040' }}
-                          >
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startEditingGroup(group.groupId, group.label);
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-sm transition-colors"
-                              style={{ color: '#ffffff' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                            >
-                              Rename
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteGroup(group.groupId);
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-sm transition-colors"
-                              style={{ color: '#ff6b6b' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Group Assets */}
-                  {!isCollapsed && (
-                    <div className="pl-4 mt-1">
-                      {group.assets.map(renderAssetRow)}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* New Group button/input */}
-            {selectedPresentation && (
-              <div className="mt-3 mb-2">
-                {isCreatingGroup ? (
-                  <div className="flex items-center px-2 py-1">
-                    <span className="mr-2 text-xs" style={{ color: '#ccba9d' }}>+</span>
-                    <input
-                      ref={newGroupInputRef}
-                      type="text"
-                      value={newGroupLabel}
-                      onChange={(e) => setNewGroupLabel(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') createGroup();
-                        if (e.key === 'Escape') cancelCreatingGroup();
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearOverride();
+                        setIsModeSwitcherOpen(false);
+                        toast.success(`Auto mode: ${getDisplayModeLabel(autoMode)}`);
                       }}
-                      onBlur={() => {
-                        if (newGroupLabel.trim()) {
-                          createGroup();
-                        } else {
-                          cancelCreatingGroup();
-                        }
+                      className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                      style={{ color: !hasOverride ? '#ffde59' : '#ffffff' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#5a5050';
                       }}
-                      placeholder="Group name..."
-                      className="flex-1 px-2 py-0.5 text-xs rounded border-none outline-none"
-                      style={{
-                        backgroundColor: '#4a4040',
-                        color: '#ffffff',
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
                       }}
+                    >
+                      Auto {!hasOverride && '✓'}
+                    </button>
+                    <div
+                      className="my-1 border-t"
+                      style={{ borderColor: '#595959' }}
                     />
+                    {/* BUG-5: Hide "Tabbed" option when NO container tabs (tabbed mode needs tabs to work) */}
+                    {(['flat', 'grouped', 'tabbed'] as const).filter(m => {
+                      // Hide tabbed mode when NO container tabs are present (would result in empty sidebar)
+                      if (m === 'tabbed' && (!selectedPresentation?.tabs || selectedPresentation.tabs.length === 0)) {
+                        return false;
+                      }
+                      return true;
+                    }).map((m) => (
+                      <button
+                        key={m}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOverride(m);
+                          setIsModeSwitcherOpen(false);
+                          toast.success(`Mode: ${getDisplayModeLabel(m)}`);
+                        }}
+                        className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                        style={{
+                          color: hasOverride && mode === m ? '#ffde59' : '#ffffff',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#5a5050';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        {getDisplayModeLabel(m)} {hasOverride && mode === m && '✓'}
+                      </button>
+                    ))}
                   </div>
-                ) : (
-                  <button
-                    onClick={startCreatingGroup}
-                    className="w-full text-left px-2 py-1.5 text-xs transition-colors rounded"
-                    style={{ color: '#595959' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#4a4040';
-                      e.currentTarget.style.color = '#ccba9d';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.color = '#595959';
-                    }}
-                  >
-                    + New Group
-                  </button>
                 )}
               </div>
-            )}
-          </nav>
+
+              {/* Copy all paths menu */}
+              <div className="relative" data-copy-menu>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsHeaderCopyMenuOpen(!isHeaderCopyMenuOpen);
+                  }}
+                  className="p-1 rounded transition-colors"
+                  style={{ color: '#595959' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#4a4040';
+                    e.currentTarget.style.color = '#ccba9d';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#595959';
+                  }}
+                  title="Copy all paths"
+                >
+                  ⋮
+                </button>
+
+                {isHeaderCopyMenuOpen && (
+                  <div
+                    className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[120px]"
+                    style={{ backgroundColor: '#4a4040' }}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyAllPaths('url');
+                        setIsHeaderCopyMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                      style={{ color: '#ffffff' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#5a5050';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Copy All URLs
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyAllPaths('abs');
+                        setIsHeaderCopyMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                      style={{ color: '#ffffff' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#5a5050';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Copy All Absolute
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyAllPaths('rel');
+                        setIsHeaderCopyMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                      style={{ color: '#ffffff' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#5a5050';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Copy All Relative
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mode-specific rendering */}
+          {mode === 'flat' && (
+            <div className="p-2">
+              {indexAsset && renderIndexRow(indexAsset)}
+              <SidebarFlat
+                assets={selectedPresentation.assets.filter((a) => !a.isIndex)}
+                selectedAssetId={selectedAssetId}
+                draggedAssetId={draggedAssetId}
+                dropTargetId={dropTargetId}
+                hoveredAssetId={hoveredAssetId}
+                copyMenuOpenAssetId={copyMenuOpenAssetId}
+                onSelectAsset={(assetId) => onSelectAsset(selectedPresentation.id, assetId)}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDragEnd={handleDragEnd}
+                onDrop={handleDrop}
+                onHoverAsset={setHoveredAssetId}
+                onToggleCopyMenu={setCopyMenuOpenAssetId}
+                onCopyPath={copyAssetPath}
+              />
+            </div>
+          )}
+
+          {mode === 'grouped' && (
+            <div className="p-2">
+              {indexAsset && renderIndexRow(indexAsset)}
+              <SidebarGrouped
+                presentation={selectedPresentation}
+                selectedAssetId={selectedAssetId}
+                draggedAssetId={draggedAssetId}
+                dropTargetId={dropTargetId}
+                hoveredAssetId={hoveredAssetId}
+                copyMenuOpenAssetId={copyMenuOpenAssetId}
+                collapsedGroups={collapsedGroups}
+                editingGroupId={editingGroupId}
+                editingGroupLabel={editingGroupLabel}
+                menuOpenGroupId={menuOpenGroupId}
+                isCreatingGroup={isCreatingGroup}
+                newGroupLabel={newGroupLabel}
+                onSelectAsset={(assetId) => onSelectAsset(selectedPresentation.id, assetId)}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDragEnd={handleDragEnd}
+                onDrop={handleDrop}
+                onDropToGroup={handleDropToGroup}
+                onHoverAsset={setHoveredAssetId}
+                onToggleCopyMenu={setCopyMenuOpenAssetId}
+                onCopyPath={copyAssetPath}
+                onToggleGroup={toggleGroup}
+                onStartEditingGroup={startEditingGroup}
+                onCancelEditingGroup={cancelEditingGroup}
+                onSaveGroupLabel={saveGroupLabel}
+                onSetEditingGroupLabel={setEditingGroupLabel}
+                onDeleteGroup={deleteGroup}
+                onSetMenuOpenGroupId={setMenuOpenGroupId}
+                onStartCreatingGroup={startCreatingGroup}
+                onCancelCreatingGroup={cancelCreatingGroup}
+                onCreateGroup={createGroup}
+                onSetNewGroupLabel={setNewGroupLabel}
+                groupedAssets={groupedAssets}
+                rootAssets={rootAssets}
+              />
+            </div>
+          )}
+
         </div>
       )}
 
-      {/* Presentations List (shown on HomePage, hidden on PresentationPage) */}
+      {/* Presentations List */}
       {showPresentations && (
-        <div className={`overflow-y-auto ${selectedPresentation ? 'border-t' : 'flex-1'}`} style={{ borderColor: '#4a4040' }}>
+        <div
+          className={`overflow-y-auto ${selectedPresentation ? 'border-t' : 'flex-1'}`}
+          style={{ borderColor: '#4a4040' }}
+        >
           <div className="p-3 border-b" style={{ borderColor: '#4a4040' }}>
             <h2
               className="text-xs font-semibold uppercase tracking-wide"
@@ -906,7 +882,9 @@ export function Sidebar({
           </div>
           <nav className="p-2">
             {presentations.length === 0 ? (
-              <p className="text-sm p-2" style={{ color: '#595959' }}>No presentations found</p>
+              <p className="text-sm p-2" style={{ color: '#595959' }}>
+                No presentations found
+              </p>
             ) : (
               presentations.map((presentation) => (
                 <button
@@ -914,8 +892,9 @@ export function Sidebar({
                   onClick={() => onSelectPresentation(presentation.id)}
                   className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors"
                   style={{
-                    backgroundColor: selectedPresentationId === presentation.id ? '#ffde59' : 'transparent',
-                    color: selectedPresentationId === presentation.id ? '#342d2d' : '#ffffff'
+                    backgroundColor:
+                      selectedPresentationId === presentation.id ? '#ffde59' : 'transparent',
+                    color: selectedPresentationId === presentation.id ? '#342d2d' : '#ffffff',
                   }}
                   onMouseEnter={(e) => {
                     if (selectedPresentationId !== presentation.id) {
@@ -931,7 +910,10 @@ export function Sidebar({
                   {presentation.name}
                   <span
                     className="ml-2 text-xs"
-                    style={{ color: selectedPresentationId === presentation.id ? '#342d2d' : '#ccba9d', opacity: 0.8 }}
+                    style={{
+                      color: selectedPresentationId === presentation.id ? '#342d2d' : '#ccba9d',
+                      opacity: 0.8,
+                    }}
                   >
                     ({presentation.assets.length})
                   </span>

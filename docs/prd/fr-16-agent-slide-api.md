@@ -164,7 +164,7 @@ if (health.ok) {
 - Creating/editing HTML files (agent's job)
 - Authentication/authorization
 - Rate limiting
-- Bulk operations
+- Bulk operations → **See FR-21** for bulk operations support
 
 ---
 

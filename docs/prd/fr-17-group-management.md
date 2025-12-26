@@ -248,7 +248,7 @@ After deleting "api" group:
 - `client/src/utils/api.ts` - Added `delete` method
 
 **Deferred:**
-- Group drag-drop reordering UI (API exists but UI not implemented)
+- Group drag-drop reordering UI (API exists but UI not implemented) → **See FR-22** for completion
 - The reorder API works, agents can call it directly
 
 **Open questions resolved:**

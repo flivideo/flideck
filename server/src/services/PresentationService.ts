@@ -6,7 +6,9 @@ import type {
   Asset,
   FlideckManifest,
   ManifestSlide,
+  ManifestTemplate,
 } from '@flideck/shared';
+import { applyTemplate as applyManifestTemplate } from '../utils/manifestTemplates.js';
 
 const MANIFEST_FILENAME = 'index.json';
 const LEGACY_MANIFEST_FILENAME = 'flideck.json';
@@ -148,6 +150,7 @@ export class PresentationService extends EventEmitter {
       lastModified: stat.mtimeMs,
       groups: manifest?.groups,
       meta: manifest?.meta,
+      tabs: manifest?.tabs, // FR-24: Container-level tabs
     };
   }
 
@@ -872,6 +875,961 @@ export class PresentationService extends EventEmitter {
 
     // Write manifest
     await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  // ============================================================
+  // FR-22: Tab Management API Methods
+  // ============================================================
+
+  /**
+   * Create a new tab (group with tab: true).
+   * Tabs are convenience wrappers around groups with tab: true.
+   */
+  async createTab(presentationId: string, id: string, label: string): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest or create new one
+    let manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      manifest = { groups: {}, slides: [] };
+    }
+
+    // Ensure groups object exists
+    if (!manifest.groups) {
+      manifest.groups = {};
+    }
+
+    // Check if tab/group already exists
+    if (manifest.groups[id]) {
+      throw new Error(`Tab already exists: ${id}`);
+    }
+
+    // Find next order value
+    const existingOrders = Object.values(manifest.groups).map((g) => g.order);
+    const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
+
+    // Add tab (group with tab: true)
+    manifest.groups[id] = { label, order: nextOrder, tab: true };
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Delete a tab and handle child groups based on strategy.
+   *
+   * @param strategy - 'orphan' (default) makes children parentless,
+   *                   'cascade' deletes children too,
+   *                   'reparent:<tabId>' moves children to another tab
+   */
+  async deleteTab(
+    presentationId: string,
+    tabId: string,
+    strategy: string = 'orphan'
+  ): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Verify tab exists and is actually a tab
+    if (!manifest.groups || !manifest.groups[tabId]) {
+      throw new Error(`Tab not found: ${tabId}`);
+    }
+
+    if (!manifest.groups[tabId].tab) {
+      throw new Error(`Group is not a tab: ${tabId}`);
+    }
+
+    // Handle child groups based on strategy
+    if (manifest.groups) {
+      const childGroups = Object.entries(manifest.groups)
+        .filter(([, group]) => group.parent === tabId);
+
+      if (strategy === 'cascade') {
+        // Delete all child groups
+        for (const [childId] of childGroups) {
+          delete manifest.groups[childId];
+
+          // Remove group assignment from slides
+          if (manifest.slides) {
+            for (const slide of manifest.slides) {
+              if (slide.group === childId) {
+                delete slide.group;
+              }
+            }
+          }
+        }
+      } else if (strategy.startsWith('reparent:')) {
+        // Move children to another tab
+        const newParentId = strategy.split(':')[1];
+
+        // Verify new parent exists and is a tab
+        if (!manifest.groups[newParentId]) {
+          throw new Error(`New parent tab not found: ${newParentId}`);
+        }
+        if (!manifest.groups[newParentId].tab) {
+          throw new Error(`New parent is not a tab: ${newParentId}`);
+        }
+
+        // Reparent all children
+        for (const [childId] of childGroups) {
+          manifest.groups[childId].parent = newParentId;
+        }
+      } else {
+        // Default: orphan - make children parentless
+        for (const [childId] of childGroups) {
+          delete manifest.groups[childId].parent;
+        }
+      }
+    }
+
+    // Remove the tab
+    delete manifest.groups[tabId];
+
+    // Remove tab assignment from any slides
+    if (manifest.slides) {
+      for (const slide of manifest.slides) {
+        if (slide.group === tabId) {
+          delete slide.group;
+        }
+      }
+    }
+
+    // Renumber remaining groups to fill gaps
+    const sortedGroups = Object.entries(manifest.groups)
+      .sort(([, a], [, b]) => a.order - b.order);
+    for (let i = 0; i < sortedGroups.length; i++) {
+      const [id] = sortedGroups[i];
+      manifest.groups[id].order = i + 1;
+    }
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Update a tab's label.
+   */
+  async updateTab(presentationId: string, tabId: string, label: string): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Verify tab exists and is actually a tab
+    if (!manifest.groups || !manifest.groups[tabId]) {
+      throw new Error(`Tab not found: ${tabId}`);
+    }
+
+    if (!manifest.groups[tabId].tab) {
+      throw new Error(`Group is not a tab: ${tabId}`);
+    }
+
+    // Update label
+    manifest.groups[tabId].label = label;
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Reorder tabs only (groups where tab: true).
+   * This is a filtered convenience over reorderGroups.
+   */
+  async reorderTabs(presentationId: string, order: string[]): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Ensure groups object exists
+    if (!manifest.groups) {
+      manifest.groups = {};
+    }
+
+    // Verify all IDs in order are tabs
+    for (const tabId of order) {
+      if (!manifest.groups[tabId]) {
+        throw new Error(`Tab not found: ${tabId}`);
+      }
+      if (!manifest.groups[tabId].tab) {
+        throw new Error(`Group is not a tab: ${tabId}`);
+      }
+    }
+
+    // Get non-tab groups to preserve their order
+    const nonTabGroups = Object.entries(manifest.groups)
+      .filter(([, group]) => !group.tab)
+      .sort(([, a], [, b]) => a.order - b.order);
+
+    // Renumber tabs based on new order
+    let orderIndex = 1;
+    for (const tabId of order) {
+      manifest.groups[tabId].order = orderIndex++;
+    }
+
+    // Renumber non-tab groups after tabs
+    for (const [groupId] of nonTabGroups) {
+      manifest.groups[groupId].order = orderIndex++;
+    }
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Set a group's parent tab (move group under tab).
+   */
+  async setGroupParent(
+    presentationId: string,
+    groupId: string,
+    parentTabId: string
+  ): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Verify group exists
+    if (!manifest.groups || !manifest.groups[groupId]) {
+      throw new Error(`Group not found: ${groupId}`);
+    }
+
+    // Verify parent exists and is a tab
+    if (!manifest.groups[parentTabId]) {
+      throw new Error(`Parent tab not found: ${parentTabId}`);
+    }
+
+    if (!manifest.groups[parentTabId].tab) {
+      throw new Error(`Parent is not a tab: ${parentTabId}`);
+    }
+
+    // Set parent
+    manifest.groups[groupId].parent = parentTabId;
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Remove a group's parent tab (make group parentless).
+   */
+  async removeGroupParent(presentationId: string, groupId: string): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      throw new Error(`No manifest found for: ${presentationId}`);
+    }
+
+    // Verify group exists
+    if (!manifest.groups || !manifest.groups[groupId]) {
+      throw new Error(`Group not found: ${groupId}`);
+    }
+
+    // Remove parent
+    delete manifest.groups[groupId].parent;
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  // ============================================================
+  // FR-19: Manifest Schema & Data API Methods
+  // ============================================================
+
+  /**
+   * Get the raw manifest for a presentation.
+   * Returns null if no manifest exists.
+   *
+   * @param presentationId - Presentation ID
+   * @returns The manifest object or null
+   * @throws Error if presentation not found
+   */
+  async getManifest(presentationId: string): Promise<FlideckManifest | null> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    return this.readManifest(folderPath);
+  }
+
+  /**
+   * Replace the entire manifest for a presentation.
+   * Validates the manifest before writing.
+   *
+   * @param presentationId - Presentation ID
+   * @param manifest - The new manifest object (must be valid)
+   * @throws Error if presentation not found or manifest is invalid
+   */
+  async setManifest(presentationId: string, manifest: FlideckManifest): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Validation happens in route handler before this method is called
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Partially update the manifest for a presentation.
+   * Uses deep merge semantics for objects, replacement for arrays.
+   *
+   * @param presentationId - Presentation ID
+   * @param updates - Partial manifest updates
+   * @throws Error if presentation not found
+   */
+  async patchManifest(
+    presentationId: string,
+    updates: Partial<FlideckManifest>
+  ): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest or create new one
+    const currentManifest = await this.readManifest(folderPath);
+    const baseManifest = currentManifest || {};
+
+    // Deep merge updates
+    const manifest = this.deepMerge(baseManifest, updates) as FlideckManifest;
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Deep merge helper for PATCH semantics.
+   * Objects are merged recursively, arrays are replaced.
+   */
+  private deepMerge(target: any, source: any): any {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
+      return source;
+    }
+
+    const result = { ...target };
+
+    for (const key in source) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        const sourceValue = source[key];
+        const targetValue = result[key];
+
+        if (Array.isArray(sourceValue)) {
+          // Arrays are replaced, not merged
+          result[key] = sourceValue;
+        } else if (sourceValue && typeof sourceValue === 'object') {
+          // Deep merge objects
+          result[key] =
+            targetValue && typeof targetValue === 'object'
+              ? this.deepMerge(targetValue, sourceValue)
+              : sourceValue;
+        } else {
+          // Primitives are replaced
+          result[key] = sourceValue;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  // ============================================================
+  // FR-21: Agent Manifest Tooling Methods
+  // ============================================================
+
+  /**
+   * Bulk add slides to a presentation's manifest.
+   * Supports auto-creating groups, position control, and conflict resolution.
+   *
+   * @param presentationId - Presentation ID
+   * @param slides - Array of slides to add
+   * @param options - Bulk operation options
+   * @returns Operation result with counts
+   */
+  async bulkAddSlides(
+    presentationId: string,
+    slides: Array<{
+      file: string;
+      title?: string;
+      group?: string;
+      description?: string;
+      recommended?: boolean;
+    }>,
+    options: {
+      createGroups?: boolean;
+      position?: 'start' | 'end' | { after: string };
+      onConflict?: {
+        duplicateFile?: 'skip' | 'replace' | 'rename';
+        groupMismatch?: 'keep' | 'update';
+      };
+    } = {}
+  ): Promise<{
+    added: number;
+    skipped: number;
+    updated: number;
+    skippedItems: Array<{ item: string; reason: string }>;
+  }> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest or create new one
+    let manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      manifest = { slides: [] };
+    }
+
+    // Ensure slides array exists
+    if (!manifest.slides) {
+      manifest.slides = [];
+    }
+
+    // Ensure groups object exists if we'll be auto-creating
+    if (options.createGroups && !manifest.groups) {
+      manifest.groups = {};
+    }
+
+    const result = {
+      added: 0,
+      skipped: 0,
+      updated: 0,
+      skippedItems: [] as Array<{ item: string; reason: string }>,
+    };
+
+    const slidesToAdd: ManifestSlide[] = [];
+
+    // Process each slide
+    for (const slide of slides) {
+      const existingIndex = manifest.slides.findIndex((s) => s.file === slide.file);
+      const conflictStrategy = options.onConflict?.duplicateFile || 'skip';
+
+      // Handle duplicates
+      if (existingIndex !== -1) {
+        if (conflictStrategy === 'skip') {
+          result.skipped++;
+          result.skippedItems.push({
+            item: slide.file,
+            reason: 'File already exists in manifest',
+          });
+          continue;
+        } else if (conflictStrategy === 'replace') {
+          // Remove existing and add as new
+          manifest.slides.splice(existingIndex, 1);
+          result.updated++;
+        } else if (conflictStrategy === 'rename') {
+          // Generate unique filename
+          const baseName = path.basename(slide.file, '.html');
+          let counter = 1;
+          let newFile = slide.file;
+          while (manifest.slides.some((s) => s.file === newFile)) {
+            newFile = `${baseName}-${counter}.html`;
+            counter++;
+          }
+          slide.file = newFile;
+          result.added++;
+        }
+      } else {
+        result.added++;
+      }
+
+      // Auto-create group if needed
+      if (slide.group && options.createGroups && manifest.groups) {
+        if (!manifest.groups[slide.group]) {
+          const existingOrders = Object.values(manifest.groups).map((g) => g.order);
+          const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
+          manifest.groups[slide.group] = {
+            label: this.formatName(slide.group),
+            order: nextOrder,
+          };
+        }
+      }
+
+      // Validate group exists if specified
+      if (slide.group && manifest.groups && !manifest.groups[slide.group]) {
+        result.skipped++;
+        result.skippedItems.push({
+          item: slide.file,
+          reason: `Group '${slide.group}' does not exist`,
+        });
+        continue;
+      }
+
+      // Build slide entry
+      const newSlide: ManifestSlide = { file: slide.file };
+      if (slide.title) newSlide.title = slide.title;
+      if (slide.group) newSlide.group = slide.group;
+      if (slide.description) newSlide.description = slide.description;
+      if (slide.recommended !== undefined) newSlide.recommended = slide.recommended;
+
+      slidesToAdd.push(newSlide);
+    }
+
+    // Apply position
+    const position = options.position || 'end';
+    if (position === 'start') {
+      manifest.slides = [...slidesToAdd, ...manifest.slides];
+    } else if (position === 'end') {
+      manifest.slides = [...manifest.slides, ...slidesToAdd];
+    } else if (typeof position === 'object' && 'after' in position) {
+      const afterIndex = manifest.slides.findIndex((s) => s.file === position.after);
+      if (afterIndex === -1) {
+        throw new Error(`Slide not found for 'after' position: ${position.after}`);
+      }
+      manifest.slides.splice(afterIndex + 1, 0, ...slidesToAdd);
+    }
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+
+    return result;
+  }
+
+  /**
+   * Bulk add groups to a presentation's manifest.
+   *
+   * @param presentationId - Presentation ID
+   * @param groups - Array of groups to add
+   * @returns Operation result with counts
+   */
+  async bulkAddGroups(
+    presentationId: string,
+    groups: Array<{
+      id: string;
+      label: string;
+      order?: number;
+    }>
+  ): Promise<{
+    added: number;
+    skipped: number;
+    skippedItems: Array<{ item: string; reason: string }>;
+  }> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest or create new one
+    let manifest = await this.readManifest(folderPath);
+    if (!manifest) {
+      manifest = { groups: {}, slides: [] };
+    }
+
+    // Ensure groups object exists
+    if (!manifest.groups) {
+      manifest.groups = {};
+    }
+
+    const result = {
+      added: 0,
+      skipped: 0,
+      skippedItems: [] as Array<{ item: string; reason: string }>,
+    };
+
+    // Find next order value if not explicitly set
+    const existingOrders = Object.values(manifest.groups).map((g) => g.order);
+    let nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
+
+    // Process each group
+    for (const group of groups) {
+      // Check if group already exists
+      if (manifest.groups[group.id]) {
+        result.skipped++;
+        result.skippedItems.push({
+          item: group.id,
+          reason: 'Group already exists',
+        });
+        continue;
+      }
+
+      // Add group
+      manifest.groups[group.id] = {
+        label: group.label,
+        order: group.order !== undefined ? group.order : nextOrder++,
+      };
+      result.added++;
+    }
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+
+    return result;
+  }
+
+  /**
+   * Sync manifest with filesystem - discovers HTML files and updates manifest.
+   * Supports multiple strategies: merge, replace, addOnly.
+   *
+   * @param presentationId - Presentation ID
+   * @param options - Sync options
+   */
+  async syncManifest(
+    presentationId: string,
+    options: {
+      strategy?: 'merge' | 'replace' | 'addOnly';
+      inferGroups?: boolean;
+      inferTitles?: boolean;
+    } = {}
+  ): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Discover all HTML files in folder
+    const entries = await fs.readdir(folderPath, { withFileTypes: true });
+    const htmlFiles = entries
+      .filter((e) => e.isFile() && e.name.endsWith('.html'))
+      .map((e) => e.name);
+
+    const strategy = options.strategy || 'merge';
+    let manifest = await this.readManifest(folderPath);
+
+    if (strategy === 'replace' || !manifest) {
+      // Start fresh
+      manifest = {
+        slides: [],
+        groups: {},
+      };
+    } else {
+      // Ensure slides array exists for merge/addOnly
+      if (!manifest.slides) {
+        manifest.slides = [];
+      }
+    }
+
+    // Build map of existing slides
+    const existingSlides = new Map(manifest.slides?.map((s) => [s.file, s]) || []);
+
+    // Process each HTML file
+    const newSlides: ManifestSlide[] = [];
+
+    for (const filename of htmlFiles) {
+      const existing = existingSlides.get(filename);
+
+      if (strategy === 'addOnly' && existing) {
+        // Keep existing slide as-is
+        newSlides.push(existing);
+        continue;
+      }
+
+      const slide: ManifestSlide = { file: filename };
+
+      // Infer title from HTML if requested
+      if (options.inferTitles) {
+        try {
+          const htmlPath = path.join(folderPath, filename);
+          const htmlContent = await fs.readFile(htmlPath, 'utf-8');
+          const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/i);
+          if (titleMatch && titleMatch[1]) {
+            slide.title = titleMatch[1].trim();
+          }
+        } catch (error) {
+          // Ignore errors reading HTML
+        }
+      }
+
+      // Infer group from filename prefix (e.g., api-reference.html -> api group)
+      if (options.inferGroups) {
+        const parts = filename.split('-');
+        if (parts.length > 1) {
+          const prefix = parts[0];
+          slide.group = prefix;
+
+          // Auto-create group if it doesn't exist
+          if (manifest.groups && !manifest.groups[prefix]) {
+            const existingOrders = Object.values(manifest.groups).map((g) => g.order);
+            const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
+            manifest.groups[prefix] = {
+              label: this.formatName(prefix),
+              order: nextOrder,
+            };
+          }
+        }
+      }
+
+      // Merge with existing metadata if strategy is merge
+      if (strategy === 'merge' && existing) {
+        // Keep existing metadata, only update what's not set
+        newSlides.push({
+          ...existing,
+          title: existing.title || slide.title,
+          group: existing.group || slide.group,
+        });
+      } else {
+        newSlides.push(slide);
+      }
+    }
+
+    manifest.slides = newSlides;
+
+    // Update timestamp
+    if (!manifest.meta) manifest.meta = {};
+    manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+    // Invalidate cache
+    this.invalidateCache(presentationId);
+  }
+
+  /**
+   * Validate a manifest object with optional file existence checking.
+   *
+   * @param presentationId - Presentation ID (for file checking)
+   * @param manifest - Manifest to validate
+   * @param checkFiles - Whether to verify files exist on disk
+   * @returns Validation result with errors and warnings
+   */
+  async validateManifest(
+    presentationId: string,
+    manifest: FlideckManifest,
+    checkFiles: boolean = false
+  ): Promise<{
+    valid: boolean;
+    errors: Array<{ path: string; message: string }>;
+    warnings: Array<{ path: string; message: string }>;
+  }> {
+    const errors: Array<{ path: string; message: string }> = [];
+    const warnings: Array<{ path: string; message: string }> = [];
+
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+
+    // Check if files exist if requested
+    if (checkFiles && manifest.slides) {
+      for (let i = 0; i < manifest.slides.length; i++) {
+        const slide = manifest.slides[i];
+        const filePath = path.join(folderPath, slide.file);
+        const exists = await fs.pathExists(filePath);
+
+        if (!exists) {
+          errors.push({
+            path: `slides[${i}].file`,
+            message: `File not found: ${slide.file}`,
+          });
+        }
+      }
+
+      // Check for orphan files (files not in manifest)
+      try {
+        const entries = await fs.readdir(folderPath, { withFileTypes: true });
+        const htmlFiles = entries
+          .filter((e) => e.isFile() && e.name.endsWith('.html'))
+          .map((e) => e.name);
+
+        const manifestFiles = new Set(manifest.slides.map((s) => s.file));
+
+        for (const filename of htmlFiles) {
+          if (!manifestFiles.has(filename)) {
+            warnings.push({
+              path: 'slides',
+              message: `File exists but not in manifest: ${filename}`,
+            });
+          }
+        }
+      } catch (error) {
+        // Ignore errors reading directory
+      }
+    }
+
+    // Validate group references
+    if (manifest.slides && manifest.groups) {
+      for (let i = 0; i < manifest.slides.length; i++) {
+        const slide = manifest.slides[i];
+        if (slide.group && !manifest.groups[slide.group]) {
+          errors.push({
+            path: `slides[${i}].group`,
+            message: `Group '${slide.group}' does not exist`,
+          });
+        }
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  /**
+   * Apply a template to a presentation's manifest.
+   *
+   * @param presentationId - Presentation ID
+   * @param template - Template to apply
+   * @param merge - If true, merge with existing; if false, replace
+   */
+  async applyTemplate(
+    presentationId: string,
+    template: ManifestTemplate,
+    merge: boolean = true
+  ): Promise<void> {
+    const folderPath = path.join(this.presentationsRoot, presentationId);
+    const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
+
+    // Verify presentation exists
+    if (!(await fs.pathExists(folderPath))) {
+      throw new Error(`Presentation not found: ${presentationId}`);
+    }
+
+    // Read existing manifest
+    const currentManifest = await this.readManifest(folderPath);
+
+    // Apply template
+    const newManifest = applyManifestTemplate(currentManifest, template, merge);
+
+    // Update timestamp
+    if (!newManifest.meta) newManifest.meta = {};
+    newManifest.meta.updated = new Date().toISOString().split('T')[0];
+
+    // Write manifest
+    await fs.writeJson(manifestPath, newManifest, { spaces: 2 });
 
     // Invalidate cache
     this.invalidateCache(presentationId);

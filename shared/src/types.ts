@@ -19,6 +19,8 @@ export interface Presentation {
   groups?: Record<string, GroupDefinition>;
   /** Metadata from manifest (if present) */
   meta?: ManifestMeta;
+  /** Container-level tabs from manifest (if present, FR-24) */
+  tabs?: TabDefinition[];
 }
 
 /**
@@ -117,6 +119,11 @@ export interface FileChangeEvent {
 }
 
 /**
+ * Display mode for rendering presentations
+ */
+export type DisplayMode = 'flat' | 'grouped' | 'tabbed';
+
+/**
  * Manifest metadata for presentation-level information
  */
 export interface ManifestMeta {
@@ -132,6 +139,8 @@ export interface ManifestMeta {
   created?: string;
   /** Last updated date (ISO format) */
   updated?: string;
+  /** Rendering mode for the sidebar (FR-20) */
+  displayMode?: DisplayMode;
 }
 
 /**
@@ -152,6 +161,28 @@ export interface ManifestStats {
 export interface GroupDefinition {
   /** Display label for the group */
   label: string;
+  /** Sort order (lower = earlier) */
+  order: number;
+  /** If true, this group becomes a tab in tabbed mode (FR-20) */
+  tab?: boolean;
+  /** Parent group ID - nests this group under a tab (FR-20, FR-24) */
+  parent?: string;
+  /** Which container tab this group belongs to (FR-24) */
+  tabId?: string;
+}
+
+/**
+ * Tab definition for container-level navigation (FR-24)
+ */
+export interface TabDefinition {
+  /** Unique tab identifier */
+  id: string;
+  /** Display label */
+  label: string;
+  /** Optional subtitle shown under label */
+  subtitle?: string;
+  /** Index HTML file to load for this tab */
+  file: string;
   /** Sort order (lower = earlier) */
   order: number;
 }
@@ -196,6 +227,8 @@ export interface FlideckManifest {
   groups?: Record<string, GroupDefinition>;
   /** Ordered slides array with metadata */
   slides?: ManifestSlide[];
+  /** Container-level tabs (FR-24) */
+  tabs?: TabDefinition[];
 
   // Legacy format (still supported)
   /** Legacy asset configuration */
@@ -308,4 +341,212 @@ export interface CreateGroupRequest {
 export interface UpdateGroupRequest {
   /** Display label */
   label: string;
+}
+
+// ============================================================
+// FR-22: Tab Management API Types
+// ============================================================
+
+/**
+ * Strategy for handling child groups when deleting a tab
+ */
+export type DeleteTabStrategy = 'orphan' | 'cascade';
+
+/**
+ * Request body for creating a new tab
+ */
+export interface CreateTabRequest {
+  /** Tab ID (must be unique, kebab-case) */
+  id: string;
+  /** Display label */
+  label: string;
+}
+
+/**
+ * Request body for updating a tab
+ */
+export interface UpdateTabRequest {
+  /** Display label */
+  label: string;
+}
+
+/**
+ * Request body for reordering tabs
+ */
+export interface ReorderTabsRequest {
+  /** Ordered array of tab IDs */
+  order: string[];
+}
+
+/**
+ * Request body for setting a group's parent tab
+ */
+export interface SetGroupParentRequest {
+  /** Parent tab ID */
+  parent: string;
+}
+
+// ============================================================
+// FR-21: Agent Manifest Tooling Types
+// ============================================================
+
+/**
+ * Strategy for handling conflicts when adding bulk slides
+ */
+export type DuplicateFileStrategy = 'skip' | 'replace' | 'rename';
+export type GroupMismatchStrategy = 'keep' | 'update';
+
+/**
+ * Conflict resolution options for bulk operations
+ */
+export interface ConflictOptions {
+  /** How to handle duplicate filenames */
+  duplicateFile?: DuplicateFileStrategy;
+  /** How to handle group mismatches */
+  groupMismatch?: GroupMismatchStrategy;
+}
+
+/**
+ * Position specification for inserting slides
+ */
+export type SlidePosition = 'start' | 'end' | { after: string };
+
+/**
+ * Request body for bulk adding slides
+ */
+export interface BulkAddSlidesRequest {
+  /** Array of slides to add */
+  slides: Array<{
+    file: string;
+    title?: string;
+    group?: string;
+    description?: string;
+    recommended?: boolean;
+  }>;
+  /** Auto-create groups if they don't exist */
+  createGroups?: boolean;
+  /** Position to insert slides */
+  position?: SlidePosition;
+  /** Conflict resolution options */
+  onConflict?: ConflictOptions;
+  /** Dry run mode - return what would happen without persisting */
+  dryRun?: boolean;
+}
+
+/**
+ * Request body for bulk adding groups
+ */
+export interface BulkAddGroupsRequest {
+  /** Array of groups to add */
+  groups: Array<{
+    id: string;
+    label: string;
+    order?: number;
+  }>;
+  /** Dry run mode - return what would happen without persisting */
+  dryRun?: boolean;
+}
+
+/**
+ * Strategy for syncing manifest with filesystem
+ */
+export type SyncStrategy = 'merge' | 'replace' | 'addOnly';
+
+/**
+ * Request body for syncing manifest with filesystem
+ */
+export interface SyncManifestRequest {
+  /** Sync strategy */
+  strategy?: SyncStrategy;
+  /** Auto-detect groups from filename prefixes */
+  inferGroups?: boolean;
+  /** Extract titles from HTML title tags */
+  inferTitles?: boolean;
+}
+
+/**
+ * Request body for validating manifest
+ */
+export interface ValidateManifestRequest {
+  /** Manifest to validate */
+  manifest: FlideckManifest;
+  /** Check if all referenced files exist on disk */
+  checkFiles?: boolean;
+}
+
+/**
+ * Validation error details
+ */
+export interface ManifestValidationError {
+  /** Path to the field with error (e.g., 'slides[2].file') */
+  path: string;
+  /** Error message */
+  message: string;
+}
+
+/**
+ * Validation warning details
+ */
+export interface ManifestValidationWarning {
+  /** Path to the field with warning */
+  path: string;
+  /** Warning message */
+  message: string;
+}
+
+/**
+ * Response from manifest validation
+ */
+export interface ValidateManifestResponse {
+  /** Whether manifest is valid */
+  valid: boolean;
+  /** Validation errors */
+  errors?: ManifestValidationError[];
+  /** Validation warnings */
+  warnings?: ManifestValidationWarning[];
+}
+
+/**
+ * Manifest template definition
+ */
+export interface ManifestTemplate {
+  /** Template ID */
+  id: string;
+  /** Display name */
+  name: string;
+  /** Description of template use case */
+  description: string;
+  /** Template structure */
+  structure: Partial<FlideckManifest>;
+}
+
+/**
+ * Request body for applying a template
+ */
+export interface ApplyTemplateRequest {
+  /** Template ID to apply */
+  templateId: string;
+  /** Merge with existing manifest or replace */
+  merge?: boolean;
+}
+
+/**
+ * Result from a bulk operation
+ */
+export interface BulkOperationResult {
+  /** Whether operation succeeded */
+  success: boolean;
+  /** Number of items added */
+  added?: number;
+  /** Number of items skipped */
+  skipped?: number;
+  /** Number of items updated */
+  updated?: number;
+  /** Items that were skipped with reasons */
+  skippedItems?: Array<{
+    item: string;
+    reason: string;
+  }>;
+  /** Error message if failed */
+  error?: string;
 }

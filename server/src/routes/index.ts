@@ -4,6 +4,8 @@ import { createPresentationRoutes } from './presentations.js';
 import { createAssetRoutes } from './assets.js';
 import { createConfigRoutes } from './config.js';
 import { createQueryRoutes } from './query.js';
+import { createSchemaRoutes } from './schema.js';
+import { createTemplateRoutes } from './templates.js';
 import type { WatcherManager } from '../WatcherManager.js';
 
 interface RouteConfig {
@@ -21,6 +23,8 @@ export function createRoutes({ io, watcherManager }: RouteConfig): Router {
   router.use('/assets', createAssetRoutes());
   router.use('/config', createConfigRoutes({ io, watcherManager }));
   router.use('/query', createQueryRoutes());
+  router.use('/schema', createSchemaRoutes({ io }));
+  router.use('/templates', createTemplateRoutes({ io }));
 
   return router;
 }

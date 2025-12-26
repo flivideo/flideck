@@ -1,0 +1,207 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://flideck.local/schema/manifest/v1",
+  "title": "FliDeck Presentation Manifest",
+  "description": "Manifest file (index.json) for FliDeck presentations with metadata, groups, and slides",
+  "type": "object",
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Presentation-level metadata",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name for the presentation"
+        },
+        "purpose": {
+          "type": "string",
+          "description": "Purpose or description of the presentation"
+        },
+        "collection_source": {
+          "type": "string",
+          "description": "Source path for collection data"
+        },
+        "component_library": {
+          "type": "string",
+          "description": "Path to component library"
+        },
+        "created": {
+          "type": "string",
+          "format": "date",
+          "description": "Creation date (ISO 8601 format, e.g., '2025-12-24')"
+        },
+        "updated": {
+          "type": "string",
+          "format": "date",
+          "description": "Last updated date (ISO 8601 format, e.g., '2025-12-24')"
+        },
+        "displayMode": {
+          "type": "string",
+          "enum": ["flat", "grouped", "tabbed"],
+          "description": "Rendering mode for the sidebar. If not set, auto-detected based on slide count and group structure."
+        }
+      },
+      "additionalProperties": false
+    },
+    "stats": {
+      "type": "object",
+      "description": "Aggregate statistics (auto-calculated, optional to include)",
+      "properties": {
+        "total_slides": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of slides"
+        },
+        "groups": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of groups"
+        }
+      },
+      "additionalProperties": true
+    },
+    "groups": {
+      "type": "object",
+      "description": "Group definitions for organizing slides",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Display label for the group"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Sort order (lower = earlier in list)"
+          },
+          "tab": {
+            "type": "boolean",
+            "description": "If true, this group becomes a tab in tabbed mode (FR-20)"
+          },
+          "parent": {
+            "type": "string",
+            "description": "Parent group ID - nests this group under a tab (FR-20)"
+          }
+        },
+        "required": ["label", "order"],
+        "additionalProperties": false
+      }
+    },
+    "slides": {
+      "type": "array",
+      "description": "Ordered list of slides with metadata",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "pattern": "^[^/\\\\]+\\.html$",
+            "description": "Filename (e.g., 'intro.html'). Must be a valid HTML filename without path separators."
+          },
+          "title": {
+            "type": "string",
+            "description": "Display title for the slide"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the slide content"
+          },
+          "type": {
+            "type": "string",
+            "description": "Slide type (e.g., 'cards', 'checklist', 'hero')"
+          },
+          "group": {
+            "type": "string",
+            "description": "Group ID this slide belongs to (must match a key in 'groups')"
+          },
+          "structure": {
+            "type": "string",
+            "description": "Structure description of the slide"
+          },
+          "preview": {
+            "type": "string",
+            "description": "Preview description or summary"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tags for categorization and filtering"
+          },
+          "recommended": {
+            "type": "boolean",
+            "description": "Whether this slide is recommended (shows ★ indicator in UI)"
+          },
+          "notes": {
+            "type": ["string", "null"],
+            "description": "Additional notes about the slide"
+          }
+        },
+        "required": ["file"],
+        "additionalProperties": false
+      }
+    },
+    "assets": {
+      "type": "object",
+      "description": "LEGACY: Backwards compatibility with old flideck.json format. Prefer 'slides' array instead.",
+      "properties": {
+        "order": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[^/\\\\]+\\.html$"
+          },
+          "description": "Ordered array of filenames"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "meta": {
+        "name": "Introduction to FliDeck",
+        "purpose": "Onboarding deck for new users",
+        "created": "2025-12-24",
+        "updated": "2025-12-24"
+      },
+      "stats": {
+        "total_slides": 5,
+        "groups": 2
+      },
+      "groups": {
+        "intro": {
+          "label": "Introduction",
+          "order": 1
+        },
+        "features": {
+          "label": "Key Features",
+          "order": 2
+        }
+      },
+      "slides": [
+        {
+          "file": "index.html",
+          "title": "Welcome",
+          "group": "intro",
+          "recommended": true
+        },
+        {
+          "file": "overview.html",
+          "title": "Overview",
+          "description": "High-level architecture",
+          "group": "intro",
+          "tags": ["architecture", "overview"]
+        },
+        {
+          "file": "feature-discovery.html",
+          "title": "Auto-Discovery",
+          "group": "features",
+          "recommended": true
+        }
+      ]
+    }
+  ]
+}

@@ -146,6 +146,88 @@ Template:
 
 _Ideas not pursuing now but might revisit later._
 
+### CSS Handling & Theming
+
+**Status:** Tech-debt / Future cleanup
+**Date:** 2025-12-24
+**Source:** User testing feedback (claude-plugin-marketplace)
+
+**The Problem:**
+CSS handling across FliDeck is inconsistent and messy:
+- Mix of inline styles in components
+- Unclear if Tailwind classes are being used optimally
+- Hard to maintain consistent theming
+- Difficult to implement features like dark mode or custom themes
+- No clear separation between FliDeck chrome styles and presentation content styles
+
+**Observations:**
+- Some components use Tailwind utility classes
+- Others use inline style objects
+- Brand colors are in CSS variables but not consistently applied
+- No documented pattern for styling new components
+
+**Potential Solutions:**
+- Audit all components and standardize on Tailwind utilities
+- Create theme system with design tokens
+- Document styling conventions in CLAUDE.md
+- Consider CSS modules for component isolation
+- Implement dark mode toggle (separate FR?)
+
+**Priority:** Low - not blocking functionality, but impacts maintainability
+
+**Notes:**
+This came up during testing but is not a bug or feature request. It's technical debt that should be addressed in a future cleanup sprint.
+
+---
+
+### Presentation Creation Location (UI vs API)
+
+**Status:** Design decision / Future consideration
+**Date:** 2025-12-24
+**Source:** User testing feedback
+
+**The Question:**
+Should presentation creation happen:
+1. **In FliDeck UI** - User creates folder structure via UI, then agents populate it
+2. **Via Agents** - Agents call FliDeck API to create presentations, FliDeck is passive viewer
+3. **Hybrid** - Either workflow should work seamlessly
+
+**Current State:**
+- Agents create presentations by writing to filesystem directly
+- FliDeck discovers via file watching
+- No UI for creating presentations (only viewing/organizing)
+- API exists for adding slides (FR-16) but not for creating presentation folders
+
+**Considerations:**
+
+**Option 1: FliDeck UI creation**
+- Pro: User has control, can set up structure first
+- Pro: Agents fill in content into predefined structure
+- Con: Requires new UI for folder creation
+- Con: May not fit agent-first workflow
+
+**Option 2: Agent API creation**
+- Pro: Agents have full control (current workflow)
+- Pro: No UI changes needed
+- Pro: Fits with "agents build, FliDeck views" model
+- Con: Users can't easily create presentations manually
+
+**Option 3: Hybrid**
+- Pro: Flexibility for both workflows
+- Con: More complex to maintain
+- Con: Need to handle conflicts (user creates, agent overwrites?)
+
+**Open Questions:**
+- [ ] What's the primary user workflow? Agent-generated or manual?
+- [ ] Do users ever want to create empty presentations to populate later?
+- [ ] Should FliDeck have a "New Presentation" button?
+- [ ] Or is FliDeck purely a viewer/organizer, not a creator?
+
+**Priority:** Low - current workflow (agents create) works fine
+
+**Notes:**
+This is more of a product philosophy question than a feature request. Worth discussing with stakeholder when presentation creation becomes a pain point.
+
 ---
 
 ## Promoted to Requirements

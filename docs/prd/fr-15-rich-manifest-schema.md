@@ -305,7 +305,7 @@ Note: Root-level slides (no `group` property) appear at the top without any head
 - Drag-drop reordering preserves all slide metadata when saving
 
 **Deferred:**
-- Cross-group drag-drop (moving a slide to a different group) - requires more complex drop zone detection and UI feedback. Current drag-drop reorders within the flat list but doesn't change group assignments.
+- Cross-group drag-drop (moving a slide to a different group) - requires more complex drop zone detection and UI feedback. Current drag-drop reorders within the flat list but doesn't change group assignments. → **See FR-20** for completion.
 
 **Fixed in follow-up:**
 - Cmd+←/→ navigation now follows the sidebar order (index first, root slides, then grouped slides in group order). Added `getSidebarOrder` utility function in `client/src/utils/sidebarOrder.ts`.
