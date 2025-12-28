@@ -55,6 +55,10 @@ Requirements index for FliDeck.
 | 9 | [BUG-9: Tabbed Display Mode Still Selectable](prd/bug-09-tabbed-mode-still-selectable.md) | 2025-12-26 | Fixed | - |
 | 10 | [BUG-10: Stale Tabbed Mode in localStorage](prd/bug-10-stale-tabbed-mode-in-localstorage.md) | 2025-12-26 | Fixed | - |
 | 11 | [BUG-11: Presentation Discovery Rules Outdated](prd/bug-11-presentation-discovery-rules.md) | 2025-12-26 | Fixed | - |
+| 12 | [BUG-12: Unhelpful Slide Names in Sidebar](prd/bug-12-unhelpful-slide-names.md) | 2025-12-28 | Fixed | - |
+| 13 | [BUG-13: Tab Filtering Not Working in Sidebar](prd/bug-13-tab-filtering-not-working.md) | 2025-12-28 | With Developer | High |
+| 14 | [BUG-14: Agent API Missing Slide Authoring Specs](prd/bug-14-agent-api-missing-authoring-specs.md) | 2025-12-28 | Open | High |
+| 15 | [BUG-15: Keyboard Navigation Breaks After Iframe Click](prd/bug-15-keyboard-breaks-after-iframe-click.md) | 2025-12-28 | Open | **Critical** |
 
 ---
 

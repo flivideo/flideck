@@ -2122,25 +2122,36 @@ export class PresentationService extends EventEmitter {
           }
 
           const existingSlide = existingSlideMap.get(card.file);
+
+          // Get title: prefer HTML <title> tag (canonical), fall back to card title
+          const slideFilePath = path.join(folderPath, card.file);
+          const htmlTitle = await this.extractTitleFromHtmlFile(slideFilePath);
+          const slideTitle = htmlTitle || card.title;
+
           if (existingSlide) {
             // Update existing slide
+            existingSlide.group = groupId;
             if (strategy === 'merge') {
-              // Preserve existing metadata, only update group
-              existingSlide.group = groupId;
-              if (card.title && !existingSlide.title) {
+              // For merge: HTML title (canonical) always wins, card title only fills gaps
+              if (htmlTitle) {
+                existingSlide.title = htmlTitle;
+              } else if (card.title && !existingSlide.title) {
                 existingSlide.title = card.title;
               }
             } else {
-              existingSlide.group = groupId;
-              if (card.title) existingSlide.title = card.title;
+              if (slideTitle) existingSlide.title = slideTitle;
             }
           } else {
-            // Create new slide entry
+            // Create new slide entry - prefer HTML title (canonical)
             const newSlide: ManifestSlide = {
               file: card.file,
               group: groupId,
             };
-            if (card.title) newSlide.title = card.title;
+            if (htmlTitle) {
+              newSlide.title = htmlTitle;
+            } else if (card.title) {
+              newSlide.title = card.title;
+            }
             manifest.slides!.push(newSlide);
             existingSlideMap.set(card.file, newSlide);
           }
@@ -2161,7 +2172,15 @@ export class PresentationService extends EventEmitter {
 
         // For merge strategy, ensure orphaned slides are in manifest
         if (strategy === 'merge' && !existingSlideMap.has(file)) {
-          manifest.slides!.push({ file });
+          // Try to extract title from the HTML file itself
+          const filePath = path.join(folderPath, file);
+          const extractedTitle = await this.extractTitleFromHtmlFile(filePath);
+
+          const newSlide: ManifestSlide = { file };
+          if (extractedTitle) {
+            newSlide.title = extractedTitle;
+          }
+          manifest.slides!.push(newSlide);
           result.warnings.push(`Slide '${file}' not found in any index file`);
         }
       }
@@ -2317,6 +2336,36 @@ export class PresentationService extends EventEmitter {
     }
 
     return null;
+  }
+
+  /**
+   * Extract title from an HTML file by reading its <title> tag or first <h1>.
+   * Used to provide meaningful names for orphaned slides.
+   */
+  private async extractTitleFromHtmlFile(
+    filePath: string
+  ): Promise<string | undefined> {
+    try {
+      const htmlContent = await fs.readFile(filePath, 'utf-8');
+      const $ = cheerio.load(htmlContent);
+
+      // Try <title> tag first
+      const titleTag = $('title').first().text().trim();
+      if (titleTag) {
+        return titleTag;
+      }
+
+      // Fall back to first <h1>
+      const h1Text = $('h1').first().text().trim();
+      if (h1Text) {
+        return h1Text;
+      }
+
+      return undefined;
+    } catch {
+      // File read error - return undefined to use filename fallback
+      return undefined;
+    }
   }
 
   /**

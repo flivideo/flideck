@@ -6,6 +6,7 @@ Implementation history for FliDeck.
 
 | Date | What | FRs |
 |------|------|-----|
+| 2025-12-28 | Extract slide titles from HTML `<title>` tags in sync-from-index | BUG-12 |
 | 2025-12-22 | Rich manifest schema with groups and collapsible sidebar | FR-15 |
 | 2025-12-22 | Rename manifest from flideck.json to index.json | FR-14 |
 | 2025-12-22 | Default creation-time ordering for assets (oldest first) | FR-13 |
