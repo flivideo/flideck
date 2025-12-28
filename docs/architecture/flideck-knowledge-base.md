@@ -4,7 +4,7 @@
 
 **Audience:** Developers, AI agents, future maintainers
 
-**Last Updated:** 2025-12-26
+**Last Updated:** 2025-12-28
 
 ---
 
@@ -20,6 +20,7 @@
 8. [API Reference Summary](#8-api-reference-summary)
 9. [Decision Log](#9-decision-log)
 10. [Common Pitfalls](#10-common-pitfalls)
+11. [Open Issues & Known Limitations](#11-open-issues--known-limitations)
 
 ---
 
@@ -748,6 +749,75 @@ This would show the same slide in multiple places in the navigation. Source of t
 
 **Fix:** Use `sync-from-index` (FR-26) to reconcile, or regenerate index HTML from manifest.
 
+### Pitfall 6: Keyboard navigation breaks after clicking inside iframe (BUG-15)
+
+**Symptom:** Cmd+Arrow works when viewing tab landing page, but stops working after clicking a slide card inside the iframe.
+
+**Cause:** When user clicks a card INSIDE the iframe, the iframe navigates internally. FliDeck's React state doesn't know this happened - `selectedAssetId` and `currentAssetIndex` become stale. Keyboard navigation operates on stale state.
+
+**Root issue:** The iframe boundary is opaque. Clicks inside the iframe don't notify FliDeck.
+
+**Fix:** Index pages need to include a navigation bridge script that sends `postMessage` to parent instead of navigating internally. See BUG-15 for full analysis.
+
+### Pitfall 7: All groups visible regardless of active tab (BUG-13)
+
+**Symptom:** Click on "EPIC1" tab, but sidebar still shows JOHN SLIDES, MARY SLIDES, WINSTON SLIDES.
+
+**Causes:**
+1. Groups in manifest don't have `tabId` property set
+2. Without `tabId`, groups are treated as "shared" and appear in ALL tabs
+
+**Fix:** Ensure each group has `tabId` matching its parent tab:
+```json
+{
+  "groups": {
+    "epic1": { "label": "Epic1", "tabId": "epic1", "order": 1 }
+  }
+}
+```
+
+### Pitfall 8: Unhelpful slide names in sidebar (BUG-12)
+
+**Symptom:** Sidebar shows "Scorecard", "Scorecard", "Scorecard" instead of meaningful names.
+
+**Cause:** Slides in manifest don't have `title` property; FliDeck falls back to filename.
+
+**Fix:** Either:
+1. Add `title` property to slides in manifest
+2. Ensure HTML files have meaningful `<title>` tags (for future auto-extraction)
+
+---
+
+## 11. Open Issues & Known Limitations
+
+### Critical: Iframe Navigation Not Connected to FliDeck State
+
+When users click cards inside tab landing pages (index-*.html), the iframe navigates internally but FliDeck doesn't know. This breaks:
+- Keyboard navigation (Cmd+Arrow)
+- Progress indicator
+- State consistency
+
+**Status:** BUG-15 (Open, Critical)
+**Proposed fix:** PostMessage navigation bridge + load all content via srcdoc
+
+### Missing: Agent Authoring Specifications
+
+The API tells agents what operations exist (FR-27) but not HOW to write HTML that integrates with FliDeck. Agents need:
+- Keyboard bridge script for forwarding hotkeys
+- Navigation bridge script for card clicks
+- HTML metadata conventions
+- Card structure for sync-from-index
+
+**Status:** BUG-14 (Open, High)
+**Proposed fix:** New `/api/authoring-specs` endpoint + HTML templates
+
+### Tab Filtering May Not Work
+
+Groups may appear in all tabs if `tabId` property is missing from manifest.
+
+**Status:** BUG-13 (Open, High)
+**Proposed fix:** Verify manifest data OR fix sidebar filtering logic
+
 ---
 
 ## Appendix: File Naming Conventions
@@ -774,12 +844,23 @@ This would show the same slide in multiple places in the navigation. Source of t
 
 ## Related Documents
 
+### Feature Requirements
 - `docs/prd/fr-16-agent-slide-api.md` - Slide CRUD API
 - `docs/prd/fr-19-manifest-schema-api.md` - Manifest endpoints
 - `docs/prd/fr-21-agent-manifest-tooling.md` - Bulk operations, sync
 - `docs/prd/fr-22-tab-management.md` - Tab CRUD API
 - `docs/prd/fr-24-container-tab-navigation.md` - Tab bar implementation
+- `docs/prd/fr-05-controls.md` - Keyboard shortcuts
+
+### Open Bugs (as of 2025-12-28)
+- `docs/prd/bug-12-unhelpful-slide-names.md` - Slide names in sidebar (Medium)
+- `docs/prd/bug-13-tab-filtering-not-working.md` - Tab filtering (High)
+- `docs/prd/bug-14-agent-api-missing-authoring-specs.md` - Agent authoring specs (High)
+- `docs/prd/bug-15-keyboard-breaks-after-iframe-click.md` - Keyboard navigation (Critical)
+
+### Other
 - `CLAUDE.md` - Quick API reference
+- `docs/backlog.md` - Full requirements and bug index
 
 ---
 
