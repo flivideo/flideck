@@ -67,8 +67,13 @@ export function PresentationPage() {
     : null;
 
   // Auto-select index asset when presentation loads
+  // BUG-13 FIX: Don't auto-select when we have container tabs (we want to show tab index instead)
   useEffect(() => {
     if (presentation && !selectedAssetId) {
+      // If we have container tabs, don't auto-select - show tab index instead
+      if (hasContainerTabs) {
+        return;
+      }
       const indexAsset = presentation.assets.find((a) => a.isIndex);
       if (indexAsset) {
         setSelectedAssetId(indexAsset.id);
@@ -76,7 +81,7 @@ export function PresentationPage() {
         setSelectedAssetId(presentation.assets[0].id);
       }
     }
-  }, [presentation, selectedAssetId]);
+  }, [presentation, selectedAssetId, hasContainerTabs]);
 
   // Get sidebar-ordered assets for navigation (matches visual order in sidebar)
   const sidebarOrderedAssets = useMemo(
@@ -126,13 +131,10 @@ export function PresentationPage() {
         });
       }
 
-      // Clear container tab when navigating to assets (BUG-2)
-      // This switches from showing index file to showing asset content
-      if (activeContainerTabId) {
-        setActiveContainerTabId(null);
-      }
+      // BUG-13 fix: Don't clear activeContainerTabId - keep sidebar filtering active
+      // Rendering logic will check selectedAssetId to decide what to show
     },
-    [sidebarOrderedAssets, currentIndex, activeContainerTabId, setActiveContainerTabId, collapsedGroups]
+    [sidebarOrderedAssets, currentIndex, collapsedGroups]
   );
 
   // Keyboard handler - uses Ctrl modifier for navigation to avoid conflicts with iframe content
@@ -213,10 +215,13 @@ export function PresentationPage() {
 
   const handleSelectAsset = (_presentationId: string, assetId: string) => {
     setSelectedAssetId(assetId);
-    // Clear container tab when selecting individual asset (FR-24)
-    if (activeContainerTabId) {
-      setActiveContainerTabId(null);
-    }
+    // BUG-13 fix: Don't clear activeContainerTabId - keep sidebar filtering active
+  };
+
+  // BUG-13: When clicking a tab, clear selected asset to show tab index
+  const handleTabChange = (tabId: string | null) => {
+    setActiveContainerTabId(tabId);
+    setSelectedAssetId(null); // Show tab index instead of asset
   };
 
   // Convert assets to quick filter items (using sidebar order)
@@ -245,11 +250,7 @@ export function PresentationPage() {
         return next;
       });
     }
-
-    // Clear container tab when selecting asset via quick filter (BUG-2)
-    if (activeContainerTabId) {
-      setActiveContainerTabId(null);
-    }
+    // BUG-13 fix: Don't clear activeContainerTabId - keep sidebar filtering active
   };
 
   if (isLoading) {
@@ -334,13 +335,14 @@ export function PresentationPage() {
             <TabBar
               tabs={presentation.tabs}
               activeTabId={activeContainerTabId}
-              onTabChange={setActiveContainerTabId}
+              onTabChange={handleTabChange}
               isPresentationMode={isPresentationMode}
             />
           )}
 
           {/* Content Area */}
-          {hasContainerTabs && activeContainerTab ? (
+          {/* BUG-13: Show tab index only when tab active AND no asset selected */}
+          {hasContainerTabs && activeContainerTab && !selectedAssetId ? (
             // Container tab mode: Load index file via src
             <AssetViewer
               presentationId={id!}

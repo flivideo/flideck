@@ -106,6 +106,7 @@ export function Sidebar({
     if (!selectedPresentation) return [];
 
     const groups = selectedPresentation.groups || {};
+
     const assetsByGroup = new Map<string, Asset[]>();
 
     for (const asset of selectedPresentation.assets) {
@@ -124,11 +125,16 @@ export function Sidebar({
 
     for (const [groupId, def] of sortedGroups) {
       // FR-24: Filter by container tab if set
-      if (activeContainerTabId && def.tabId && def.tabId !== activeContainerTabId) {
+      const shouldSkip = activeContainerTabId && def.tabId && def.tabId !== activeContainerTabId;
+
+      // BUG-13 FIX: Always remove from assetsByGroup so it doesn't get re-added by orphan loop
+      const assets = assetsByGroup.get(groupId) || [];
+      assetsByGroup.delete(groupId);
+
+      if (shouldSkip) {
         continue;
       }
 
-      const assets = assetsByGroup.get(groupId) || [];
       if (assets.length > 0) {
         result.push({
           groupId,
@@ -136,7 +142,6 @@ export function Sidebar({
           order: def.order,
           assets,
         });
-        assetsByGroup.delete(groupId);
       }
     }
 
@@ -164,6 +169,32 @@ export function Sidebar({
       // This is the chosen solution for FR-25 open question #1
     );
   }, [selectedPresentation, tabIndexFiles]);
+
+  // BUG-13: Filtered assets for flat mode (filter by active container tab)
+  const filteredFlatAssets = useMemo(() => {
+    if (!selectedPresentation) return [];
+    const groups = selectedPresentation.groups || {};
+
+    return selectedPresentation.assets.filter((asset) => {
+      // Always exclude index
+      if (asset.isIndex) return false;
+      // Exclude tab index files
+      if (tabIndexFiles.has(asset.filename)) return false;
+
+      // If no active tab, show all
+      if (!activeContainerTabId) return true;
+
+      // Ungrouped assets appear in all tabs
+      if (!asset.group) return true;
+
+      // Check if asset's group belongs to active tab
+      const groupDef = groups[asset.group];
+      if (!groupDef) return true; // Unknown group, show it
+      if (!groupDef.tabId) return true; // Group has no tabId, show in all tabs
+
+      return groupDef.tabId === activeContainerTabId;
+    });
+  }, [selectedPresentation, activeContainerTabId, tabIndexFiles]);
 
   // Toggle group collapse
   const toggleGroup = useCallback((groupId: string) => {
@@ -795,7 +826,7 @@ export function Sidebar({
             <div className="p-2">
               {indexAsset && renderIndexRow(indexAsset)}
               <SidebarFlat
-                assets={selectedPresentation.assets.filter((a) => !a.isIndex)}
+                assets={filteredFlatAssets}
                 selectedAssetId={selectedAssetId}
                 draggedAssetId={draggedAssetId}
                 dropTargetId={dropTargetId}

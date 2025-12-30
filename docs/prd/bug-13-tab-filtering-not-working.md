@@ -35,13 +35,15 @@ ASSETS                    [EPIC1] JOHN  MARY  WINSTON
     Cards                 │
 ```
 
-**Expected:** Only EPIC1 group visible:
+**Expected:** Only groups with `tabId: "epic1"` visible (could be one or many):
 ```
 ASSETS                    [EPIC1] JOHN  MARY  WINSTON
 ─────────────────────────────────────────────────────
   Bmad Poem               │  (epic1 content in iframe)
                           │
-► EPIC1              26   │  ← Only this group shown
+► EPIC1              26   │  ← Shows because tabId="epic1"
+► (any other groups       │  ← Would also show if they had
+    with tabId="epic1")   │     tabId="epic1"
 ```
 
 ## Root Cause Analysis
@@ -98,10 +100,27 @@ Per FR-24:
 
 ## Acceptance Criteria
 
-- [ ] When a container tab is selected, sidebar only shows groups belonging to that tab
-- [ ] Groups with `tabId: null` or no `tabId` appear in ALL tabs (shared/root assets)
-- [ ] Switching tabs immediately updates sidebar group visibility
-- [ ] Works with bmad-poem presentation (4 tabs, 4 tab-specific groups)
+- [x] When a container tab is selected, sidebar only shows groups where `tabId` matches that tab
+- [x] A tab can have ZERO, ONE, or MANY groups (not a 1:1 relationship)
+- [x] Groups with `tabId: null` or no `tabId` appear in ALL tabs (shared/root assets)
+- [x] Switching tabs immediately updates sidebar group visibility
+- [x] Works with bmad-poem presentation
+
+## Important: Data Model Clarification
+
+**Groups are NOT tabs.** Groups are semantic containers for organizing slides within a tab.
+
+```
+Tab: "Epic 2" could have multiple groups:
+├── Group: "Overview"     (tabId: "epic2")
+├── Group: "Stories"      (tabId: "epic2")
+├── Group: "Testing"      (tabId: "epic2")
+└── Group: "Deployment"   (tabId: "epic2")
+
+Or a tab could have NO groups - just loose slides.
+```
+
+The `tabId` on a group says "this group belongs to this tab" - it's a many-to-one relationship (many groups can belong to one tab).
 
 ## Fix Options
 
@@ -147,6 +166,16 @@ When `sync-from-index` creates groups from parsing index HTML files, automatical
 ---
 
 **Added**: 2025-12-28
-**Status**: Open
+**Status**: Fixed (2025-12-30)
 **Type**: Bug
 **Found in**: bmad-poem presentation testing
+
+## Resolution
+
+**Root Cause**: Cause B - Sidebar filtering was correct, but `activeContainerTabId` was being cleared whenever an asset was selected, causing all groups to appear.
+
+**Fix Applied**:
+1. `PresentationPage.tsx`: Stop clearing `activeContainerTabId` when selecting assets - keep sidebar filtered
+2. `PresentationPage.tsx`: New `handleTabChange` clears `selectedAssetId` when switching tabs (shows tab index)
+3. `Sidebar.tsx`: Fix orphan group loop to not re-add filtered groups
+4. `Sidebar.tsx`: Add `filteredFlatAssets` for flat mode filtering by active tab
