@@ -33,6 +33,8 @@ Requirements index for FliDeck.
 | 25 | [FR-25: Smart Display Mode with Container Tabs](prd/fr-25-smart-display-mode.md) | 2025-12-24 | Implemented |
 | 26 | [FR-26: Index HTML Sync (Self-Healing)](prd/fr-26-index-html-sync.md) | 2025-12-26 | Implemented |
 | 27 | [FR-27: Agent Capability Discovery](prd/fr-27-agent-capability-discovery.md) | 2025-12-26 | Implemented |
+| 28 | [FR-28: Resizable Sidebar Panel](prd/fr-28-resizable-sidebar.md) | 2026-01-07 | Pending |
+| 29 | [FR-29: Slide Notes in Manifest](prd/fr-29-slide-notes.md) | 2026-01-07 | Pending |
 
 ## Non-Functional Requirements
 

@@ -4,7 +4,7 @@
 
 **Audience:** Developers, AI agents, future maintainers
 
-**Last Updated:** 2025-12-28
+**Last Updated:** 2025-01-02
 
 ---
 
@@ -104,6 +104,47 @@ Tab           1 ──────── 1 Index File    (each tab has an index-
 | Slide in group with tabId="mary" | Mary | Visible |
 | Slide in group with tabId="mary" | John | Hidden |
 | Tab index file (index-mary.html) | Any | Hidden from sidebar (it's navigation, not content) |
+
+### The `parent` Property (Child Group Inheritance)
+
+Groups can inherit their tab membership from a parent group. This is useful for organizing related groups under a "container" group.
+
+**Example: Epic 3 with child groups**
+```json
+{
+  "groups": {
+    "epic3-slides": {
+      "label": "Epic 3",
+      "tabId": "epic3",
+      "tab": true,      // This makes it a tab container (not shown in sidebar)
+      "order": 3
+    },
+    "epic3-overview": {
+      "label": "Overview",
+      "parent": "epic3-slides",  // Inherits tabId="epic3" from parent
+      "order": 1
+    },
+    "epic3-story-3-1": {
+      "label": "Story 3.1",
+      "parent": "epic3-slides",  // Inherits tabId="epic3" from parent
+      "order": 2
+    }
+  }
+}
+```
+
+**How it works:**
+1. `epic3-slides` has `tabId: "epic3"` and `tab: true` (it IS the tab, not shown in sidebar)
+2. `epic3-overview` has `parent: "epic3-slides"` but no direct `tabId`
+3. FliDeck looks up parent's `tabId` → inherits `"epic3"`
+4. When Epic3 tab is active: Overview and Story 3.1 are shown
+5. When Mary tab is active: Overview and Story 3.1 are hidden
+
+**Key rules:**
+- `parent` is ONLY for filtering (tab inheritance), NOT for visual nesting
+- Sidebar is always a flat list of groups (no indentation)
+- A group with `tab: true` is a tab container - it appears in the tab bar, not the sidebar
+- Child groups with `parent` appear in the sidebar, filtered by the inherited tab
 
 ---
 
@@ -766,15 +807,42 @@ This would show the same slide in multiple places in the navigation. Source of t
 **Causes:**
 1. Groups in manifest don't have `tabId` property set
 2. Without `tabId`, groups are treated as "shared" and appear in ALL tabs
+3. **Code bug (fixed 2025-01-02):** When groups were filtered out due to tab mismatch, they weren't removed from the `assetsByGroup` map, causing them to appear as "orphan groups" with auto-generated labels like "EPIC1 SLIDES" (derived from group ID)
 
 **Fix:** Ensure each group has `tabId` matching its parent tab:
 ```json
 {
   "groups": {
-    "epic1": { "label": "Epic1", "tabId": "epic1", "order": 1 }
+    "epic1-slides": { "label": "Epic1", "tabId": "epic1", "order": 1 }
   }
 }
 ```
+
+### Pitfall 9: Groups appearing with wrong labels (e.g., "EPIC1 SLIDES" instead of "Epic1")
+
+**Symptom:** Sidebar shows groups with auto-generated labels derived from group IDs (e.g., `epic1-slides` → "EPIC1 SLIDES") instead of the `label` property from manifest.
+
+**Cause:** The sidebar filtering code skips groups that don't belong to the active tab, BUT if it doesn't also remove them from the `assetsByGroup` map, those groups get picked up by the "orphan groups" loop at the end, which generates labels from group IDs.
+
+**Root cause code pattern (before fix):**
+```typescript
+// BUG: When shouldSkip is true, we continue WITHOUT deleting from assetsByGroup
+if (shouldSkip) {
+  continue;  // Missing: assetsByGroup.delete(groupId)
+}
+```
+
+**Fix (applied 2025-01-02):** Always delete from `assetsByGroup` when skipping a group:
+```typescript
+if (shouldSkip) {
+  assetsByGroup.delete(groupId);  // Prevent orphan loop from picking it up
+  continue;
+}
+```
+
+**Files affected:**
+- `client/src/components/layout/Sidebar.tsx` - groupedAssets computation
+- `client/src/utils/sidebarOrder.ts` - keyboard navigation order
 
 ### Pitfall 8: Unhelpful slide names in sidebar (BUG-12)
 
@@ -857,6 +925,9 @@ Groups may appear in all tabs if `tabId` property is missing from manifest.
 - `docs/prd/bug-13-tab-filtering-not-working.md` - Tab filtering (High)
 - `docs/prd/bug-14-agent-api-missing-authoring-specs.md` - Agent authoring specs (High)
 - `docs/prd/bug-15-keyboard-breaks-after-iframe-click.md` - Keyboard navigation (Critical)
+
+### Agent Integration
+- `docs/agent-guide.md` - **Step-by-step guide for external agents** (game plan for creating tabs/groups)
 
 ### Other
 - `CLAUDE.md` - Quick API reference

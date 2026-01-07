@@ -118,7 +118,7 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
           onDragEnd={props.onDragEnd}
           onDrop={(e) => props.onDrop(e, asset.id)}
           onClick={() => props.onSelectAsset(asset.id)}
-          className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
+          className="flex-1 text-left px-2 py-2 rounded-lg text-sm transition-colors flex items-center"
           style={{
             backgroundColor: isDropTarget
               ? '#ffde59'
@@ -218,7 +218,7 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
   };
 
   return (
-    <div className="p-2">
+    <div className="space-y-1">
       {/* Root drop zone - shown when dragging and there are no root assets */}
       {props.draggedAssetId && props.rootAssets.length === 0 && (
         <div
@@ -298,7 +298,7 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
               >
                 <button
                   onClick={() => props.onToggleGroup(group.groupId)}
-                  className="flex-1 text-left px-2 py-1.5 flex items-center text-xs font-semibold uppercase tracking-wide transition-colors rounded"
+                  className="flex-1 text-left px-1 py-1.5 flex items-center text-xs font-semibold uppercase tracking-wide transition-colors rounded"
                   style={{
                     color: dropTargetGroupId === group.groupId ? '#ffde59' : '#ccba9d',
                     fontFamily: "'Oswald', Arial, sans-serif",
@@ -377,7 +377,7 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
 
             {/* Group Assets */}
             {!isCollapsed && (
-              <div className="pl-4 mt-1">
+              <div className="pl-2 mt-1 space-y-0.5">
                 {group.assets.map(renderAssetRow)}
               </div>
             )}

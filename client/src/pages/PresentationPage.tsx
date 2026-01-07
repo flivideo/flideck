@@ -84,9 +84,10 @@ export function PresentationPage() {
   }, [presentation, selectedAssetId, hasContainerTabs]);
 
   // Get sidebar-ordered assets for navigation (matches visual order in sidebar)
+  // Filters by active container tab to match what's visible in the sidebar
   const sidebarOrderedAssets = useMemo(
-    () => getSidebarOrder(presentation),
-    [presentation]
+    () => getSidebarOrder(presentation, activeContainerTabId),
+    [presentation, activeContainerTabId]
   );
 
   // Get current asset index for navigation (using sidebar order)

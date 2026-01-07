@@ -172,10 +172,29 @@ When `sync-from-index` creates groups from parsing index HTML files, automatical
 
 ## Resolution
 
-**Root Cause**: Cause B - Sidebar filtering was correct, but `activeContainerTabId` was being cleared whenever an asset was selected, causing all groups to appear.
+**Root Cause (2025-12-30)**: Cause B - Sidebar filtering was correct, but `activeContainerTabId` was being cleared whenever an asset was selected, causing all groups to appear.
 
-**Fix Applied**:
+**Root Cause Update (2025-01-02)**: Additional bug found - when groups were filtered out due to tab mismatch, they weren't being removed from the `assetsByGroup` Map. This caused them to appear as "orphan groups" with auto-generated labels derived from their group IDs (e.g., `epic1-slides` → "EPIC1 SLIDES").
+
+**Fix Applied (2025-12-30)**:
 1. `PresentationPage.tsx`: Stop clearing `activeContainerTabId` when selecting assets - keep sidebar filtered
 2. `PresentationPage.tsx`: New `handleTabChange` clears `selectedAssetId` when switching tabs (shows tab index)
-3. `Sidebar.tsx`: Fix orphan group loop to not re-add filtered groups
-4. `Sidebar.tsx`: Add `filteredFlatAssets` for flat mode filtering by active tab
+3. `Sidebar.tsx`: Add `filteredFlatAssets` for flat mode filtering by active tab
+
+**Fix Applied (2025-01-02)**:
+4. `Sidebar.tsx`: Always call `assetsByGroup.delete(groupId)` when skipping a group - prevents orphan group loop from picking up filtered groups
+5. `sidebarOrder.ts`: Same fix for keyboard navigation - ensure parent tabId inheritance works, skip `tab: true` groups
+
+**Key Code Pattern (the bug)**:
+```typescript
+// BEFORE (buggy):
+if (shouldSkip) {
+  continue;  // Group skipped BUT still in assetsByGroup map!
+}
+
+// AFTER (fixed):
+if (shouldSkip) {
+  assetsByGroup.delete(groupId);  // Remove before continuing
+  continue;
+}
+```

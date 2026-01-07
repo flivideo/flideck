@@ -62,7 +62,7 @@ export const SidebarFlat = memo(function SidebarFlat({
           onDragEnd={onDragEnd}
           onDrop={(e) => onDrop(e, asset.id)}
           onClick={() => onSelectAsset(asset.id)}
-          className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
+          className="flex-1 text-left px-2 py-2 rounded-lg text-sm transition-colors flex items-center"
           style={{
             backgroundColor: isDropTarget
               ? '#ffde59'
@@ -162,7 +162,7 @@ export const SidebarFlat = memo(function SidebarFlat({
   };
 
   return (
-    <div className="p-2">
+    <div className="space-y-0.5">
       {assets.map(renderAssetRow)}
     </div>
   );

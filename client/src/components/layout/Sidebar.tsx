@@ -4,6 +4,7 @@ import type { Presentation, Asset } from '@flideck/shared';
 import { api } from '../../utils/api';
 import { useDisplayMode } from '../../hooks/useDisplayMode';
 import { getDisplayModeLabel } from '../../utils/displayMode';
+import { useResizableSidebar } from '../../hooks/useResizableSidebar';
 import { SidebarFlat } from './SidebarFlat';
 import { SidebarGrouped } from './SidebarGrouped';
 
@@ -48,6 +49,9 @@ export function Sidebar({
   const selectedPresentation = presentations.find(
     (p) => p.id === selectedPresentationId
   );
+
+  // Resizable sidebar (FR-28)
+  const { width, setPreset } = useResizableSidebar();
 
   // Display mode management
   // FR-25: Display mode is orthogonal to container tabs (flat/grouped affects rendering, tabs filter content)
@@ -102,6 +106,7 @@ export function Sidebar({
 
   // Group assets by their group property (for grouped mode)
   // FR-24: Filter by active container tab if applicable
+  // Groups are flat (not nested) - parent property is only for tab filtering
   const groupedAssets = useMemo((): GroupedAssets[] => {
     if (!selectedPresentation) return [];
 
@@ -121,19 +126,33 @@ export function Sidebar({
     }
 
     const result: GroupedAssets[] = [];
+
+    // Sort groups by order
     const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.order);
 
     for (const [groupId, def] of sortedGroups) {
-      // FR-24: Filter by container tab if set
-      const shouldSkip = activeContainerTabId && def.tabId && def.tabId !== activeContainerTabId;
-
-      // BUG-13 FIX: Always remove from assetsByGroup so it doesn't get re-added by orphan loop
-      const assets = assetsByGroup.get(groupId) || [];
-      assetsByGroup.delete(groupId);
-
-      if (shouldSkip) {
+      // Skip groups with tab: true - they are tabs, not sidebar groups
+      if (def.tab) {
+        assetsByGroup.delete(groupId); // Remove so it doesn't appear as orphan
         continue;
       }
+
+      // FR-24: Filter by container tab if set
+      // Check group's tabId, or if group has parent, check parent's tabId
+      let effectiveTabId = def.tabId;
+      if (!effectiveTabId && def.parent && groups[def.parent]) {
+        effectiveTabId = groups[def.parent].tabId;
+      }
+
+      const shouldSkip = activeContainerTabId && effectiveTabId && effectiveTabId !== activeContainerTabId;
+      if (shouldSkip) {
+        assetsByGroup.delete(groupId); // Remove so it doesn't appear as orphan
+        continue;
+      }
+
+      // Get assets for this group
+      const assets = assetsByGroup.get(groupId) || [];
+      assetsByGroup.delete(groupId);
 
       if (assets.length > 0) {
         result.push({
@@ -145,6 +164,7 @@ export function Sidebar({
       }
     }
 
+    // Add remaining orphan groups (not in definitions)
     for (const [groupId, assets] of assetsByGroup) {
       if (groupId !== '__ungrouped__' && assets.length > 0) {
         result.push({
@@ -545,7 +565,7 @@ export function Sidebar({
           onDragEnd={handleDragEnd}
           onDrop={(e) => handleDrop(e, asset.id)}
           onClick={() => onSelectAsset(selectedPresentation!.id, asset.id)}
-          className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
+          className="flex-1 text-left px-2 py-2 rounded-lg text-sm transition-colors flex items-center"
           style={{
             backgroundColor: isDropTarget ? '#ffde59' : isSelected ? '#ccba9d' : '#4a4040',
             color: isDropTarget || isSelected ? '#342d2d' : '#ffffff',
@@ -650,8 +670,12 @@ export function Sidebar({
 
   return (
     <aside
-      className="w-64 flex flex-col overflow-hidden border-r"
-      style={{ backgroundColor: '#3d3535', borderColor: '#4a4040' }}
+      className="flex flex-col overflow-hidden border-r relative"
+      style={{
+        width: `${width}px`,
+        backgroundColor: '#3d3535',
+        borderColor: '#4a4040',
+      }}
     >
       {/* Assets List */}
       {selectedPresentation && (
@@ -668,6 +692,40 @@ export function Sidebar({
             </h2>
 
             <div className="flex items-center gap-1">
+              {/* Width preset buttons */}
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() => setPreset('small')}
+                  className="px-1.5 py-1 rounded text-xs transition-colors"
+                  style={{ color: '#ccba9d', backgroundColor: width === 280 ? '#4a4040' : 'transparent' }}
+                  title="Small (280px)"
+                  onMouseEnter={(e) => { if (width !== 280) e.currentTarget.style.backgroundColor = '#4a4040'; }}
+                  onMouseLeave={(e) => { if (width !== 280) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  S
+                </button>
+                <button
+                  onClick={() => setPreset('medium')}
+                  className="px-1.5 py-1 rounded text-xs transition-colors"
+                  style={{ color: '#ccba9d', backgroundColor: width === 380 ? '#4a4040' : 'transparent' }}
+                  title="Medium (380px)"
+                  onMouseEnter={(e) => { if (width !== 380) e.currentTarget.style.backgroundColor = '#4a4040'; }}
+                  onMouseLeave={(e) => { if (width !== 380) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  M
+                </button>
+                <button
+                  onClick={() => setPreset('large')}
+                  className="px-1.5 py-1 rounded text-xs transition-colors"
+                  style={{ color: '#ccba9d', backgroundColor: width === 480 ? '#4a4040' : 'transparent' }}
+                  title="Large (480px)"
+                  onMouseEnter={(e) => { if (width !== 480) e.currentTarget.style.backgroundColor = '#4a4040'; }}
+                  onMouseLeave={(e) => { if (width !== 480) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  L
+                </button>
+              </div>
+
               {/* Mode switcher */}
               <div className="relative" data-mode-switcher>
                 <button
@@ -823,7 +881,7 @@ export function Sidebar({
 
           {/* Mode-specific rendering */}
           {mode === 'flat' && (
-            <div className="p-2">
+            <div className="px-1 py-2 space-y-0.5">
               {indexAsset && renderIndexRow(indexAsset)}
               <SidebarFlat
                 assets={filteredFlatAssets}
@@ -846,7 +904,7 @@ export function Sidebar({
           )}
 
           {mode === 'grouped' && (
-            <div className="p-2">
+            <div className="px-1 py-2 space-y-1">
               {indexAsset && renderIndexRow(indexAsset)}
               <SidebarGrouped
                 presentation={selectedPresentation}
