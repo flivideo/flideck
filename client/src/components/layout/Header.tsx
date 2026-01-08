@@ -73,6 +73,10 @@ export function Header({
   return (
     <header className="px-4 py-3 flex items-center justify-between border-b" style={{ backgroundColor: '#3d3535', borderColor: '#4a4040' }}>
       <div className="flex items-center gap-3">
+        <span className="text-2xl tracking-wide" style={{ fontFamily: "'Bebas Neue', Arial, sans-serif" }}>
+          <span style={{ color: '#ccba9d' }}>Appy</span>
+          <span style={{ color: '#ffde59' }}>Dave</span>
+        </span>
         {showBack && onBack && (
           <button
             onClick={onBack}
@@ -96,10 +100,6 @@ export function Header({
             </svg>
           </button>
         )}
-        <span className="text-2xl tracking-wide" style={{ fontFamily: "'Bebas Neue', Arial, sans-serif" }}>
-          <span style={{ color: '#ccba9d' }}>Appy</span>
-          <span style={{ color: '#ffde59' }}>Dave</span>
-        </span>
         {title && (
           <div className="relative" ref={dropdownRef}>
             <button
