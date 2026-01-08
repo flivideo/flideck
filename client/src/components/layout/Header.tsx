@@ -16,21 +16,8 @@ interface HeaderProps {
 }
 
 /**
- * AppyDave branded logo component.
- * Two-tone display: "Appy" in gold (#ccba9d), "Dave" in yellow (#ffde59)
- */
-function BrandLogo() {
-  return (
-    <span className="text-2xl tracking-wide" style={{ fontFamily: "'Bebas Neue', Arial, sans-serif" }}>
-      <span style={{ color: '#ccba9d' }}>Appy</span>
-      <span style={{ color: '#ffde59' }}>Dave</span>
-      <span className="text-white ml-2 text-lg opacity-80">FliDeck</span>
-    </span>
-  );
-}
-
-/**
  * Application header with navigation and connection status.
+ * Always displays "AppyDave" branding in the top left corner.
  */
 export function Header({
   title,
@@ -109,7 +96,11 @@ export function Header({
             </svg>
           </button>
         )}
-        {title ? (
+        <span className="text-2xl tracking-wide" style={{ fontFamily: "'Bebas Neue', Arial, sans-serif" }}>
+          <span style={{ color: '#ccba9d' }}>Appy</span>
+          <span style={{ color: '#ffde59' }}>Dave</span>
+        </span>
+        {title && (
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => showDropdown && setIsDropdownOpen(!isDropdownOpen)}
@@ -174,8 +165,6 @@ export function Header({
               </div>
             )}
           </div>
-        ) : (
-          <BrandLogo />
         )}
       </div>
 
