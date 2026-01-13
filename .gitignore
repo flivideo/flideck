@@ -46,3 +46,4 @@ coverage/
 
 # Sample presentations (for development only)
 presentations/
+.worktrees/
