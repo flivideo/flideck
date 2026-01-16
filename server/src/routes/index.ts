@@ -7,6 +7,7 @@ import { createQueryRoutes } from './query.js';
 import { createSchemaRoutes } from './schema.js';
 import { createTemplateRoutes } from './templates.js';
 import { createCapabilitiesRoutes } from './capabilities.js';
+import mockupsRoutes from './mockups.js';
 import type { WatcherManager } from '../WatcherManager.js';
 
 interface RouteConfig {
@@ -27,6 +28,7 @@ export function createRoutes({ io, watcherManager }: RouteConfig): Router {
   router.use('/schema', createSchemaRoutes({ io }));
   router.use('/templates', createTemplateRoutes({ io }));
   router.use('/capabilities', createCapabilitiesRoutes());
+  router.use('/mockups', mockupsRoutes);
 
   return router;
 }
