@@ -577,9 +577,7 @@ export class PresentationService extends EventEmitter {
    * Format a kebab-case or snake_case string as a title.
    */
   private formatName(name: string): string {
-    return name
-      .replace(/[-_]/g, ' ')
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    return name.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   }
 
   // ============================================================
@@ -618,11 +616,12 @@ export class PresentationService extends EventEmitter {
         created: new Date().toISOString().split('T')[0],
         updated: new Date().toISOString().split('T')[0],
       },
-      slides: slides?.map((s) => ({
-        file: s.file,
-        title: s.title,
-        group: s.group,
-      })) || [],
+      slides:
+        slides?.map((s) => ({
+          file: s.file,
+          title: s.title,
+          group: s.group,
+        })) || [],
     };
 
     // Write manifest
@@ -1010,8 +1009,7 @@ export class PresentationService extends EventEmitter {
     }
 
     // Renumber remaining groups to fill gaps
-    const sortedGroups = Object.entries(manifest.groups)
-      .sort(([, a], [, b]) => a.order - b.order);
+    const sortedGroups = Object.entries(manifest.groups).sort(([, a], [, b]) => a.order - b.order);
     for (let i = 0; i < sortedGroups.length; i++) {
       const [id] = sortedGroups[i];
       manifest.groups[id].order = i + 1;
@@ -1116,8 +1114,9 @@ export class PresentationService extends EventEmitter {
 
     // Handle child groups based on strategy
     if (manifest.groups) {
-      const childGroups = Object.entries(manifest.groups)
-        .filter(([, group]) => group.parent === tabId);
+      const childGroups = Object.entries(manifest.groups).filter(
+        ([, group]) => group.parent === tabId
+      );
 
       if (strategy === 'cascade') {
         // Delete all child groups
@@ -1170,8 +1169,7 @@ export class PresentationService extends EventEmitter {
     }
 
     // Renumber remaining groups to fill gaps
-    const sortedGroups = Object.entries(manifest.groups)
-      .sort(([, a], [, b]) => a.order - b.order);
+    const sortedGroups = Object.entries(manifest.groups).sort(([, a], [, b]) => a.order - b.order);
     for (let i = 0; i < sortedGroups.length; i++) {
       const [id] = sortedGroups[i];
       manifest.groups[id].order = i + 1;
@@ -1438,10 +1436,7 @@ export class PresentationService extends EventEmitter {
    * @param updates - Partial manifest updates
    * @throws Error if presentation not found
    */
-  async patchManifest(
-    presentationId: string,
-    updates: Partial<FlideckManifest>
-  ): Promise<void> {
+  async patchManifest(presentationId: string, updates: Partial<FlideckManifest>): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
@@ -1455,7 +1450,10 @@ export class PresentationService extends EventEmitter {
     const baseManifest = currentManifest || {};
 
     // Deep merge updates
-    const manifest = this.deepMerge(baseManifest, updates) as FlideckManifest;
+    const manifest = this.deepMerge(
+      baseManifest as Record<string, unknown>,
+      updates as Record<string, unknown>
+    ) as FlideckManifest;
 
     // Update timestamp
     if (!manifest.meta) manifest.meta = {};
@@ -1472,7 +1470,10 @@ export class PresentationService extends EventEmitter {
    * Deep merge helper for PATCH semantics.
    * Objects are merged recursively, arrays are replaced.
    */
-  private deepMerge(target: any, source: any): any {
+  private deepMerge(
+    target: Record<string, unknown>,
+    source: Record<string, unknown>
+  ): Record<string, unknown> {
     if (!source || typeof source !== 'object' || Array.isArray(source)) {
       return source;
     }
@@ -1491,7 +1492,10 @@ export class PresentationService extends EventEmitter {
           // Deep merge objects
           result[key] =
             targetValue && typeof targetValue === 'object'
-              ? this.deepMerge(targetValue, sourceValue)
+              ? this.deepMerge(
+                  targetValue as Record<string, unknown>,
+                  sourceValue as Record<string, unknown>
+                )
               : sourceValue;
         } else {
           // Primitives are replaced
@@ -1817,7 +1821,7 @@ export class PresentationService extends EventEmitter {
           if (titleMatch && titleMatch[1]) {
             slide.title = titleMatch[1].trim();
           }
-        } catch (error) {
+        } catch (_error) {
           // Ignore errors reading HTML
         }
       }
@@ -1921,7 +1925,7 @@ export class PresentationService extends EventEmitter {
             });
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Ignore errors reading directory
       }
     }
@@ -2163,9 +2167,7 @@ export class PresentationService extends EventEmitter {
     }
 
     // Count orphaned slides (HTML files not in any index)
-    const nonIndexHtmlFiles = htmlFiles.filter(
-      (f) => !f.match(/^index(-[\w-]+)?\.html$/)
-    );
+    const nonIndexHtmlFiles = htmlFiles.filter((f) => !f.match(/^index(-[\w-]+)?\.html$/));
     for (const file of nonIndexHtmlFiles) {
       if (!assignedSlides.has(file)) {
         result.slides.orphaned++;
@@ -2303,10 +2305,7 @@ export class PresentationService extends EventEmitter {
    * Extract slide reference from a card element.
    * Tries multiple patterns: href, data-slide, data-file.
    */
-  private extractSlideReference(
-    _$: CheerioAPI,
-    $el: Cheerio<AnyNode>
-  ): string | null {
+  private extractSlideReference(_$: CheerioAPI, $el: Cheerio<AnyNode>): string | null {
     // Try href attribute
     let href = $el.attr('href');
     if (href && href.endsWith('.html') && !href.startsWith('index')) {
@@ -2342,9 +2341,7 @@ export class PresentationService extends EventEmitter {
    * Extract title from an HTML file by reading its <title> tag or first <h1>.
    * Used to provide meaningful names for orphaned slides.
    */
-  private async extractTitleFromHtmlFile(
-    filePath: string
-  ): Promise<string | undefined> {
+  private async extractTitleFromHtmlFile(filePath: string): Promise<string | undefined> {
     try {
       const htmlContent = await fs.readFile(filePath, 'utf-8');
       const $ = cheerio.load(htmlContent);
@@ -2372,10 +2369,7 @@ export class PresentationService extends EventEmitter {
    * Extract title from a card element.
    * Tries: h1-h6, .title, .card-title, first text node.
    */
-  private extractCardTitle(
-    _$: CheerioAPI,
-    $el: Cheerio<AnyNode>
-  ): string | undefined {
+  private extractCardTitle(_$: CheerioAPI, $el: Cheerio<AnyNode>): string | undefined {
     // Try heading elements
     const $heading = $el.find('h1, h2, h3, h4, h5, h6').first();
     if ($heading.length) {

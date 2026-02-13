@@ -70,7 +70,9 @@ export function hasTabGroups(presentation: Presentation | null | undefined): boo
 /**
  * Get tab groups (groups with tab: true)
  */
-export function getTabGroups(presentation: Presentation | null | undefined): Array<{ id: string; def: GroupDefinition }> {
+export function getTabGroups(
+  presentation: Presentation | null | undefined
+): Array<{ id: string; def: GroupDefinition }> {
   if (!presentation?.groups) return [];
 
   return Object.entries(presentation.groups)
@@ -97,7 +99,9 @@ export function getChildGroups(
 /**
  * Get orphan groups (groups without parent and not tabs themselves)
  */
-export function getOrphanGroups(presentation: Presentation | null | undefined): Array<{ id: string; def: GroupDefinition }> {
+export function getOrphanGroups(
+  presentation: Presentation | null | undefined
+): Array<{ id: string; def: GroupDefinition }> {
   if (!presentation?.groups) return [];
 
   return Object.entries(presentation.groups)

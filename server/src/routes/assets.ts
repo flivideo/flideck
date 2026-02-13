@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { PresentationService } from '../services/PresentationService.js';
+import { queryString } from '../utils/queryString.js';
 
 /**
  * Create asset routes for serving HTML content.
@@ -18,7 +19,8 @@ export function createAssetRoutes(): Router {
   router.get(
     '/:presentationId/:assetId',
     asyncHandler(async (req, res) => {
-      const { presentationId, assetId } = req.params;
+      const presentationId = queryString(req.params.presentationId);
+      const assetId = queryString(req.params.assetId);
 
       const presentation = await presentationService.getById(presentationId);
       if (!presentation) {

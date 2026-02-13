@@ -29,6 +29,5 @@ export function createSchemaRoutes(_config?: RouteConfig): Router {
   // FR-21: Manifest Templates
   // ============================================================
 
-
   return router;
 }

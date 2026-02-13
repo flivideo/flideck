@@ -21,7 +21,7 @@
  * </script>
  * ```
  */
-(function(window) {
+(function (window) {
   'use strict';
 
   // State
@@ -70,7 +70,10 @@
       }
     }
 
-    console.log('FliDeckIndex initialized', { mode: config.mode, presentationId: currentPresentationId });
+    console.log('FliDeckIndex initialized', {
+      mode: config.mode,
+      presentationId: currentPresentationId,
+    });
   }
 
   /**
@@ -176,5 +179,4 @@
   };
 
   console.log('FliDeckIndex library loaded (v1.0.0)');
-
 })(window);

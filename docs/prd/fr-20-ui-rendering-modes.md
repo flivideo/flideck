@@ -11,12 +11,14 @@ Implement flat, grouped, and tabbed rendering modes in FliDeck's sidebar and opt
 ## Problem Statement
 
 **Current state:**
+
 - Sidebar renders all slides in a flat list
 - Groups exist in manifest but only as collapsible headers
 - No tab support for large presentations with major categories
 - Drag-drop updates sidebar but not index.html
 
 **Use cases not served:**
+
 - ~20 slides: Want section headers without collapse (grouped mode)
 - ~100 slides: Want tabs for major categories, sections within tabs (tabbed mode)
 - Custom index.html pages want to stay in sync with sidebar changes
@@ -25,13 +27,14 @@ Implement flat, grouped, and tabbed rendering modes in FliDeck's sidebar and opt
 
 ### Rendering Modes
 
-| Mode | Slides | UI Behavior |
-|------|--------|-------------|
-| **Flat** | 1-15 | Simple list, no grouping |
-| **Grouped** | 15-50 | Collapsible section headers |
-| **Tabbed** | 50+ | Major groups as tabs, sections within tabs |
+| Mode        | Slides | UI Behavior                                |
+| ----------- | ------ | ------------------------------------------ |
+| **Flat**    | 1-15   | Simple list, no grouping                   |
+| **Grouped** | 15-50  | Collapsible section headers                |
+| **Tabbed**  | 50+    | Major groups as tabs, sections within tabs |
 
 Mode can be:
+
 - Auto-detected based on slide count and group structure
 - Explicitly set in manifest: `"meta": { "displayMode": "tabbed" }`
 - Overridden per-session via UI toggle
@@ -59,15 +62,18 @@ Groups gain a `tab` property:
 ### Sidebar Behavior
 
 **Flat mode:**
+
 - All slides listed vertically
 - Drag-drop reorders globally
 
 **Grouped mode:**
+
 - Section headers (non-collapsible or collapsible toggle)
 - Drag-drop within sections
 - Drag-drop between sections moves slide and updates group
 
 **Tabbed mode:**
+
 - Tab bar at top of sidebar
 - Each tab shows its groups/slides
 - Drag-drop within tab
@@ -85,23 +91,26 @@ Optional JavaScript library for custom index pages:
     onReorder: (slides, group) => {
       // Re-render content
     },
-    preserveTabState: true
+    preserveTabState: true,
   });
 </script>
 ```
 
 **Events from FliDeck to index.html:**
+
 - `slides:reordered` - Slide order changed
 - `slide:moved` - Slide moved to different group
 - `tab:changed` - Active tab changed in sidebar
 
 **State persistence:**
+
 - Current tab stored in localStorage by presentation ID
 - Restored on page refresh
 
 ## Acceptance Criteria
 
 ### Core
+
 - [x] Flat mode renders slides as simple list
 - [x] Grouped mode renders section headers with slides underneath
 - [x] Tabbed mode renders tab bar with grouped content per tab
@@ -110,11 +119,13 @@ Optional JavaScript library for custom index pages:
 - [x] UI toggle to switch modes during session
 
 ### Drag-Drop
+
 - [x] Flat mode: global reorder
 - [x] Grouped mode: reorder within section, move between sections
 - [x] Tabbed mode: reorder within tab, drag to tab header to move
 
 ### Index.html Integration
+
 - [x] `/flideck-index.js` library available
 - [x] `FliDeckIndex.init()` configures integration
 - [x] Reorder events propagate to index.html
@@ -122,6 +133,7 @@ Optional JavaScript library for custom index pages:
 - [x] Graceful degradation without library
 
 ### Migration
+
 - [ ] BMAD Poem presentation migrated to use tabbed mode (optional)
 
 ## Technical Notes
@@ -154,6 +166,7 @@ Optional JavaScript library for custom index pages:
 ## Completion Notes
 
 **What was done:**
+
 - Updated manifest schema with `displayMode` property in `meta` (enum: 'flat', 'grouped', 'tabbed')
 - Added `tab` and `parent` properties to GroupDefinition for hierarchical tab structure
 - Created display mode detection logic in `utils/displayMode.ts`:
@@ -182,6 +195,7 @@ Optional JavaScript library for custom index pages:
 - Tab state persists via localStorage key `flideck:tab:{presentationId}`
 
 **Files created:**
+
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/client/src/utils/displayMode.ts`
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/client/src/hooks/useDisplayMode.ts`
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/client/src/components/layout/SidebarFlat.tsx`
@@ -191,22 +205,26 @@ Optional JavaScript library for custom index pages:
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/client/src/components/layout/Sidebar.old.tsx` (backup)
 
 **Files modified:**
+
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/shared/schema/manifest.schema.json` - Added displayMode and tab/parent properties
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/shared/src/types.ts` - Added DisplayMode type and updated GroupDefinition/ManifestMeta
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/client/src/components/layout/Sidebar.tsx` - Complete refactor for multi-mode support
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/server/src/index.ts` - Added static file serving for public directory
 
 **Deferred items completed:**
+
 - FR-15: Cross-group drag-drop now fully implemented (drag between groups, visual feedback)
 - FR-17: Group drag-drop UI implemented (drag to reorder groups, drag assets to groups/tabs)
 
 **Mode switching behavior:**
+
 - Auto mode uses detection algorithm (default)
 - Manual override persists only for current session (resets on presentation change)
 - Mode switcher shows current mode with icon: ☰ (flat), ⋮⋮⋮ (grouped), ▤ (tabbed)
 - Override indicator: checkmark shows active mode, "Auto ✓" when no override
 
 **Tabbed mode features:**
+
 - Tab bar at top of sidebar with horizontal scroll
 - General tab appears when there are orphan groups or ungrouped assets
 - Drag asset to tab header to move it to that tab (updates group assignment)
@@ -215,6 +233,7 @@ Optional JavaScript library for custom index pages:
 - Child groups nest under tabs with collapsible headers
 
 **Testing notes:**
+
 - Build succeeds without TypeScript errors
 - All three modes render correctly
 - Mode switching works via dropdown menu

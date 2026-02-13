@@ -7,11 +7,13 @@ The FliDeck API tells agents what operations are available (CRUD for slides, tab
 ## Problem Statement
 
 **Current state:**
+
 - FR-27 provides capability discovery: "here are the API endpoints you can call"
 - Agents can create slides, update manifests, manage tabs/groups via API
 - But agents don't know the **technical requirements** for HTML content
 
 **What's missing:**
+
 - How should slides handle keyboard events?
 - How should slides communicate with the parent FliDeck frame?
 - What HTML structure is expected for index/landing pages?
@@ -19,6 +21,7 @@ The FliDeck API tells agents what operations are available (CRUD for slides, tab
 - What script should be included for postMessage bridging?
 
 **Impact:**
+
 - Agent-generated slides break keyboard navigation (BUG-15)
 - Index pages don't integrate with FliDeck's sync features
 - Clicks inside iframe don't update FliDeck's state
@@ -61,12 +64,15 @@ Slides should include a script that forwards FliDeck control keys to parent:
       (e.metaKey && ['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key));
 
     if (isFliDeckKey) {
-      window.parent.postMessage({
-        type: 'flideck:keydown',
-        key: e.key,
-        metaKey: e.metaKey,
-        ctrlKey: e.ctrlKey
-      }, '*');
+      window.parent.postMessage(
+        {
+          type: 'flideck:keydown',
+          key: e.key,
+          metaKey: e.metaKey,
+          ctrlKey: e.ctrlKey,
+        },
+        '*'
+      );
     }
   });
 </script>
@@ -78,14 +84,17 @@ When a card is clicked in an index page, it should notify FliDeck:
 
 ```html
 <script>
-  document.querySelectorAll('[data-slide]').forEach(card => {
+  document.querySelectorAll('[data-slide]').forEach((card) => {
     card.addEventListener('click', (e) => {
       e.preventDefault();
       const slideFile = card.dataset.slide;
-      window.parent.postMessage({
-        type: 'flideck:navigate',
-        slide: slideFile
-      }, '*');
+      window.parent.postMessage(
+        {
+          type: 'flideck:navigate',
+          slide: slideFile,
+        },
+        '*'
+      );
     });
   });
 </script>
@@ -109,8 +118,8 @@ Slides should include metadata FliDeck can extract:
 ```html
 <head>
   <title>E1.1 Initiative Scorecard</title>
-  <meta name="flideck:group" content="epic1">
-  <meta name="flideck:order" content="1">
+  <meta name="flideck:group" content="epic1" />
+  <meta name="flideck:order" content="1" />
 </head>
 ```
 
@@ -162,24 +171,24 @@ Returns a complete HTML template agents can use:
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <title>{{SLIDE_TITLE}}</title>
-  <meta name="flideck:group" content="{{GROUP_ID}}">
-  <style>/* Base styles */</style>
-</head>
-<body>
-  <div class="slide-content">
-    {{CONTENT}}
-  </div>
+  <head>
+    <title>{{SLIDE_TITLE}}</title>
+    <meta name="flideck:group" content="{{GROUP_ID}}" />
+    <style>
+      /* Base styles */
+    </style>
+  </head>
+  <body>
+    <div class="slide-content">{{CONTENT}}</div>
 
-  <!-- FliDeck Integration -->
-  <script>
-    // Keyboard bridge
-    document.addEventListener('keydown', (e) => {
-      // ... forwarding code
-    });
-  </script>
-</body>
+    <!-- FliDeck Integration -->
+    <script>
+      // Keyboard bridge
+      document.addEventListener('keydown', (e) => {
+        // ... forwarding code
+      });
+    </script>
+  </body>
 </html>
 ```
 
@@ -202,12 +211,14 @@ Returns template for index/landing pages with card grid and navigation integrati
 ## Why This Matters
 
 **Without this:** Every agent that creates FliDeck content has to:
+
 1. Reverse-engineer how FliDeck works
 2. Copy-paste scripts from existing slides
 3. Hope they got it right
 4. Debug when keyboard/navigation breaks
 
 **With this:** Agents can:
+
 1. Query `/api/authoring-specs` to understand requirements
 2. Use `/api/templates/*` as starting points
 3. Know exactly what postMessage events FliDeck expects

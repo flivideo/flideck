@@ -9,6 +9,7 @@ Display mode selection is lost on page refresh. Mode resets to "auto" instead of
 **Presentation:** bmad-agents (and all presentations)
 
 **Steps to reproduce:**
+
 1. Open a presentation (auto-detects to "Grouped" mode, for example)
 2. Switch display mode to "Flat" using mode switcher
 3. Sidebar updates to flat list view (expected)
@@ -16,11 +17,13 @@ Display mode selection is lost on page refresh. Mode resets to "auto" instead of
 5. Observe display mode
 
 **Expected result:**
+
 - Display mode persists as "Flat"
 - User's choice is remembered
 - Mode saved in manifest or localStorage
 
 **Actual result:**
+
 - Display mode resets to auto-detected mode ("Grouped")
 - User's choice is lost
 - Must re-select preferred mode on every refresh
@@ -30,12 +33,14 @@ Display mode selection is lost on page refresh. Mode resets to "auto" instead of
 **Current behavior (from code review):**
 
 `useDisplayMode` hook (client/src/hooks/useDisplayMode.ts):
+
 - Uses `sessionOverride` state (line 10)
 - `sessionOverride` is component state, NOT localStorage
 - Resets to `null` when presentation changes (line 19-21)
 - On page refresh, component re-mounts → state is lost
 
 **Why it doesn't persist:**
+
 ```typescript
 // Line 9: Session override in React state (not persisted)
 const [sessionOverride, setSessionOverride] = useState<DisplayMode | null>(null);
@@ -51,7 +56,9 @@ React state is ephemeral. Page refresh = component unmount = state lost.
 **Two persistence options:**
 
 ### Option 1: Persist in Manifest (Recommended)
+
 Store display mode in presentation's `index.json`:
+
 ```json
 {
   "meta": {
@@ -61,31 +68,38 @@ Store display mode in presentation's `index.json`:
 ```
 
 **Pros:**
+
 - Mode is part of presentation definition
 - Shared across all users (if presentation is shared)
 - Already supported by schema (line 10 of displayMode.ts checks this)
 
 **Cons:**
+
 - Requires API call to update manifest
 - Changes the source file
 
 ### Option 2: Persist in localStorage
+
 Store display mode per presentation:
+
 ```typescript
 localStorage.setItem('flideck:displayMode:bmad-agents', 'flat');
 ```
 
 **Pros:**
+
 - No file changes
 - User-specific preference
 - Faster (no API call)
 
 **Cons:**
+
 - Not shared across browsers/devices
 - Not visible to other users
 - Per-user override vs presentation default
 
 **Recommendation:** **Option 1 (Manifest)** with Option 2 as fallback
+
 - If user sets mode, save to manifest via API
 - If API fails, fall back to localStorage
 - Check localStorage first, then manifest, then auto-detect
@@ -95,11 +109,10 @@ localStorage.setItem('flideck:displayMode:bmad-agents', 'flat');
 ### Implementation Steps
 
 1. **Update useDisplayMode hook:**
+
    ```typescript
    // Add localStorage key
-   const storageKey = presentation?.id
-     ? `flideck:displayMode:${presentation.id}`
-     : null;
+   const storageKey = presentation?.id ? `flideck:displayMode:${presentation.id}` : null;
 
    // Load from localStorage on mount
    const [sessionOverride, setSessionOverride] = useState<DisplayMode | null>(() => {
@@ -124,10 +137,11 @@ localStorage.setItem('flideck:displayMode:bmad-agents', 'flat');
    ```
 
 2. **Optionally: Add API call to save to manifest**
+
    ```typescript
    // When user changes mode, save to manifest
    await api.patch(`/presentations/${presentationId}/manifest`, {
-     meta: { displayMode: mode }
+     meta: { displayMode: mode },
    });
    ```
 
@@ -149,16 +163,19 @@ localStorage.setItem('flideck:displayMode:bmad-agents', 'flat');
 ## Related Code
 
 **Client:**
+
 - `client/src/hooks/useDisplayMode.ts` - Display mode state management (needs update)
 - `client/src/components/layout/Sidebar.tsx` - Mode switcher UI
 
 **Comparison:**
+
 - `client/src/hooks/useActiveTab.ts` - Already persists to localStorage (reference implementation)
 - `client/src/hooks/useContainerTab.ts` - Container tabs persist correctly
 
 ## Workaround
 
 **Temporary workaround:**
+
 1. Edit `index.json` manually:
    ```json
    {
@@ -202,6 +219,7 @@ localStorage.setItem('flideck:displayMode:bmad-agents', 'flat');
    - Pattern matches `useActiveTab` for consistency
 
 **Behavior**:
+
 - Display mode override is now persisted per-presentation in localStorage
 - Survives page refreshes
 - Survives browser restarts
@@ -209,6 +227,7 @@ localStorage.setItem('flideck:displayMode:bmad-agents', 'flat');
 - Clearing override removes from localStorage and returns to auto mode
 
 **Testing**:
+
 1. Select "Grouped" mode on a presentation
 2. Refresh page
 3. Mode remains "Grouped" (not reset to auto)

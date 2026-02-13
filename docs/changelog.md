@@ -4,24 +4,24 @@ Implementation history for FliDeck.
 
 ## Quick Summary
 
-| Date | What | FRs |
-|------|------|-----|
+| Date       | What                                                             | FRs    |
+| ---------- | ---------------------------------------------------------------- | ------ |
 | 2025-12-28 | Extract slide titles from HTML `<title>` tags in sync-from-index | BUG-12 |
-| 2025-12-22 | Rich manifest schema with groups and collapsible sidebar | FR-15 |
-| 2025-12-22 | Rename manifest from flideck.json to index.json | FR-14 |
-| 2025-12-22 | Default creation-time ordering for assets (oldest first) | FR-13 |
-| 2025-12-21 | Quick filter (Cmd+K) for presentations and assets | FR-9 |
-| 2025-12-21 | Copy path to clipboard (Alt+hover reveals URL/ABS/REL buttons) | FR-12 |
-| 2025-12-21 | Claude skill for FliDeck | FR-11 |
-| 2025-12-21 | Query API for external systems | FR-10 |
-| 2025-12-21 | Real-time file watching | NFR-1 |
-| 2025-12-19 | Simplified config UI (text input, removed folder browser) | FR-6 |
-| 2025-12-19 | Presentation controls with keyboard navigation | FR-5 |
-| 2025-12-19 | AppyDave branding applied to UI | FR-4 |
-| 2025-12-18 | Configuration UI | FR-3 |
-| 2025-12-18 | JSON-based configuration with hot reload | FR-2 |
-| 2025-12-18 | Documentation scaffolding | - |
-| 2025-12-18 | Initial project setup | FR-1 |
+| 2025-12-22 | Rich manifest schema with groups and collapsible sidebar         | FR-15  |
+| 2025-12-22 | Rename manifest from flideck.json to index.json                  | FR-14  |
+| 2025-12-22 | Default creation-time ordering for assets (oldest first)         | FR-13  |
+| 2025-12-21 | Quick filter (Cmd+K) for presentations and assets                | FR-9   |
+| 2025-12-21 | Copy path to clipboard (Alt+hover reveals URL/ABS/REL buttons)   | FR-12  |
+| 2025-12-21 | Claude skill for FliDeck                                         | FR-11  |
+| 2025-12-21 | Query API for external systems                                   | FR-10  |
+| 2025-12-21 | Real-time file watching                                          | NFR-1  |
+| 2025-12-19 | Simplified config UI (text input, removed folder browser)        | FR-6   |
+| 2025-12-19 | Presentation controls with keyboard navigation                   | FR-5   |
+| 2025-12-19 | AppyDave branding applied to UI                                  | FR-4   |
+| 2025-12-18 | Configuration UI                                                 | FR-3   |
+| 2025-12-18 | JSON-based configuration with hot reload                         | FR-2   |
+| 2025-12-18 | Documentation scaffolding                                        | -      |
+| 2025-12-18 | Initial project setup                                            | FR-1   |
 
 ---
 
@@ -33,6 +33,7 @@ Implementation history for FliDeck.
 **FRs:** FR-15
 
 **What was done:**
+
 - Added rich schema types: `ManifestMeta`, `ManifestStats`, `GroupDefinition`, `ManifestSlide`
 - Extended Asset type with `group`, `title`, `description`, `recommended` fields
 - Extended Presentation type with `groups` and `meta` fields
@@ -43,9 +44,11 @@ Implementation history for FliDeck.
 - Group collapse state persisted in localStorage
 
 **Files created:**
+
 - None (types added to existing shared/src/types.ts)
 
 **Files modified:**
+
 - `shared/src/types.ts` - Added schema types, extended Asset and Presentation
 - `server/src/services/PresentationService.ts` - Parse new schema, apply slide metadata
 - `client/src/components/layout/Sidebar.tsx` - Grouped sections with collapsible UI
@@ -58,12 +61,14 @@ Implementation history for FliDeck.
 **FRs:** FR-14
 
 **What was done:**
+
 - Changed manifest filename from `flideck.json` to `index.json`
 - Added backwards compatibility: reads `flideck.json` if `index.json` doesn't exist
 - New saves always write to `index.json`
 - Updated CLAUDE.md with new filename and backwards compatibility note
 
 **Files modified:**
+
 - `server/src/services/PresentationService.ts` - Updated constants, added fallback read logic
 - `shared/src/types.ts` - Updated FlideckManifest comment
 - `CLAUDE.md` - Updated file discovery and asset ordering sections
@@ -76,12 +81,14 @@ Implementation history for FliDeck.
 **FRs:** FR-13
 
 **What was done:**
+
 - Changed default asset ordering from alphabetical to creation time (oldest first)
 - Added `createdAt` field to Asset interface using `birthtimeMs` (falls back to `mtimeMs`)
 - `index.html` still always appears first regardless of creation time
 - When manifest exists, custom order is still respected (no change)
 
 **Files modified:**
+
 - `shared/src/types.ts` - Added createdAt field to Asset interface
 - `server/src/services/PresentationService.ts` - Updated discoverAssets to capture birthtime and sort by creation time
 
@@ -93,6 +100,7 @@ Implementation history for FliDeck.
 **FRs:** FR-9
 
 **What was done:**
+
 - Created QuickFilter modal component with VS Code/Raycast-style UI
 - Created useQuickFilter hook for global Cmd+K keyboard shortcut
 - On HomePage: filters and navigates to presentations
@@ -102,10 +110,12 @@ Implementation history for FliDeck.
 - Uses React Portal for proper overlay stacking
 
 **Files created:**
+
 - `client/src/components/ui/QuickFilter.tsx`
 - `client/src/hooks/useQuickFilter.ts`
 
 **Files modified:**
+
 - `client/src/pages/HomePage.tsx`
 - `client/src/pages/PresentationPage.tsx`
 
@@ -117,6 +127,7 @@ Implementation history for FliDeck.
 **FRs:** NFR-1
 
 **What was done:**
+
 - Server emits granular socket events: `content:changed` for file modifications, `structure:changed` for add/remove/rename
 - Added `parseAssetPath()` helper to extract presentationId/assetId from file paths
 - New `useContentChanges()` hook listens for content changes and triggers iframe reload via `reloadKey`
@@ -124,6 +135,7 @@ Implementation history for FliDeck.
 - Reduced debounce from 500ms to 200ms for faster response
 
 **Files modified:**
+
 - `server/src/index.ts` - Added parseAssetPath, handlePresentationChange, granular event emission
 - `client/src/hooks/useSocket.ts` - Added useContentChanges hook
 - `client/src/pages/PresentationPage.tsx` - Integrated useContentChanges hook
@@ -138,6 +150,7 @@ Implementation history for FliDeck.
 **FRs:** FR-10
 
 **What was done:**
+
 - Created `/api/query/routes` endpoint - lists available presentation routes
 - Created `/api/query/routes/:route` endpoint - returns presentations for a route
 - Created `/api/query/presentations/:id` endpoint - returns detailed asset info with file sizes
@@ -145,9 +158,11 @@ Implementation history for FliDeck.
 - 404 errors for non-existent routes or presentations
 
 **Files created:**
+
 - `server/src/routes/query.ts`
 
 **Files modified:**
+
 - `server/src/routes/index.ts` - Register query routes
 
 ---
@@ -158,6 +173,7 @@ Implementation history for FliDeck.
 **FRs:** FR-11
 
 **What was done:**
+
 - Created FliDeck Claude skill at `~/.claude/skills/flideck/`
 - SKILL.md with proper YAML frontmatter (name, description)
 - health-command.md documenting health endpoint
@@ -166,6 +182,7 @@ Implementation history for FliDeck.
 - Follows FliHub skill pattern and structure
 
 **Files created:**
+
 - `~/.claude/skills/flideck/SKILL.md`
 - `~/.claude/skills/flideck/health-command.md`
 - `~/.claude/skills/flideck/routes-command.md`
@@ -179,6 +196,7 @@ Implementation history for FliDeck.
 **FRs:** FR-12
 
 **What was done:**
+
 - Alt/Option + hover on asset row reveals copy buttons (URL, ABS, REL)
 - Alt/Option + hover on "Assets" header reveals buttons to copy ALL paths
 - Clicking a button copies the path format to clipboard
@@ -186,13 +204,16 @@ Implementation history for FliDeck.
 - Created `useModifierKey` hook for tracking Alt key state
 
 **Keyboard interaction:**
+
 - Hold `Alt` (Option on Mac) + hover over asset → shows copy buttons
 - Hold `Alt` (Option on Mac) + hover over "Assets" header → shows copy-all buttons
 
 **Files created:**
+
 - `client/src/hooks/useModifierKey.ts`
 
 **Files modified:**
+
 - `client/src/components/layout/Sidebar.tsx`
 
 ---
@@ -203,15 +224,18 @@ Implementation history for FliDeck.
 **FRs:** FR-6
 
 **What was done:**
+
 - Removed FolderBrowser component and server-side browse endpoint
 - Simplified ConfigPage to three sections: Current Folder, History, Add Folder
 - Add Folder now uses simple text input (paste path, press Enter)
 - Removed unused types, hooks, and query keys
 
 **Files deleted:**
+
 - `client/src/components/config/FolderBrowser.tsx`
 
 **Files modified:**
+
 - `server/src/routes/config.ts` - removed browse endpoint
 - `client/src/pages/ConfigPage.tsx` - simplified UI
 - `client/src/hooks/useConfig.ts` - removed useBrowseDirectory
@@ -226,6 +250,7 @@ Implementation history for FliDeck.
 **FRs:** FR-5
 
 **What was done:**
+
 - Implemented presentation mode (`F` key) - hides header/sidebar for distraction-free viewing
 - Added keyboard navigation with modifier keys (`Cmd/Ctrl+Arrow`, `Cmd/Ctrl+Home/End`)
 - Added progress indicator (hidden in presentation mode)
@@ -234,12 +259,14 @@ Implementation history for FliDeck.
 - Presentation's internal controls work normally (no conflicts)
 
 **Keyboard shortcuts:**
+
 - `F` - Toggle presentation mode
 - `Escape` - Exit presentation mode
 - `Cmd/Ctrl + ←/→` - Previous/next asset
 - `Cmd/Ctrl + Home/End` - First/last asset
 
 **Files changed:**
+
 - `client/src/pages/PresentationPage.tsx` (modified)
 - `client/src/components/layout/Header.tsx` (modified)
 - `client/src/components/ui/AssetViewer.tsx` (modified)
@@ -252,6 +279,7 @@ Implementation history for FliDeck.
 **FRs:** FR-4
 
 **What was done:**
+
 - Added Google Fonts (Bebas Neue, Oswald, Roboto) to index.html
 - Created brand color CSS variables with semantic mappings
 - Implemented AppyDave two-tone logo ("Appy" gold, "Dave" yellow) in Header
@@ -260,6 +288,7 @@ Implementation history for FliDeck.
 - Implemented consistent hover states and 200ms transition animations
 
 **Files changed:**
+
 - `client/index.html` (modified)
 - `client/src/index.css` (modified)
 - `client/src/components/layout/Header.tsx` (modified)
@@ -277,17 +306,20 @@ Implementation history for FliDeck.
 **FRs:** FR-3
 
 **What was done:**
+
 - Added configuration screen accessible via gear icon in header
 - Created ConfigPage with current folder display, history list, and folder input
 - Implemented server endpoints: GET/PUT /api/config
 - Real-time updates via Socket.io config:changed event
 
 **Files created:**
+
 - `server/src/routes/config.ts`
 - `client/src/hooks/useConfig.ts`
 - `client/src/pages/ConfigPage.tsx`
 
 **Files modified:**
+
 - `server/src/routes/index.ts`
 - `server/src/config.ts`
 - `shared/src/types.ts`
@@ -304,6 +336,7 @@ Implementation history for FliDeck.
 **FRs:** FR-2
 
 **What was done:**
+
 - Replaced environment variable config with JSON-based configuration
 - Created `config.json` (gitignored) and `config.example.json` (committed)
 - Added tilde (`~`) path expansion for user home directory
@@ -312,6 +345,7 @@ Implementation history for FliDeck.
 - Enhanced WatcherManager with server-side callbacks
 
 **Files changed:**
+
 - `config.example.json` (new)
 - `config.json` (new, gitignored)
 - `.gitignore` (modified)
@@ -326,11 +360,13 @@ Implementation history for FliDeck.
 **Commit:** `pending`
 
 **What was done:**
+
 - Created documentation structure (docs/)
 - Set up backlog.md, changelog.md, brainstorming-notes.md
 - Created prd/ and uat/ directories
 
 **Files changed:**
+
 - `docs/README.md` (new)
 - `docs/backlog.md` (new)
 - `docs/changelog.md` (new)
@@ -344,6 +380,7 @@ Implementation history for FliDeck.
 **FRs:** FR-1
 
 **What was done:**
+
 - Created FliDeck presentation harness
 - React 19 + Vite + TailwindCSS client (port 5200)
 - Express 5 + Socket.io + Chokidar server (port 5201)
@@ -353,6 +390,7 @@ Implementation history for FliDeck.
 - TanStack Query for server state
 
 **Files changed:**
+
 - `client/` - React frontend
 - `server/` - Express backend
 - `shared/` - TypeScript types

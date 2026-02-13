@@ -31,6 +31,7 @@ Create a Claude skill at `~/.claude/skills/flideck/` following the established p
 ## SKILL.md Pattern
 
 Follow FliHub pattern with:
+
 - YAML frontmatter (name, description)
 - Core capabilities list
 - Prerequisites (FliDeck must be running)
@@ -39,6 +40,7 @@ Follow FliHub pattern with:
 - Common command examples
 
 **Frontmatter:**
+
 ```yaml
 ---
 name: flideck
@@ -49,11 +51,13 @@ description: Interact with FliDeck presentation system. Query presentation route
 ## Commands to Document
 
 ### Health Check
+
 ```bash
 curl -s "http://localhost:5201/api/health" | jq
 ```
 
 ### Routes
+
 ```bash
 # List all presentation routes
 curl -s "http://localhost:5201/api/query/routes" | jq
@@ -63,6 +67,7 @@ curl -s "http://localhost:5201/api/query/routes/slide-decks" | jq
 ```
 
 ### Presentations
+
 ```bash
 # Get presentation details with slides
 curl -s "http://localhost:5201/api/query/presentations/claude-code-intro" | jq
@@ -80,6 +85,7 @@ curl -s "http://localhost:5201/api/query/presentations/claude-code-intro" | jq
 ## References
 
 **Pattern to follow:**
+
 - `~/.claude/skills/flihub/SKILL.md` - Main reference
 - `~/.claude/skills/managing-assets/SKILL.md` - DAM skill
 - `~/.claude/skills/skill-creator/SKILL.md` - Skill creation guide
@@ -104,6 +110,7 @@ Consider using `/skill-creator` to scaffold the skill structure.
 ## Completion Notes
 
 **What was done:**
+
 - Created FliDeck Claude skill at `~/.claude/skills/flideck/`
 - SKILL.md with proper YAML frontmatter (name, description)
 - health-command.md documenting health endpoint
@@ -112,12 +119,14 @@ Consider using `/skill-creator` to scaffold the skill structure.
 - Follows FliHub skill pattern and structure
 
 **Files created:**
+
 - `~/.claude/skills/flideck/SKILL.md` (main skill file)
 - `~/.claude/skills/flideck/health-command.md` (health check reference)
 - `~/.claude/skills/flideck/routes-command.md` (routes endpoints reference)
 - `~/.claude/skills/flideck/presentations-command.md` (presentation endpoint reference)
 
 **Testing notes:**
+
 - Skill directory created and properly structured
 - Claude Code should recognize the skill via the description in YAML frontmatter
 - To verify: Ask Claude "What presentations do I have in FliDeck?" - it should use the skill

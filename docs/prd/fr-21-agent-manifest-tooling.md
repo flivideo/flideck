@@ -7,6 +7,7 @@ Provide robust tooling for AI agents (Claude, SoloDeck) to create, update, and m
 ## Problem Statement
 
 **Current state:**
+
 - Agents can create slides but manifest management is manual or ad-hoc
 - No bulk operations for adding multiple slides to groups
 - No templates for common presentation structures
@@ -14,6 +15,7 @@ Provide robust tooling for AI agents (Claude, SoloDeck) to create, update, and m
 - Agent must know manifest schema from documentation (not queryable)
 
 **Impact:**
+
 - SoloDeck workflow is fragile - manifest easily gets out of sync
 - Agents duplicate manifest structure knowledge
 - No standardization across agent-generated presentations
@@ -33,13 +35,14 @@ curl /api/schema/manifest
 
 New endpoints optimized for agent workflows:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/presentations/:id/manifest/slides/bulk` | Add multiple slides |
-| POST | `/api/presentations/:id/manifest/groups/bulk` | Add multiple groups |
-| PUT | `/api/presentations/:id/manifest/sync` | Sync manifest with filesystem |
+| Method | Endpoint                                      | Description                   |
+| ------ | --------------------------------------------- | ----------------------------- |
+| POST   | `/api/presentations/:id/manifest/slides/bulk` | Add multiple slides           |
+| POST   | `/api/presentations/:id/manifest/groups/bulk` | Add multiple groups           |
+| PUT    | `/api/presentations/:id/manifest/sync`        | Sync manifest with filesystem |
 
 **Bulk add slides:**
+
 ```json
 POST /api/presentations/my-deck/manifest/slides/bulk
 {
@@ -54,6 +57,7 @@ POST /api/presentations/my-deck/manifest/slides/bulk
 ```
 
 **Sync manifest with filesystem:**
+
 ```json
 PUT /api/presentations/my-deck/manifest/sync
 {
@@ -106,6 +110,7 @@ GET /api/templates/manifest
 ```
 
 **Apply template:**
+
 ```json
 POST /api/presentations/:id/manifest/template
 {
@@ -151,6 +156,7 @@ POST /api/presentations/:id/manifest/validate
 ```
 
 **Dry run for bulk operations:**
+
 ```json
 POST /api/presentations/:id/manifest/slides/bulk?dryRun=true
 {
@@ -162,25 +168,30 @@ POST /api/presentations/:id/manifest/slides/bulk?dryRun=true
 ## Acceptance Criteria
 
 ### Schema Discovery
+
 - [ ] `/api/schema/manifest` returns full JSON Schema (FR-19)
 - [ ] Schema includes descriptions and examples for each field
 
 ### Bulk Operations
+
 - [ ] `POST .../slides/bulk` adds multiple slides in one request
 - [ ] `POST .../groups/bulk` adds multiple groups in one request
 - [ ] `PUT .../sync` synchronizes manifest with filesystem
 - [ ] Position control: start, end, after specific slide
 
 ### Templates
+
 - [ ] `GET /api/templates/manifest` lists available templates
 - [ ] `POST .../template` applies template to presentation
 - [ ] At least 3 built-in templates (simple, tutorial, persona-tabs)
 
 ### Conflict Resolution
+
 - [ ] Duplicate file handling: skip, replace, rename
 - [ ] Group mismatch handling: keep, update
 
 ### Validation
+
 - [ ] `POST .../validate` validates manifest against schema
 - [ ] File existence checking option
 - [ ] Orphan file detection (files not in manifest)
@@ -216,6 +227,7 @@ POST /api/presentations/:id/manifest/slides/bulk?dryRun=true
 All features from this FR have been successfully implemented:
 
 ### TypeScript Types
+
 - Added comprehensive types to `shared/src/types.ts`:
   - `BulkAddSlidesRequest`, `BulkAddGroupsRequest`
   - `SyncManifestRequest`, `ValidateManifestRequest`, `ApplyTemplateRequest`
@@ -223,6 +235,7 @@ All features from this FR have been successfully implemented:
   - Conflict resolution types: `DuplicateFileStrategy`, `GroupMismatchStrategy`, `ConflictOptions`
 
 ### Service Layer (`PresentationService.ts`)
+
 - `bulkAddSlides()` - Bulk add slides with auto-create groups, position control, conflict resolution
 - `bulkAddGroups()` - Bulk add groups
 - `syncManifest()` - Sync manifest with filesystem (merge/replace/addOnly strategies)
@@ -230,7 +243,9 @@ All features from this FR have been successfully implemented:
 - `applyTemplate()` - Apply template to presentation
 
 ### Templates System (`manifestTemplates.ts`)
+
 Created 5 built-in templates:
+
 - **simple** - Flat list, no grouping
 - **tutorial** - Grouped by chapter (intro/basics/advanced/summary)
 - **persona-tabs** - Tabbed by persona (developer/designer/manager)
@@ -240,6 +255,7 @@ Created 5 built-in templates:
 ### API Endpoints
 
 **Bulk Operations (presentations.ts):**
+
 - `POST /api/presentations/:id/manifest/slides/bulk` - Bulk add slides
 - `POST /api/presentations/:id/manifest/groups/bulk` - Bulk add groups
 - `PUT /api/presentations/:id/manifest/sync` - Sync manifest with filesystem
@@ -247,39 +263,47 @@ Created 5 built-in templates:
 - `POST /api/presentations/:id/manifest/template` - Apply template
 
 **Templates (templates.ts):**
+
 - `GET /api/templates/manifest` - List all templates
 - `GET /api/templates/manifest/:id` - Get specific template
 
 ### Features Implemented
 
 **Conflict Resolution:**
+
 - Duplicate file handling: skip (default), replace, rename
 - Auto-rename generates unique filenames (e.g., `slide-1.html`, `slide-2.html`)
 
 **Position Control:**
+
 - Insert at start, end, or after specific slide
 - Validated with error if "after" slide not found
 
 **Auto-Create Groups:**
+
 - `createGroups: true` option creates missing groups automatically
 - Uses formatted group ID as label (e.g., "api" -> "Api")
 
 **Sync Strategies:**
+
 - **merge** - Preserve existing metadata, add new files
 - **replace** - Start fresh with filesystem files
 - **addOnly** - Only add missing files, don't modify existing
 
 **Infer Metadata:**
+
 - `inferGroups: true` - Group by filename prefix (e.g., `api-reference.html` -> `api` group)
 - `inferTitles: true` - Extract from HTML `<title>` tags
 
 **Validation:**
+
 - JSON Schema validation via FR-19
 - File existence checking with `checkFiles: true`
 - Orphan file detection (files not in manifest)
 - Group reference validation
 
 **Dry Run:**
+
 - Both bulk operations support `dryRun` query param or body field
 - Returns what would happen without persisting changes
 

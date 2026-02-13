@@ -13,6 +13,7 @@ As a user, I want a configuration screen to switch between presentation folders 
 ## Problem
 
 Config is managed via `config.json` which requires manual editing. Users need a UI to:
+
 - View and select from previously used presentation folders (history)
 - Select a new folder/project
 - See the presentation list update when the project changes
@@ -66,11 +67,13 @@ Config is managed via `config.json` which requires manual editing. Users need a 
    - Header gear icon - Navigation to /config
 
 **Files Created:**
+
 - `server/src/routes/config.ts`
 - `client/src/hooks/useConfig.ts`
 - `client/src/pages/ConfigPage.tsx`
 
 **Files Modified:**
+
 - `server/src/routes/index.ts`
 - `server/src/config.ts` (exported collapsePath)
 - `shared/src/types.ts`

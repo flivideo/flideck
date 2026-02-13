@@ -27,11 +27,11 @@ Create a well-known JavaScript function/library that custom index pages can incl
 
 ### Configuration Levels
 
-| Level | Description | Use Case |
-|-------|-------------|----------|
-| **Standard** | Simple list of items with optional section headers | Basic presentation index |
-| **Grouped** | Section headers for logical groupings | Presentations with categories |
-| **Tabbed** | Major groups as tabs | Complex presentations like BMAD Poem |
+| Level        | Description                                        | Use Case                             |
+| ------------ | -------------------------------------------------- | ------------------------------------ |
+| **Standard** | Simple list of items with optional section headers | Basic presentation index             |
+| **Grouped**  | Section headers for logical groupings              | Presentations with categories        |
+| **Tabbed**   | Major groups as tabs                               | Complex presentations like BMAD Poem |
 
 ### API Concept
 

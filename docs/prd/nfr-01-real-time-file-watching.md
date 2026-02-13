@@ -23,28 +23,31 @@ Leverage existing Socket.io and Chokidar infrastructure to emit granular events 
 
 ### Event Types
 
-| Event | Trigger | Response |
-|-------|---------|----------|
-| `content:changed` | HTML file modified | Host reloads iframe |
+| Event               | Trigger                    | Response                                        |
+| ------------------- | -------------------------- | ----------------------------------------------- |
+| `content:changed`   | HTML file modified         | Host reloads iframe                             |
 | `structure:changed` | File added/removed/renamed | Host re-fetches menu, updates sidebar/dashboard |
 
 ### Implementation Approach
 
 **Server (already has WatcherManager):**
+
 - Detect file change type (content vs structure)
 - Emit appropriate socket event with presentation ID
 
 **Host (React app):**
+
 - Listen for `content:changed` → reload iframe via `src` manipulation
 - Listen for `structure:changed` → invalidate TanStack Query cache for presentations list
 
 **Iframe:**
+
 - Stays "dumb" - no socket connection needed
 - Host controls reload via:
   ```javascript
-  iframeRef.src = iframeRef.src  // Simple reload
+  iframeRef.src = iframeRef.src; // Simple reload
   // or cache-bust:
-  iframeRef.src = originalUrl + '?t=' + Date.now()
+  iframeRef.src = originalUrl + '?t=' + Date.now();
   ```
 
 ## Acceptance Criteria
@@ -72,6 +75,7 @@ Leverage existing Socket.io and Chokidar infrastructure to emit granular events 
 ## Completion Notes
 
 **What was done:**
+
 - Server emits granular socket events: `content:changed` for file modifications, `structure:changed` for add/remove/rename
 - Added `parseAssetPath()` helper to extract presentationId/assetId from file paths
 - New `useContentChanges()` hook listens for content changes and triggers iframe reload via `reloadKey`
@@ -80,6 +84,7 @@ Leverage existing Socket.io and Chokidar infrastructure to emit granular events 
 - Updated shared types with new socket event definitions
 
 **Files changed:**
+
 - `server/src/index.ts` (modified) - Added parseAssetPath, handlePresentationChange, granular event emission
 - `client/src/hooks/useSocket.ts` (modified) - Added useContentChanges hook
 - `client/src/pages/PresentationPage.tsx` (modified) - Integrated useContentChanges hook
@@ -87,6 +92,7 @@ Leverage existing Socket.io and Chokidar infrastructure to emit granular events 
 - `shared/src/types.ts` (modified) - Added content:changed and structure:changed event types
 
 **Testing notes:**
+
 - Content modify: Edit HTML file while viewing it → iframe reloads automatically
 - File add: Create new HTML file → appears in sidebar immediately
 - File delete: Remove HTML file → disappears from sidebar immediately

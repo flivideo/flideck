@@ -9,6 +9,7 @@ When navigating with Cmd+arrow keys and the next asset is in a collapsed group, 
 **Presentation:** Any presentation with collapsed groups
 
 **Steps to reproduce:**
+
 1. Open a presentation with multiple groups
 2. Collapse a group by clicking its header
 3. Navigate to an asset before the collapsed group
@@ -17,11 +18,13 @@ When navigating with Cmd+arrow keys and the next asset is in a collapsed group, 
 6. Observe sidebar
 
 **Expected result:**
+
 - Collapsed group automatically expands
 - User can see the highlighted asset
 - Smooth navigation experience
 
 **Actual result:**
+
 - Group remains collapsed
 - Sidebar highlight is hidden (asset is inside collapsed group)
 - User can't see which asset is active
@@ -30,11 +33,13 @@ When navigating with Cmd+arrow keys and the next asset is in a collapsed group, 
 ## User Experience Impact
 
 **Confusion:**
+
 - User presses Cmd+→ → nothing appears to happen
 - Iframe shows new content but sidebar looks unchanged
 - User doesn't know if navigation worked
 
 **Frustration:**
+
 - Must manually expand each group while navigating
 - Breaks keyboard navigation flow
 - Defeats purpose of keyboard shortcuts
@@ -44,6 +49,7 @@ When navigating with Cmd+arrow keys and the next asset is in a collapsed group, 
 ### Auto-Expand on Navigation
 
 When keyboard navigation moves to an asset:
+
 1. Check if asset is in a collapsed group
 2. If yes, expand that group automatically
 3. Scroll asset into view
@@ -85,6 +91,7 @@ const handleNavigate = (direction: 'next' | 'prev' | 'first' | 'last') => {
 ```
 
 **Challenge:**
+
 - `collapsedGroups` state lives in Sidebar component
 - Navigation logic lives in PresentationPage component
 - Need to share state or lift it up
@@ -92,16 +99,19 @@ const handleNavigate = (direction: 'next' | 'prev' | 'first' | 'last') => {
 ### Alternative: Shared State
 
 **Option A: Lift collapsed state to PresentationPage**
+
 - Move `collapsedGroups` state from Sidebar to PresentationPage
 - Pass as prop to Sidebar
 - Navigation handler can directly modify it
 
 **Option B: Callback from Sidebar**
+
 - Sidebar exposes `expandGroup(groupId)` callback
 - Pass to PresentationPage via prop
 - Navigation calls callback when needed
 
 **Option C: Global state / Context**
+
 - Use React Context for collapsed groups
 - Both components access same state
 - More complex but cleaner separation
@@ -121,11 +131,13 @@ const handleNavigate = (direction: 'next' | 'prev' | 'first' | 'last') => {
 ## Related Code
 
 **Client:**
+
 - `client/src/pages/PresentationPage.tsx` - Keyboard navigation handlers
 - `client/src/components/layout/Sidebar.tsx` - Collapsed groups state (line 62-68)
 - `client/src/components/layout/SidebarGrouped.tsx` - Group expand/collapse UI
 
 **State management:**
+
 - Collapsed groups stored in localStorage: `flideck-collapsed-groups`
 - State lives in Sidebar component
 - Need to share with navigation logic
@@ -133,11 +145,13 @@ const handleNavigate = (direction: 'next' | 'prev' | 'first' | 'last') => {
 ## Similar Patterns
 
 **QuickFilter auto-expansion:**
+
 - When user selects asset via Cmd+K QuickFilter
 - Does it auto-expand groups? (Need to verify)
 - Should use same pattern for consistency
 
 **VS Code behavior:**
+
 - File explorer auto-expands folders when navigating
 - Good UX reference
 
@@ -151,6 +165,7 @@ const handleNavigate = (direction: 'next' | 'prev' | 'first' | 'last') => {
 ## Workaround
 
 **Temporary workaround:**
+
 1. Manually expand groups before navigating
 2. Or: Use QuickFilter (Cmd+K) to jump directly to assets
 3. Or: Don't collapse groups if actively navigating
@@ -189,6 +204,7 @@ const handleNavigate = (direction: 'next' | 'prev' | 'first' | 'last') => {
    - Maintains backward compatibility for other uses of Sidebar
 
 **Behavior**:
+
 - Keyboard navigation (Cmd+arrows, Home, End) auto-expands collapsed groups
 - Quick filter (Cmd+K) selection auto-expands collapsed groups
 - Group state persists to localStorage after auto-expand
@@ -196,6 +212,7 @@ const handleNavigate = (direction: 'next' | 'prev' | 'first' | 'last') => {
 - Smooth UX - no visual jank
 
 **Testing**:
+
 1. Collapse a group
 2. Navigate past it with Cmd+→
 3. Group auto-expands, asset is visible and highlighted

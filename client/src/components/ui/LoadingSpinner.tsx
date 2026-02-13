@@ -21,10 +21,14 @@ export function LoadingSpinner({ size = 'md', message }: LoadingSpinnerProps) {
           borderWidth: '2px',
           borderStyle: 'solid',
           borderColor: '#4a4040',
-          borderTopColor: '#ffde59'
+          borderTopColor: '#ffde59',
         }}
       />
-      {message && <p className="text-sm" style={{ color: '#ccba9d' }}>{message}</p>}
+      {message && (
+        <p className="text-sm" style={{ color: '#ccba9d' }}>
+          {message}
+        </p>
+      )}
     </div>
   );
 }

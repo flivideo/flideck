@@ -17,6 +17,7 @@ As a presenter, I want to manage groups in the sidebar so that I can organize my
 ## Problem
 
 Currently groups are read-only. They come from the `index.json` manifest and cannot be modified in the UI. Users need to manually edit JSON to:
+
 - Reorder groups
 - Create new groups
 - Rename existing groups
@@ -30,16 +31,17 @@ Add group management capabilities to the sidebar.
 
 ### Features
 
-| Feature | Action | Result |
-|---------|--------|--------|
-| **Order groups** | Drag group header up/down | Updates `groups[id].order` in manifest |
-| **Create group** | Click "+" or context menu | Adds new group to manifest, can move slides into it |
-| **Rename group** | Double-click header or context menu | Updates `groups[id].label` in manifest |
-| **Delete group** | Context menu or button | Removes group, slides move to root level |
+| Feature          | Action                              | Result                                              |
+| ---------------- | ----------------------------------- | --------------------------------------------------- |
+| **Order groups** | Drag group header up/down           | Updates `groups[id].order` in manifest              |
+| **Create group** | Click "+" or context menu           | Adds new group to manifest, can move slides into it |
+| **Rename group** | Double-click header or context menu | Updates `groups[id].label` in manifest              |
+| **Delete group** | Context menu or button              | Removes group, slides move to root level            |
 
 ### UI Interactions
 
 **Reorder groups:**
+
 ```
 ┌─────────────────────────────────────┐
 │ ≡ ▼ API Reference (3)        [⋮]   │  ← drag handle on left
@@ -49,6 +51,7 @@ Add group management capabilities to the sidebar.
 ```
 
 **Context menu (click [⋮]):**
+
 ```
 ┌──────────────────┐
 │ Rename group     │
@@ -60,6 +63,7 @@ Add group management capabilities to the sidebar.
 ```
 
 **Create group:**
+
 ```
 ┌─────────────────────────────────────┐
 │   [+ New Group]                     │  ← at bottom of groups
@@ -67,6 +71,7 @@ Add group management capabilities to the sidebar.
 ```
 
 **Rename inline:**
+
 ```
 ┌─────────────────────────────────────┐
 │ ▼ [API Reference________]    [✓][✗]│  ← editable text field
@@ -77,9 +82,9 @@ Add group management capabilities to the sidebar.
 
 ## Acceptance Criteria
 
-1. [ ] Group headers have drag handles for reordering *(deferred)*
-2. [ ] Dragging a group header reorders it among other groups *(deferred)*
-3. [x] Group reorder updates `groups[id].order` values in manifest *(API only)*
+1. [ ] Group headers have drag handles for reordering _(deferred)_
+2. [ ] Dragging a group header reorders it among other groups _(deferred)_
+3. [x] Group reorder updates `groups[id].order` values in manifest _(API only)_
 4. [x] Context menu available on group headers
 5. [x] "Rename group" opens inline edit mode
 6. [x] Rename updates `groups[id].label` in manifest
@@ -94,21 +99,21 @@ Add group management capabilities to the sidebar.
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `client/src/components/layout/Sidebar.tsx` | Add group drag-drop, context menu, inline edit |
-| `server/src/routes/presentations.ts` | Add endpoints for group CRUD |
-| `server/src/services/PresentationService.ts` | Add group management methods |
-| `shared/src/types.ts` | Add request/response types |
+| File                                         | Change                                         |
+| -------------------------------------------- | ---------------------------------------------- |
+| `client/src/components/layout/Sidebar.tsx`   | Add group drag-drop, context menu, inline edit |
+| `server/src/routes/presentations.ts`         | Add endpoints for group CRUD                   |
+| `server/src/services/PresentationService.ts` | Add group management methods                   |
+| `shared/src/types.ts`                        | Add request/response types                     |
 
 ### API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `PUT` | `/api/presentations/:id/groups/order` | Reorder groups |
-| `POST` | `/api/presentations/:id/groups` | Create group |
-| `PUT` | `/api/presentations/:id/groups/:groupId` | Rename group |
-| `DELETE` | `/api/presentations/:id/groups/:groupId` | Delete group |
+| Method   | Endpoint                                 | Description    |
+| -------- | ---------------------------------------- | -------------- |
+| `PUT`    | `/api/presentations/:id/groups/order`    | Reorder groups |
+| `POST`   | `/api/presentations/:id/groups`          | Create group   |
+| `PUT`    | `/api/presentations/:id/groups/:groupId` | Rename group   |
+| `DELETE` | `/api/presentations/:id/groups/:groupId` | Delete group   |
 
 ### Reorder Groups
 
@@ -148,6 +153,7 @@ DELETE /api/presentations/:id/groups/:groupId
 ### Manifest Changes
 
 Before delete:
+
 ```json
 {
   "groups": {
@@ -162,15 +168,13 @@ Before delete:
 ```
 
 After deleting "api" group:
+
 ```json
 {
   "groups": {
     "cicd": { "label": "CI/CD", "order": 1 }
   },
-  "slides": [
-    { "file": "api-cards.html" },
-    { "file": "intro.html" }
-  ]
+  "slides": [{ "file": "api-cards.html" }, { "file": "intro.html" }]
 }
 ```
 
@@ -179,6 +183,7 @@ After deleting "api" group:
 ## UI Mockup
 
 ### Normal State
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │   Index                            [index]  ≡       │
@@ -199,6 +204,7 @@ After deleting "api" group:
 ```
 
 ### Renaming Group
+
 ```
 ┌─────────────────────────────────────────────────────┐
 │ ≡ ▼ [CI/CD Pipelines_____]              [✓] [✗]    │
@@ -229,18 +235,21 @@ After deleting "api" group:
 **Implemented:** 2025-12-22
 
 **Backend (API):**
+
 - `PUT /api/presentations/:id/groups/order` - Reorder groups
 - `POST /api/presentations/:id/groups` - Create group (with kebab-case ID validation)
 - `PUT /api/presentations/:id/groups/:groupId` - Rename group
 - `DELETE /api/presentations/:id/groups/:groupId` - Delete group (moves slides to root)
 
 **Frontend (UI):**
+
 - Context menu (⋮) on group headers with Rename/Delete options
 - Inline edit mode for renaming groups (Enter to save, Escape to cancel)
 - "+ New Group" button at bottom of groups section
 - Auto-generates kebab-case ID from group label
 
 **Files changed:**
+
 - `shared/src/types.ts` - Added `ReorderGroupsRequest`, `CreateGroupRequest`, `UpdateGroupRequest`
 - `server/src/services/PresentationService.ts` - Added `reorderGroups`, `createGroup`, `updateGroup`, `deleteGroup`
 - `server/src/routes/presentations.ts` - Added 4 new group endpoints
@@ -248,10 +257,12 @@ After deleting "api" group:
 - `client/src/utils/api.ts` - Added `delete` method
 
 **Deferred:**
+
 - Group drag-drop reordering UI (API exists but UI not implemented) → **See FR-22** for completion
 - The reorder API works, agents can call it directly
 
 **Open questions resolved:**
+
 - Group ID generation: Auto-generated from label as kebab-case
 - Confirm delete: No confirmation (simple delete, slides move to root)
 

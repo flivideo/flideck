@@ -71,9 +71,15 @@ export function Header({
   const showDropdown = presentations && presentations.length > 0 && title;
 
   return (
-    <header className="px-4 py-3 flex items-center justify-between border-b" style={{ backgroundColor: '#3d3535', borderColor: '#4a4040' }}>
+    <header
+      className="px-4 py-3 flex items-center justify-between border-b"
+      style={{ backgroundColor: '#3d3535', borderColor: '#4a4040' }}
+    >
       <div className="flex items-center gap-3">
-        <span className="text-2xl tracking-wide" style={{ fontFamily: "'Bebas Neue', Arial, sans-serif" }}>
+        <span
+          className="text-2xl tracking-wide"
+          style={{ fontFamily: "'Bebas Neue', Arial, sans-serif" }}
+        >
           <span style={{ color: '#ccba9d' }}>Appy</span>
           <span style={{ color: '#ffde59' }}>Dave</span>
         </span>
@@ -82,8 +88,8 @@ export function Header({
             onClick={onBack}
             className="p-2 rounded-lg transition-colors"
             style={{ color: '#ccba9d' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4a4040'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#4a4040')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             aria-label="Go back"
           >
             <svg
@@ -154,9 +160,7 @@ export function Header({
                           }
                         }}
                       >
-                        {isCurrent && (
-                          <span style={{ color: '#342d2d' }}>•</span>
-                        )}
+                        {isCurrent && <span style={{ color: '#342d2d' }}>•</span>}
                         {presentation.name}
                       </button>
                     );
@@ -171,9 +175,7 @@ export function Header({
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <span
-            className={`w-2 h-2 rounded-full ${
-              isConnected ? 'bg-green-500' : 'bg-red-500'
-            }`}
+            className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
             title={isConnected ? 'Connected' : 'Disconnected'}
           />
           <span className="text-sm" style={{ color: '#ccba9d' }}>
@@ -186,8 +188,8 @@ export function Header({
             onClick={onTogglePresentationMode}
             className="p-2 rounded-lg transition-colors"
             style={{ color: '#ccba9d' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4a4040'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#4a4040')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             aria-label="Enter presentation mode"
             title="Presentation mode (F) • Ctrl+←/→ to navigate"
           >
@@ -211,8 +213,8 @@ export function Header({
             onClick={handleSettings}
             className="p-2 rounded-lg transition-colors"
             style={{ color: '#ccba9d' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4a4040'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#4a4040')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             aria-label="Settings"
           >
             <svg

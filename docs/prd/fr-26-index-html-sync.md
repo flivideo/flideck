@@ -7,17 +7,20 @@ Parse index HTML files to automatically populate the manifest with slide-to-tab 
 ## Problem Statement
 
 **Current state:**
+
 - Agents create HTML slides and index files
 - FliDeck discovers slides from filesystem
 - BUT: No automatic way to determine which slides belong to which tab
 - Manifest `slides[]` and tab relationships must be manually configured or API-called
 
 **Impact:**
+
 - bmad-poem has 96 slides, 4 tabs, but sidebar shows all slides in all tabs
 - Agents must call multiple APIs to properly register slides with tabs
 - If agent doesn't call APIs, presentation is broken
 
 **Root cause:**
+
 - Index HTML files (index-mary.html, etc.) contain card structures that reference slides
 - This information exists but FliDeck doesn't read it
 - Manifest is empty, so sidebar can't filter by tab
@@ -77,6 +80,7 @@ Agents produce varied HTML. Must detect multiple patterns:
 ```
 
 Detection algorithm:
+
 1. Find elements matching common card selectors (`.card`, `.asset-card`, `[data-slide]`)
 2. Extract slide reference from: `href`, `data-slide`, `data-file`, `onclick`
 3. Fall back to searching for `.html` references in element
@@ -84,6 +88,7 @@ Detection algorithm:
 ### Order Determination
 
 Cards are ordered by DOM position:
+
 1. Parse HTML into DOM
 2. Find all card elements
 3. Order is: document order (which is typically left-to-right, top-to-bottom as rendered)
@@ -91,6 +96,7 @@ Cards are ordered by DOM position:
 ### Example Transformation
 
 **Before (filesystem):**
+
 ```
 bmad-poem/
 ├── index.json (minimal)
@@ -102,6 +108,7 @@ bmad-poem/
 ```
 
 **index-mary.html content:**
+
 ```html
 <div class="cards-grid">
   <a href="mary-workflow.html" class="card">Workflow</a>
@@ -110,6 +117,7 @@ bmad-poem/
 ```
 
 **After sync:**
+
 ```json
 {
   "tabs": [
@@ -131,12 +139,14 @@ bmad-poem/
 ## Acceptance Criteria
 
 ### Tab Detection
+
 - [ ] Detects `index-*.html` files as tabs
 - [ ] Creates `tabs[]` entries with correct id, label, file, order
 - [ ] Label derived from filename (e.g., "index-mary.html" → "Mary")
 - [ ] Handles single index.html (no tabs created)
 
 ### Card Parsing
+
 - [ ] Detects cards with `href` attribute
 - [ ] Detects cards with `data-slide` attribute
 - [ ] Detects cards with onclick containing .html reference
@@ -144,12 +154,14 @@ bmad-poem/
 - [ ] Extracts title from card text content
 
 ### Manifest Update
+
 - [ ] Creates groups per tab with correct `tabId`
 - [ ] Assigns slides to groups based on source index file
 - [ ] Preserves existing slide metadata (doesn't overwrite)
 - [ ] "merge" strategy adds to existing, "replace" starts fresh
 
 ### Edge Cases
+
 - [ ] Handles cards with no detectable slide reference (skipped with warning)
 - [ ] Handles duplicate slides across tabs (assigns to first found)
 - [ ] Handles slides not in any index (remains ungrouped)
@@ -175,7 +187,7 @@ function parseIndexHtml(html: string): ParsedCard[] {
       cards.push({
         file: slideRef,
         title: $(el).text().trim().split('\n')[0], // First line
-        order: i
+        order: i,
       });
     }
   });
@@ -188,13 +200,13 @@ function parseIndexHtml(html: string): ParsedCard[] {
 
 ```typescript
 function detectPresentationFormat(files: string[]): 'flat' | 'tabbed' {
-  const indexFiles = files.filter(f => f.match(/^index(-\w+)?\.html$/));
+  const indexFiles = files.filter((f) => f.match(/^index(-\w+)?\.html$/));
 
   if (indexFiles.length === 1 && indexFiles[0] === 'index.html') {
     return 'flat';
   }
 
-  if (indexFiles.some(f => f.match(/^index-\w+\.html$/))) {
+  if (indexFiles.some((f) => f.match(/^index-\w+\.html$/))) {
     return 'tabbed';
   }
 
@@ -246,6 +258,7 @@ function detectPresentationFormat(files: string[]): 'flat' | 'tabbed' {
 ## Completion Notes
 
 **What was done:**
+
 - Added `cheerio` package for server-side HTML parsing
 - Implemented `PUT /api/presentations/:id/manifest/sync-from-index` endpoint
 - Detects `index-*.html` files as tabs (e.g., `index-mary.html` → tab id "mary")
@@ -257,6 +270,7 @@ function detectPresentationFormat(files: string[]): 'flat' | 'tabbed' {
 - Returns detailed sync report: tabs created/updated, groups created/updated, slides assigned/skipped/orphaned, warnings
 
 **Files changed:**
+
 - `server/package.json` - Added cheerio dependency
 - `shared/src/types.ts` - Added SyncFromIndexRequest, SyncFromIndexResponse, ParsedCard, ParsedIndexResult types
 - `server/src/services/PresentationService.ts` - Added syncFromIndex(), parseIndexHtml(), extractSlideReference(), extractCardTitle() methods
@@ -264,8 +278,9 @@ function detectPresentationFormat(files: string[]): 'flat' | 'tabbed' {
 - `CLAUDE.md` - Documented new endpoint
 
 **Testing notes:**
+
 - Tested with bmad-poem presentation (96 slides, 5 tabs)
-- Successfully detected all 5 index-*.html files as tabs
+- Successfully detected all 5 index-\*.html files as tabs
 - Assigned 90 slides to correct tab-based groups
 - Warnings correctly reported when slides appeared in multiple index files (first wins)
 

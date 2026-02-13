@@ -34,9 +34,7 @@ export function TabBar({
     if (!container) return;
 
     setShowLeftScroll(container.scrollLeft > 0);
-    setShowRightScroll(
-      container.scrollLeft < container.scrollWidth - container.clientWidth - 1
-    );
+    setShowRightScroll(container.scrollLeft < container.scrollWidth - container.clientWidth - 1);
   };
 
   useEffect(() => {

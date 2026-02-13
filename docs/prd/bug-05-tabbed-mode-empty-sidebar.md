@@ -9,17 +9,20 @@ When display mode is set to "Tabbed" on presentations without container tabs, th
 **Presentation:** bmad-agents (and other presentations without `tabs[]` array)
 
 **Steps to reproduce:**
+
 1. Open a presentation that has NO container tabs (`tabs[]` array)
 2. Has groups defined in manifest (e.g., bmad-agents has groups)
 3. Switch display mode to "Tabbed" using mode switcher
 4. Observe sidebar
 
 **Expected result:**
+
 - Sidebar shows groups as tabs (old FR-22 sidebar tabs behavior)
 - OR: "Tabbed" option is disabled/hidden for presentations without container tabs
 - OR: Falls back to "Grouped" mode with warning toast
 
 **Actual result:**
+
 - Sidebar shows NO items at all
 - Assets section is completely empty
 - No groups, no assets, nothing
@@ -28,6 +31,7 @@ When display mode is set to "Tabbed" on presentations without container tabs, th
 ## Root Cause Analysis
 
 **From Sidebar.tsx line 52:**
+
 ```typescript
 // FR-24: Sidebar tabbed mode is obsolete - tabs now live in container tab bar
 // Always use grouped mode instead of tabbed (tabbed mode moved to top content area)
@@ -35,6 +39,7 @@ const mode = rawMode === 'tabbed' ? 'grouped' : rawMode;
 ```
 
 **The logic:**
+
 1. User selects "Tabbed" mode
 2. `rawMode` = 'tabbed'
 3. Line 52 converts it to 'grouped'
@@ -44,16 +49,19 @@ const mode = rawMode === 'tabbed' ? 'grouped' : rawMode;
 **Why it breaks:**
 
 The sidebar expects either:
+
 - Container tabs (`presentation.tabs[]`) to filter content, OR
 - Sidebar tabs (groups with `tab: true`) to organize content, OR
 - Regular grouped mode with normal groups
 
 When mode is "tabbed" but:
+
 - No container tabs exist (`presentation.tabs` is undefined)
 - No sidebar tabs exist (groups don't have `tab: true`)
 - The workaround converts to "grouped" but state is inconsistent
 
 **Possible rendering issue:**
+
 - SidebarGrouped component may be checking for tabs
 - Filtering logic may hide all content
 - activeContainerTabId may be set incorrectly
@@ -61,11 +69,13 @@ When mode is "tabbed" but:
 ## Related Issues
 
 **BUG-4 (Display mode persistence):**
+
 - If user accidentally selects "Tabbed" and refreshes
 - Mode persists (once BUG-4 is fixed)
 - Presentation becomes permanently broken until manifest edit
 
 **FR-25 (Smart display mode):**
+
 - Proposes hiding "Tabbed" option when no container tabs
 - Would prevent this bug entirely
 
@@ -74,6 +84,7 @@ When mode is "tabbed" but:
 ### Immediate Fix (Short-term)
 
 **Option A: Hide "Tabbed" in mode switcher**
+
 ```typescript
 // In Sidebar.tsx mode switcher dropdown
 <select value={mode} onChange={handleModeChange}>
@@ -87,11 +98,10 @@ When mode is "tabbed" but:
 ```
 
 **Option B: Auto-fallback with toast**
+
 ```typescript
 // In Sidebar.tsx
-const mode = rawMode === 'tabbed'
-  ? (presentation.tabs?.length ? 'tabbed' : 'grouped')
-  : rawMode;
+const mode = rawMode === 'tabbed' ? (presentation.tabs?.length ? 'tabbed' : 'grouped') : rawMode;
 
 // Show toast when falling back
 if (rawMode === 'tabbed' && !presentation.tabs?.length) {
@@ -100,6 +110,7 @@ if (rawMode === 'tabbed' && !presentation.tabs?.length) {
 ```
 
 **Option C: Restore sidebar tabbed mode rendering**
+
 - Bring back SidebarTabbed component (removed in FR-24)
 - Use it when mode is "tabbed" and groups have `tab: true`
 - More complex, not recommended
@@ -107,6 +118,7 @@ if (rawMode === 'tabbed' && !presentation.tabs?.length) {
 ### Long-term Fix
 
 **Implement FR-25:**
+
 - Smart display mode that understands container tabs
 - Auto-detection never returns "tabbed" when no container tabs
 - Mode switcher hides "Tabbed" option appropriately
@@ -123,23 +135,27 @@ if (rawMode === 'tabbed' && !presentation.tabs?.length) {
 ## Related Code
 
 **Client:**
+
 - `client/src/components/layout/Sidebar.tsx` - Line 52: Tabbed → Grouped conversion
 - `client/src/components/layout/SidebarGrouped.tsx` - Grouped mode rendering
 - `client/src/utils/displayMode.ts` - Auto-detection logic (lines 16-34)
 - Mode switcher dropdown in Sidebar.tsx
 
 **Removed code:**
+
 - `client/src/components/layout/SidebarTabbed.tsx` - Deleted in FR-24
 
 ## Investigation Needed
 
 **Questions to answer:**
+
 1. Why does the sidebar show nothing? What's the specific rendering failure?
 2. Is it a filtering issue (all content filtered out)?
 3. Is it a component selection issue (wrong component rendered)?
 4. Does auto-detection ever return "tabbed" for presentations without container tabs?
 
 **Debug steps:**
+
 1. Set breakpoint in Sidebar.tsx line 52
 2. Check `rawMode` value when bug occurs
 3. Check `mode` value after conversion
@@ -150,6 +166,7 @@ if (rawMode === 'tabbed' && !presentation.tabs?.length) {
 ## Workaround
 
 **Immediate workaround:**
+
 1. Don't select "Tabbed" mode on presentations without container tabs
 2. If already stuck: Edit manifest to set `"displayMode": "grouped"`
 3. Or: Refresh page and select different mode immediately
@@ -191,12 +208,14 @@ if (rawMode === 'tabbed' && !presentation.tabs?.length) {
    - New rule: Large presentations or tab groups → 'grouped' (if groups exist) or 'flat'
 
 **Behavior After Fix**:
+
 - Presentations WITH container tabs: Can select flat/grouped (tabbed hidden in dropdown)
 - Presentations WITHOUT container tabs: Can select flat/grouped (tabbed hidden in dropdown)
 - Auto-detection never returns 'tabbed'
 - Legacy manifests with `displayMode: 'tabbed'` fall back to 'grouped'
 
 **Testing**:
+
 - bmad-agents (no container tabs): "Tabbed" option not shown in mode switcher
 - bmad-poem (with container tabs): Can switch between flat/grouped modes
 - Sidebar always renders correctly

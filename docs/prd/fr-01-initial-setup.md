@@ -17,6 +17,7 @@ Claude Code generates HTML artifacts in folders. Managing these via browser tabs
 ## Solution
 
 FliDeck - a local-first presentation harness that:
+
 - Discovers presentations from a configured root folder
 - Displays list of available presentations
 - Renders HTML assets with their own styles
@@ -42,5 +43,6 @@ FliDeck - a local-first presentation harness that:
 ## Completion Notes
 
 Initial implementation complete. Architecture documented in:
+
 - `docs/planning/architecture.md`
 - `docs/planning/requirements.md`

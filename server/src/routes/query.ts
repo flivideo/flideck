@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { PresentationService } from '../services/PresentationService.js';
 import { loadConfig, collapsePath } from '../config.js';
+import { queryString } from '../utils/queryString.js';
 
 /**
  * Count presentations in a directory (folders containing index.html)
@@ -90,7 +91,7 @@ export function createQueryRoutes(): Router {
   router.get(
     '/routes/:route',
     asyncHandler(async (req, res) => {
-      const { route } = req.params;
+      const route = queryString(req.params.route);
       const root = presentationService.getRoot();
       const routeName = path.basename(root);
 
@@ -121,7 +122,7 @@ export function createQueryRoutes(): Router {
   router.get(
     '/presentations/:id',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const presentation = await presentationService.getById(id);
 
       if (!presentation) {

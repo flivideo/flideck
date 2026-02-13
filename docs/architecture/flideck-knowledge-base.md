@@ -97,36 +97,37 @@ Tab           1 ──────── 1 Index File    (each tab has an index-
 
 ### Inheritance/Visibility Rules
 
-| Entity | Tab Selected | Visibility |
-|--------|--------------|------------|
-| Slide with no group | Any | Always visible (root assets) |
-| Slide in group with no tabId | Any | Always visible |
-| Slide in group with tabId="mary" | Mary | Visible |
-| Slide in group with tabId="mary" | John | Hidden |
-| Tab index file (index-mary.html) | Any | Hidden from sidebar (it's navigation, not content) |
+| Entity                           | Tab Selected | Visibility                                         |
+| -------------------------------- | ------------ | -------------------------------------------------- |
+| Slide with no group              | Any          | Always visible (root assets)                       |
+| Slide in group with no tabId     | Any          | Always visible                                     |
+| Slide in group with tabId="mary" | Mary         | Visible                                            |
+| Slide in group with tabId="mary" | John         | Hidden                                             |
+| Tab index file (index-mary.html) | Any          | Hidden from sidebar (it's navigation, not content) |
 
 ### The `parent` Property (Child Group Inheritance)
 
 Groups can inherit their tab membership from a parent group. This is useful for organizing related groups under a "container" group.
 
 **Example: Epic 3 with child groups**
+
 ```json
 {
   "groups": {
     "epic3-slides": {
       "label": "Epic 3",
       "tabId": "epic3",
-      "tab": true,      // This makes it a tab container (not shown in sidebar)
+      "tab": true, // This makes it a tab container (not shown in sidebar)
       "order": 3
     },
     "epic3-overview": {
       "label": "Overview",
-      "parent": "epic3-slides",  // Inherits tabId="epic3" from parent
+      "parent": "epic3-slides", // Inherits tabId="epic3" from parent
       "order": 1
     },
     "epic3-story-3-1": {
       "label": "Story 3.1",
-      "parent": "epic3-slides",  // Inherits tabId="epic3" from parent
+      "parent": "epic3-slides", // Inherits tabId="epic3" from parent
       "order": 2
     }
   }
@@ -134,6 +135,7 @@ Groups can inherit their tab membership from a parent group. This is useful for 
 ```
 
 **How it works:**
+
 1. `epic3-slides` has `tabId: "epic3"` and `tab: true` (it IS the tab, not shown in sidebar)
 2. `epic3-overview` has `parent: "epic3-slides"` but no direct `tabId`
 3. FliDeck looks up parent's `tabId` → inherits `"epic3"`
@@ -141,6 +143,7 @@ Groups can inherit their tab membership from a parent group. This is useful for 
 5. When Mary tab is active: Overview and Story 3.1 are hidden
 
 **Key rules:**
+
 - `parent` is ONLY for filtering (tab inheritance), NOT for visual nesting
 - Sidebar is always a flat list of groups (no indentation)
 - A group with `tab: true` is a tab container - it appears in the tab bar, not the sidebar
@@ -162,9 +165,10 @@ my-presentation/
 ```
 
 **Manifest:**
+
 ```json
 {
-  "slides": []  // Empty - FliDeck discovers from filesystem
+  "slides": [] // Empty - FliDeck discovers from filesystem
 }
 ```
 
@@ -187,6 +191,7 @@ my-presentation/
 ```
 
 **Manifest:**
+
 ```json
 {
   "groups": {
@@ -224,6 +229,7 @@ my-presentation/
 ```
 
 **Manifest:**
+
 ```json
 {
   "tabs": [
@@ -233,7 +239,7 @@ my-presentation/
   "groups": {
     "mary-work": { "label": "Mary's Work", "tabId": "mary", "order": 1 },
     "john-work": { "label": "John's Work", "tabId": "john", "order": 1 },
-    "shared": { "label": "Shared", "order": 0 }  // No tabId = visible in all tabs
+    "shared": { "label": "Shared", "order": 0 } // No tabId = visible in all tabs
   },
   "slides": [
     { "file": "mary-workflow.html", "group": "mary-work" },
@@ -272,35 +278,35 @@ Has tabs[] array?
   "meta": {
     "name": "Presentation Name",
     "purpose": "What this presentation is for",
-    "displayMode": "flat | grouped",  // Override auto-detection
+    "displayMode": "flat | grouped", // Override auto-detection
     "created": "2025-12-26",
     "updated": "2025-12-26"
   },
 
   "tabs": [
     {
-      "id": "unique-id",           // Required: URL-safe identifier
-      "label": "Display Name",     // Required: What user sees
-      "file": "index-{id}.html",   // Required: Index file for this tab
-      "order": 1                   // Required: Sort order
+      "id": "unique-id", // Required: URL-safe identifier
+      "label": "Display Name", // Required: What user sees
+      "file": "index-{id}.html", // Required: Index file for this tab
+      "order": 1 // Required: Sort order
     }
   ],
 
   "groups": {
     "group-id": {
-      "label": "Display Name",     // Required
-      "order": 1,                  // Required: Sort order
-      "tabId": "tab-id"            // Optional: If set, only shows in that tab
+      "label": "Display Name", // Required
+      "order": 1, // Required: Sort order
+      "tabId": "tab-id" // Optional: If set, only shows in that tab
     }
   },
 
   "slides": [
     {
-      "file": "slide.html",        // Required: Filename
-      "title": "Slide Title",      // Optional: Display name override
-      "group": "group-id",         // Optional: Group assignment
-      "recommended": true,         // Optional: Highlight in UI
-      "tags": ["tag1", "tag2"]     // Optional: For filtering
+      "file": "slide.html", // Required: Filename
+      "title": "Slide Title", // Optional: Display name override
+      "group": "group-id", // Optional: Group assignment
+      "recommended": true, // Optional: Highlight in UI
+      "tags": ["tag1", "tag2"] // Optional: For filtering
     }
   ]
 }
@@ -308,18 +314,19 @@ Has tabs[] array?
 
 ### What Each Field Controls
 
-| Field | Controls | If Missing |
-|-------|----------|------------|
-| `tabs[]` | Tab bar visibility, iframe src for tabs | No tab bar, flat/grouped mode only |
-| `tabs[].file` | Which HTML loads when tab clicked | Tab is broken |
-| `groups{}` | Sidebar section headers | All slides at root level |
-| `groups{}.tabId` | Which tab shows this group | Group shows in ALL tabs |
-| `slides[]` | Slide metadata and ordering | FliDeck discovers from filesystem |
-| `slides[].group` | Which section slide appears in | Slide at root level |
+| Field            | Controls                                | If Missing                         |
+| ---------------- | --------------------------------------- | ---------------------------------- |
+| `tabs[]`         | Tab bar visibility, iframe src for tabs | No tab bar, flat/grouped mode only |
+| `tabs[].file`    | Which HTML loads when tab clicked       | Tab is broken                      |
+| `groups{}`       | Sidebar section headers                 | All slides at root level           |
+| `groups{}.tabId` | Which tab shows this group              | Group shows in ALL tabs            |
+| `slides[]`       | Slide metadata and ordering             | FliDeck discovers from filesystem  |
+| `slides[].group` | Which section slide appears in          | Slide at root level                |
 
 ### Legacy Format
 
 Older manifests may have:
+
 ```json
 {
   "assets": {
@@ -362,10 +369,10 @@ FliDeck converts this to `slides[]` format on read.
 
 ### What Crosses the Boundary
 
-| Direction | What | How |
-|-----------|------|-----|
+| Direction        | What                     | How                                                  |
+| ---------------- | ------------------------ | ---------------------------------------------------- |
 | FliDeck → Iframe | Which content to display | `iframe.src` (file URL) or `iframe.srcdoc` (content) |
-| Iframe → FliDeck | Nothing currently | (Future: postMessage for interactions?) |
+| Iframe → FliDeck | Nothing currently        | (Future: postMessage for interactions?)              |
 
 ### Content Loading Modes
 
@@ -446,16 +453,16 @@ Index files contain "cards" that represent slides:
 
 ### Key APIs for Agents
 
-| Purpose | Endpoint | What Agent Learns |
-|---------|----------|-------------------|
-| Is FliDeck running? | `GET /api/health` | Can I use APIs or fallback to direct file writes? |
-| What can I do? | `GET /api/capabilities` | **[MISSING - FR-27]** Human-readable capability description |
-| What exists? | `GET /api/presentations` | List of all presentations |
-| Current structure? | `GET /api/presentations/{id}` | Tabs, groups, slides, current state |
-| What's the schema? | `GET /api/schema/manifest` | JSON Schema for validation |
-| Add a slide | `POST /api/presentations/{id}/slides` | Register new slide with metadata |
-| Bulk add | `POST .../manifest/slides/bulk` | Add many slides at once |
-| Sync filesystem | `PUT .../manifest/sync` | Auto-discover slides from files |
+| Purpose             | Endpoint                              | What Agent Learns                                           |
+| ------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| Is FliDeck running? | `GET /api/health`                     | Can I use APIs or fallback to direct file writes?           |
+| What can I do?      | `GET /api/capabilities`               | **[MISSING - FR-27]** Human-readable capability description |
+| What exists?        | `GET /api/presentations`              | List of all presentations                                   |
+| Current structure?  | `GET /api/presentations/{id}`         | Tabs, groups, slides, current state                         |
+| What's the schema?  | `GET /api/schema/manifest`            | JSON Schema for validation                                  |
+| Add a slide         | `POST /api/presentations/{id}/slides` | Register new slide with metadata                            |
+| Bulk add            | `POST .../manifest/slides/bulk`       | Add many slides at once                                     |
+| Sync filesystem     | `PUT .../manifest/sync`               | Auto-discover slides from files                             |
 
 ### Missing: Capability Discovery (FR-27)
 
@@ -634,53 +641,53 @@ Agent creates slide HTML
 
 ### Core APIs (Implemented)
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/presentations` | List all presentations |
-| GET | `/api/presentations/:id` | Get single presentation with all data |
-| GET | `/api/presentations/:id/manifest` | Get raw manifest JSON |
-| PUT | `/api/presentations/:id/manifest` | Replace entire manifest |
-| PATCH | `/api/presentations/:id/manifest` | Partial manifest update |
+| Method | Endpoint                          | Purpose                               |
+| ------ | --------------------------------- | ------------------------------------- |
+| GET    | `/api/presentations`              | List all presentations                |
+| GET    | `/api/presentations/:id`          | Get single presentation with all data |
+| GET    | `/api/presentations/:id/manifest` | Get raw manifest JSON                 |
+| PUT    | `/api/presentations/:id/manifest` | Replace entire manifest               |
+| PATCH  | `/api/presentations/:id/manifest` | Partial manifest update               |
 
 ### Slide APIs (FR-16)
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/presentations/:id/slides` | Add slide to manifest |
-| PUT | `/api/presentations/:id/slides/:slideId` | Update slide metadata |
+| Method | Endpoint                                 | Purpose                    |
+| ------ | ---------------------------------------- | -------------------------- |
+| POST   | `/api/presentations/:id/slides`          | Add slide to manifest      |
+| PUT    | `/api/presentations/:id/slides/:slideId` | Update slide metadata      |
 | DELETE | `/api/presentations/:id/slides/:slideId` | Remove slide from manifest |
 
 ### Tab APIs (FR-22)
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/presentations/:id/tabs` | Create tab |
-| PUT | `/api/presentations/:id/tabs/:tabId` | Rename tab |
-| DELETE | `/api/presentations/:id/tabs/:tabId` | Delete tab |
-| PUT | `/api/presentations/:id/tabs/order` | Reorder tabs |
+| Method | Endpoint                             | Purpose      |
+| ------ | ------------------------------------ | ------------ |
+| POST   | `/api/presentations/:id/tabs`        | Create tab   |
+| PUT    | `/api/presentations/:id/tabs/:tabId` | Rename tab   |
+| DELETE | `/api/presentations/:id/tabs/:tabId` | Delete tab   |
+| PUT    | `/api/presentations/:id/tabs/order`  | Reorder tabs |
 
 ### Group-Tab Relationship (FR-22)
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| PUT | `/api/presentations/:id/groups/:groupId/parent` | Assign group to tab |
+| Method | Endpoint                                        | Purpose               |
+| ------ | ----------------------------------------------- | --------------------- |
+| PUT    | `/api/presentations/:id/groups/:groupId/parent` | Assign group to tab   |
 | DELETE | `/api/presentations/:id/groups/:groupId/parent` | Remove group from tab |
 
 ### Bulk Operations (FR-21)
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `.../manifest/slides/bulk` | Add multiple slides |
-| POST | `.../manifest/groups/bulk` | Add multiple groups |
-| PUT | `.../manifest/sync` | Sync manifest with filesystem |
-| POST | `.../manifest/validate` | Validate manifest |
+| Method | Endpoint                   | Purpose                       |
+| ------ | -------------------------- | ----------------------------- |
+| POST   | `.../manifest/slides/bulk` | Add multiple slides           |
+| POST   | `.../manifest/groups/bulk` | Add multiple groups           |
+| PUT    | `.../manifest/sync`        | Sync manifest with filesystem |
+| POST   | `.../manifest/validate`    | Validate manifest             |
 
 ### Missing APIs
 
-| Method | Endpoint | Purpose | FR |
-|--------|----------|---------|-----|
-| GET | `/api/capabilities` | Agent-friendly capability discovery | FR-27 |
-| PUT | `.../manifest/sync-from-index` | Parse index HTML to populate manifest | FR-26 |
+| Method | Endpoint                       | Purpose                               | FR    |
+| ------ | ------------------------------ | ------------------------------------- | ----- |
+| GET    | `/api/capabilities`            | Agent-friendly capability discovery   | FR-27 |
+| PUT    | `.../manifest/sync-from-index` | Parse index HTML to populate manifest | FR-26 |
 
 ---
 
@@ -704,6 +711,7 @@ Agent creates slide HTML
 **Decision:** `index.json` is authoritative. Index HTML files are generated output.
 
 **Reason:**
+
 1. JSON is machine-readable, HTML parsing is fragile
 2. Single source prevents sync issues
 3. Agents can update via API without HTML manipulation
@@ -714,6 +722,7 @@ Agent creates slide HTML
 **Decision:** Each tab has `index-{tabId}.html` instead of one index with sections.
 
 **Reason:**
+
 1. Each persona/perspective has its own landing page
 2. Cards can have different styling/layout per tab
 3. Cleaner mental model: tab = separate index file
@@ -730,6 +739,7 @@ Agent creates slide HTML
 **Current limitation:** The manifest schema assumes one slide entry per file. A slide can only belong to one group.
 
 **Future consideration:** Support slides appearing in multiple menu positions without file duplication. The manifest could allow:
+
 ```json
 {
   "slides": [
@@ -738,6 +748,7 @@ Agent creates slide HTML
   ]
 }
 ```
+
 This would show the same slide in multiple places in the navigation. Source of truth remains one HTML file; only the menu positioning is duplicated.
 
 ---
@@ -749,6 +760,7 @@ This would show the same slide in multiple places in the navigation. Source of t
 **Symptom:** User clicks a tab, sidebar shows nothing.
 
 **Causes:**
+
 1. localStorage has stale "tabbed" display mode (BUG-10 - fixed)
 2. Groups don't have `tabId` linking them to tabs
 3. Slides don't have `group` property
@@ -769,6 +781,7 @@ This would show the same slide in multiple places in the navigation. Source of t
 **Symptom:** Agent created HTML file but it's not in sidebar.
 
 **Causes:**
+
 1. Agent didn't call FliDeck API to register slide
 2. Manifest not updated
 
@@ -805,11 +818,13 @@ This would show the same slide in multiple places in the navigation. Source of t
 **Symptom:** Click on "EPIC1" tab, but sidebar still shows JOHN SLIDES, MARY SLIDES, WINSTON SLIDES.
 
 **Causes:**
+
 1. Groups in manifest don't have `tabId` property set
 2. Without `tabId`, groups are treated as "shared" and appear in ALL tabs
 3. **Code bug (fixed 2025-01-02):** When groups were filtered out due to tab mismatch, they weren't removed from the `assetsByGroup` map, causing them to appear as "orphan groups" with auto-generated labels like "EPIC1 SLIDES" (derived from group ID)
 
 **Fix:** Ensure each group has `tabId` matching its parent tab:
+
 ```json
 {
   "groups": {
@@ -825,22 +840,25 @@ This would show the same slide in multiple places in the navigation. Source of t
 **Cause:** The sidebar filtering code skips groups that don't belong to the active tab, BUT if it doesn't also remove them from the `assetsByGroup` map, those groups get picked up by the "orphan groups" loop at the end, which generates labels from group IDs.
 
 **Root cause code pattern (before fix):**
+
 ```typescript
 // BUG: When shouldSkip is true, we continue WITHOUT deleting from assetsByGroup
 if (shouldSkip) {
-  continue;  // Missing: assetsByGroup.delete(groupId)
+  continue; // Missing: assetsByGroup.delete(groupId)
 }
 ```
 
 **Fix (applied 2025-01-02):** Always delete from `assetsByGroup` when skipping a group:
+
 ```typescript
 if (shouldSkip) {
-  assetsByGroup.delete(groupId);  // Prevent orphan loop from picking it up
+  assetsByGroup.delete(groupId); // Prevent orphan loop from picking it up
   continue;
 }
 ```
 
 **Files affected:**
+
 - `client/src/components/layout/Sidebar.tsx` - groupedAssets computation
 - `client/src/utils/sidebarOrder.ts` - keyboard navigation order
 
@@ -851,6 +869,7 @@ if (shouldSkip) {
 **Cause:** Slides in manifest don't have `title` property; FliDeck falls back to filename.
 
 **Fix:** Either:
+
 1. Add `title` property to slides in manifest
 2. Ensure HTML files have meaningful `<title>` tags (for future auto-extraction)
 
@@ -860,7 +879,8 @@ if (shouldSkip) {
 
 ### Critical: Iframe Navigation Not Connected to FliDeck State
 
-When users click cards inside tab landing pages (index-*.html), the iframe navigates internally but FliDeck doesn't know. This breaks:
+When users click cards inside tab landing pages (index-\*.html), the iframe navigates internally but FliDeck doesn't know. This breaks:
+
 - Keyboard navigation (Cmd+Arrow)
 - Progress indicator
 - State consistency
@@ -871,6 +891,7 @@ When users click cards inside tab landing pages (index-*.html), the iframe navig
 ### Missing: Agent Authoring Specifications
 
 The API tells agents what operations exist (FR-27) but not HOW to write HTML that integrates with FliDeck. Agents need:
+
 - Keyboard bridge script for forwarding hotkeys
 - Navigation bridge script for card clicks
 - HTML metadata conventions
@@ -892,19 +913,19 @@ Groups may appear in all tabs if `tabId` property is missing from manifest.
 
 ### Current Convention
 
-| File | Purpose |
-|------|---------|
-| `index.json` | Manifest (source of truth) |
-| `index.html` | Main index page (flat) or overview (tabbed) |
-| `index-{tabId}.html` | Tab-specific index page |
-| `*.html` | Individual slides |
+| File                 | Purpose                                     |
+| -------------------- | ------------------------------------------- |
+| `index.json`         | Manifest (source of truth)                  |
+| `index.html`         | Main index page (flat) or overview (tabbed) |
+| `index-{tabId}.html` | Tab-specific index page                     |
+| `*.html`             | Individual slides                           |
 
 ### Proposed Convention (for clarity)
 
-| Current | Proposed | Reason |
-|---------|----------|--------|
-| `index.html` | `presentation.html` | Avoids web server default confusion |
-| `index-mary.html` | `presentation-tab-mary.html` | Clearly indicates tab relationship |
+| Current           | Proposed                     | Reason                              |
+| ----------------- | ---------------------------- | ----------------------------------- |
+| `index.html`      | `presentation.html`          | Avoids web server default confusion |
+| `index-mary.html` | `presentation-tab-mary.html` | Clearly indicates tab relationship  |
 
 **Migration:** Would require updating manifest schema and agent templates.
 
@@ -913,6 +934,7 @@ Groups may appear in all tabs if `tabId` property is missing from manifest.
 ## Related Documents
 
 ### Feature Requirements
+
 - `docs/prd/fr-16-agent-slide-api.md` - Slide CRUD API
 - `docs/prd/fr-19-manifest-schema-api.md` - Manifest endpoints
 - `docs/prd/fr-21-agent-manifest-tooling.md` - Bulk operations, sync
@@ -921,21 +943,25 @@ Groups may appear in all tabs if `tabId` property is missing from manifest.
 - `docs/prd/fr-05-controls.md` - Keyboard shortcuts
 
 ### Open Bugs (as of 2025-12-28)
+
 - `docs/prd/bug-12-unhelpful-slide-names.md` - Slide names in sidebar (Medium)
 - `docs/prd/bug-13-tab-filtering-not-working.md` - Tab filtering (High)
 - `docs/prd/bug-14-agent-api-missing-authoring-specs.md` - Agent authoring specs (High)
 - `docs/prd/bug-15-keyboard-breaks-after-iframe-click.md` - Keyboard navigation (Critical)
 
 ### Agent Integration
+
 - `docs/agent-guide.md` - **Step-by-step guide for external agents** (game plan for creating tabs/groups)
 
 ### Other
+
 - `CLAUDE.md` - Quick API reference
 - `docs/backlog.md` - Full requirements and bug index
 
 ---
 
 **Document Maintainers:** Update this document when:
+
 - New concepts are added (new entity types, relationships)
 - API contracts change
 - Major architectural decisions are made

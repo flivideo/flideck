@@ -30,13 +30,9 @@ export function usePresentation(id: string | undefined) {
 export function useAsset(presentationId: string | undefined, assetId: string | undefined) {
   return useQuery({
     queryKey:
-      presentationId && assetId
-        ? queryKeys.asset(presentationId, assetId)
-        : ['assets', 'none'],
+      presentationId && assetId ? queryKeys.asset(presentationId, assetId) : ['assets', 'none'],
     queryFn: () =>
-      api.get<{ content: string; asset: Asset }>(
-        `/api/assets/${presentationId}/${assetId}`
-      ),
+      api.get<{ content: string; asset: Asset }>(`/api/assets/${presentationId}/${assetId}`),
     enabled: !!presentationId && !!assetId,
   });
 }

@@ -27,6 +27,7 @@ npm start
 ## Architecture
 
 **Monorepo Structure:**
+
 - `client/` - React 19 + Vite + TailwindCSS (port 5200)
 - `server/` - Express 5 + Socket.io + Chokidar (port 5201)
 - `shared/` - TypeScript types shared between client/server
@@ -34,12 +35,14 @@ npm start
 ## Key Patterns
 
 ### Backend Patterns
+
 - **WatcherManager** - Centralized file watching with debouncing
 - **PresentationService** - Singleton EventEmitter for discovery/caching
 - **Route Factory** - Dependency injection for routes
 - **AppError + asyncHandler** - Clean async error handling
 
 ### Frontend Patterns
+
 - **TanStack Query** - Server state with Socket.io invalidation
 - **Socket.io Hooks** - Connection status, room management
 - **React Router** - URL-based navigation
@@ -48,62 +51,62 @@ npm start
 
 **Note:** Presentation endpoints (`GET /api/presentations`, `GET /api/presentations/:id`, `GET /api/presentations/:id/manifest`) include a `_context` object with `presentationsRoot` so agents know which root the data came from without needing a separate config call.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/presentations` | List all presentations |
-| GET | `/api/presentations/:id` | Get single presentation |
-| POST | `/api/presentations` | Create new presentation (FR-16) |
-| POST | `/api/presentations/refresh` | Force refresh cache |
-| PUT | `/api/presentations/:id/order` | Update asset order |
-| POST | `/api/presentations/:id/slides` | Add slide to manifest (FR-16) |
-| PUT | `/api/presentations/:id/slides/:slideId` | Update slide metadata (FR-16) |
-| DELETE | `/api/presentations/:id/slides/:slideId` | Remove slide from manifest (FR-16) |
-| PUT | `/api/presentations/:id/groups/order` | Reorder groups (FR-17) |
-| POST | `/api/presentations/:id/groups` | Create group (FR-17) |
-| PUT | `/api/presentations/:id/groups/:groupId` | Rename group (FR-17) |
-| DELETE | `/api/presentations/:id/groups/:groupId` | Delete group (FR-17) |
-| POST | `/api/presentations/:id/tabs` | Create tab (FR-22) |
-| PUT | `/api/presentations/:id/tabs/:tabId` | Rename tab (FR-22) |
-| DELETE | `/api/presentations/:id/tabs/:tabId` | Delete tab with strategy (FR-22) |
-| PUT | `/api/presentations/:id/tabs/order` | Reorder tabs (FR-22) |
-| PUT | `/api/presentations/:id/groups/:groupId/parent` | Set group parent tab (FR-22) |
-| DELETE | `/api/presentations/:id/groups/:groupId/parent` | Remove group parent (FR-22) |
-| GET | `/api/presentations/:id/manifest` | Get raw manifest JSON (FR-19) |
-| PUT | `/api/presentations/:id/manifest` | Replace entire manifest with validation (FR-19) |
-| PATCH | `/api/presentations/:id/manifest` | Partial manifest update with merge (FR-19) |
-| POST | `/api/presentations/:id/manifest/slides/bulk` | Bulk add slides with conflict resolution (FR-21) |
-| POST | `/api/presentations/:id/manifest/groups/bulk` | Bulk add groups (FR-21) |
-| PUT | `/api/presentations/:id/manifest/sync` | Sync manifest with filesystem (FR-21) |
-| POST | `/api/presentations/:id/manifest/validate` | Validate manifest with file checking (FR-21) |
-| PUT | `/api/presentations/:id/manifest/sync-from-index` | Parse index HTML to populate manifest (FR-26) |
-| GET | `/api/schema/manifest` | Get JSON Schema for manifest (FR-19) |
-| GET | `/api/templates/manifest` | List available manifest templates (FR-21) |
-| GET | `/api/templates/manifest/:id` | Get specific template (FR-21) |
-| POST | `/api/presentations/:id/manifest/template` | Apply template to presentation (FR-21) |
-| GET | `/api/assets/:presentationId/:assetId` | Get asset content |
-| GET | `/api/health` | Health check |
-| GET | `/api/capabilities` | Agent capability discovery (FR-27) |
+| Method | Endpoint                                          | Description                                      |
+| ------ | ------------------------------------------------- | ------------------------------------------------ |
+| GET    | `/api/presentations`                              | List all presentations                           |
+| GET    | `/api/presentations/:id`                          | Get single presentation                          |
+| POST   | `/api/presentations`                              | Create new presentation (FR-16)                  |
+| POST   | `/api/presentations/refresh`                      | Force refresh cache                              |
+| PUT    | `/api/presentations/:id/order`                    | Update asset order                               |
+| POST   | `/api/presentations/:id/slides`                   | Add slide to manifest (FR-16)                    |
+| PUT    | `/api/presentations/:id/slides/:slideId`          | Update slide metadata (FR-16)                    |
+| DELETE | `/api/presentations/:id/slides/:slideId`          | Remove slide from manifest (FR-16)               |
+| PUT    | `/api/presentations/:id/groups/order`             | Reorder groups (FR-17)                           |
+| POST   | `/api/presentations/:id/groups`                   | Create group (FR-17)                             |
+| PUT    | `/api/presentations/:id/groups/:groupId`          | Rename group (FR-17)                             |
+| DELETE | `/api/presentations/:id/groups/:groupId`          | Delete group (FR-17)                             |
+| POST   | `/api/presentations/:id/tabs`                     | Create tab (FR-22)                               |
+| PUT    | `/api/presentations/:id/tabs/:tabId`              | Rename tab (FR-22)                               |
+| DELETE | `/api/presentations/:id/tabs/:tabId`              | Delete tab with strategy (FR-22)                 |
+| PUT    | `/api/presentations/:id/tabs/order`               | Reorder tabs (FR-22)                             |
+| PUT    | `/api/presentations/:id/groups/:groupId/parent`   | Set group parent tab (FR-22)                     |
+| DELETE | `/api/presentations/:id/groups/:groupId/parent`   | Remove group parent (FR-22)                      |
+| GET    | `/api/presentations/:id/manifest`                 | Get raw manifest JSON (FR-19)                    |
+| PUT    | `/api/presentations/:id/manifest`                 | Replace entire manifest with validation (FR-19)  |
+| PATCH  | `/api/presentations/:id/manifest`                 | Partial manifest update with merge (FR-19)       |
+| POST   | `/api/presentations/:id/manifest/slides/bulk`     | Bulk add slides with conflict resolution (FR-21) |
+| POST   | `/api/presentations/:id/manifest/groups/bulk`     | Bulk add groups (FR-21)                          |
+| PUT    | `/api/presentations/:id/manifest/sync`            | Sync manifest with filesystem (FR-21)            |
+| POST   | `/api/presentations/:id/manifest/validate`        | Validate manifest with file checking (FR-21)     |
+| PUT    | `/api/presentations/:id/manifest/sync-from-index` | Parse index HTML to populate manifest (FR-26)    |
+| GET    | `/api/schema/manifest`                            | Get JSON Schema for manifest (FR-19)             |
+| GET    | `/api/templates/manifest`                         | List available manifest templates (FR-21)        |
+| GET    | `/api/templates/manifest/:id`                     | Get specific template (FR-21)                    |
+| POST   | `/api/presentations/:id/manifest/template`        | Apply template to presentation (FR-21)           |
+| GET    | `/api/assets/:presentationId/:assetId`            | Get asset content                                |
+| GET    | `/api/health`                                     | Health check                                     |
+| GET    | `/api/capabilities`                               | Agent capability discovery (FR-27)               |
 
 ## Socket.io Events
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `presentations:updated` | Server -> Client | File system changed |
-| `config:changed` | Server -> Client | Config reloaded (hot reload) |
-| `join:presentation` | Client -> Server | Join presentation room |
-| `leave:presentation` | Client -> Server | Leave presentation room |
+| Event                   | Direction        | Description                  |
+| ----------------------- | ---------------- | ---------------------------- |
+| `presentations:updated` | Server -> Client | File system changed          |
+| `config:changed`        | Server -> Client | Config reloaded (hot reload) |
+| `join:presentation`     | Client -> Server | Join presentation room       |
+| `leave:presentation`    | Client -> Server | Leave presentation room      |
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `Cmd/Ctrl + K` | Open quick filter (search presentations/assets) |
-| `F` | Toggle presentation mode (hide chrome) |
-| `Escape` | Exit presentation mode / close quick filter |
-| `Cmd/Ctrl + ←` | Previous asset |
-| `Cmd/Ctrl + →` | Next asset |
-| `Cmd/Ctrl + Home` | First asset |
-| `Cmd/Ctrl + End` | Last asset |
+| Key               | Action                                          |
+| ----------------- | ----------------------------------------------- |
+| `Cmd/Ctrl + K`    | Open quick filter (search presentations/assets) |
+| `F`               | Toggle presentation mode (hide chrome)          |
+| `Escape`          | Exit presentation mode / close quick filter     |
+| `Cmd/Ctrl + ←`    | Previous asset                                  |
+| `Cmd/Ctrl + →`    | Next asset                                      |
+| `Cmd/Ctrl + Home` | First asset                                     |
+| `Cmd/Ctrl + End`  | Last asset                                      |
 
 **Note:** Modifier keys (`Cmd` on Mac, `Ctrl` on Windows/Linux) are required for navigation to avoid conflicts with presentation's internal controls.
 
@@ -128,6 +131,7 @@ Assets can be reordered via drag-and-drop in the sidebar. The order is persisted
 **Backwards Compatibility:** FliDeck also reads legacy `flideck.json` files if `index.json` doesn't exist. New saves always go to `index.json`.
 
 **Manifest Structure:**
+
 ```json
 {
   "assets": {
@@ -137,6 +141,7 @@ Assets can be reordered via drag-and-drop in the sidebar. The order is persisted
 ```
 
 **Self-healing behavior:**
+
 - Missing files in manifest are silently skipped
 - New files not in manifest appear at end (alphabetically)
 - Invalid/corrupted manifest falls back to default ordering
@@ -146,10 +151,12 @@ Assets can be reordered via drag-and-drop in the sidebar. The order is persisted
 FliDeck uses a JSON configuration file for dynamic settings.
 
 **Files:**
+
 - `config.json` - User config (gitignored)
 - `config.example.json` - Template with defaults
 
 **Config Structure:**
+
 ```json
 {
   "presentationsRoot": "~/path/to/presentations",
@@ -158,6 +165,7 @@ FliDeck uses a JSON configuration file for dynamic settings.
 ```
 
 **Features:**
+
 - Tilde (`~`) paths expanded to home directory
 - Hot reload - changes apply without restart
 - History tracks previously used roots (max 10)
@@ -167,11 +175,11 @@ FliDeck uses a JSON configuration file for dynamic settings.
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | 5201 | Server port |
-| `CLIENT_URL` | http://localhost:5200 | CORS origin |
-| `NODE_ENV` | development | Environment mode |
+| Variable     | Default               | Description      |
+| ------------ | --------------------- | ---------------- |
+| `PORT`       | 5201                  | Server port      |
+| `CLIENT_URL` | http://localhost:5200 | CORS origin      |
+| `NODE_ENV`   | development           | Environment mode |
 
 ## Common Tasks
 
@@ -210,11 +218,13 @@ FliDeck uses a JSON configuration file for dynamic settings.
 A pre-commit hook using [gitleaks](https://github.com/gitleaks/gitleaks) prevents committing secrets (API keys, passwords, tokens).
 
 **If secrets are detected:**
+
 1. Remove the secret from your code
 2. Use environment variables instead (add to `.env`, reference via `process.env`)
 3. For false positives, add to `.gitleaksignore`
 
 **To bypass (not recommended):**
+
 ```bash
 git commit --no-verify
 ```

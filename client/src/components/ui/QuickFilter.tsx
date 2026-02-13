@@ -35,9 +35,7 @@ export function QuickFilter({
   const filteredItems = useMemo(() => {
     if (!query.trim()) return items;
     const lowerQuery = query.toLowerCase();
-    return items.filter((item) =>
-      item.name.toLowerCase().includes(lowerQuery)
-    );
+    return items.filter((item) => item.name.toLowerCase().includes(lowerQuery));
   }, [items, query]);
 
   // Reset state when opening
@@ -79,9 +77,7 @@ export function QuickFilter({
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedIndex((prev) =>
-            Math.min(prev + 1, filteredItems.length - 1)
-          );
+          setSelectedIndex((prev) => Math.min(prev + 1, filteredItems.length - 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -126,10 +122,7 @@ export function QuickFilter({
         onKeyDown={handleKeyDown}
       >
         {/* Search input */}
-        <div
-          className="flex items-center gap-3 p-4 border-b"
-          style={{ borderColor: '#4a4040' }}
-        >
+        <div className="flex items-center gap-3 p-4 border-b" style={{ borderColor: '#4a4040' }}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-5 w-5 flex-shrink-0"
@@ -164,15 +157,9 @@ export function QuickFilter({
         </div>
 
         {/* Results list */}
-        <div
-          ref={listRef}
-          className="max-h-[300px] overflow-y-auto"
-        >
+        <div ref={listRef} className="max-h-[300px] overflow-y-auto">
           {filteredItems.length === 0 ? (
-            <div
-              className="p-4 text-center text-sm"
-              style={{ color: '#595959' }}
-            >
+            <div className="p-4 text-center text-sm" style={{ color: '#595959' }}>
               No matches found
             </div>
           ) : (
@@ -223,12 +210,18 @@ export function QuickFilter({
           style={{ borderColor: '#4a4040', color: '#595959' }}
         >
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 rounded" style={{ backgroundColor: '#4a4040' }}>↑</kbd>
-            <kbd className="px-1.5 py-0.5 rounded" style={{ backgroundColor: '#4a4040' }}>↓</kbd>
+            <kbd className="px-1.5 py-0.5 rounded" style={{ backgroundColor: '#4a4040' }}>
+              ↑
+            </kbd>
+            <kbd className="px-1.5 py-0.5 rounded" style={{ backgroundColor: '#4a4040' }}>
+              ↓
+            </kbd>
             navigate
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 rounded" style={{ backgroundColor: '#4a4040' }}>↵</kbd>
+            <kbd className="px-1.5 py-0.5 rounded" style={{ backgroundColor: '#4a4040' }}>
+              ↵
+            </kbd>
             select
           </span>
         </div>

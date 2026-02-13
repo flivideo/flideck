@@ -23,6 +23,7 @@ import { PresentationService } from '../services/PresentationService.js';
 import { loadConfig, collapsePath } from '../config.js';
 import { validate } from '../utils/manifestValidator.js';
 import { getTemplateById } from '../utils/manifestTemplates.js';
+import { queryString } from '../utils/queryString.js';
 
 interface RouteConfig {
   io: Server;
@@ -61,7 +62,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.get(
     '/:id',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const config = await loadConfig();
       const presentation = await presentationService.getById(id);
 
@@ -103,7 +104,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/order',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const { order } = req.body;
 
       // Validate request body
@@ -147,7 +148,10 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
 
       // Validate id format (folder name safe)
       if (!/^[a-zA-Z0-9_-]+$/.test(body.id)) {
-        throw new AppError('Invalid id: must contain only letters, numbers, hyphens, and underscores', 400);
+        throw new AppError(
+          'Invalid id: must contain only letters, numbers, hyphens, and underscores',
+          400
+        );
       }
 
       try {
@@ -158,7 +162,10 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         );
 
         // Notify clients
-        io.emit('presentations:updated', { reason: 'presentation-created', presentationId: body.id });
+        io.emit('presentations:updated', {
+          reason: 'presentation-created',
+          presentationId: body.id,
+        });
 
         res.status(201).json({ success: true, path: folderPath });
       } catch (error) {
@@ -177,7 +184,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.post(
     '/:id/slides',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as AddSlideRequest;
 
       // Validate required field
@@ -224,7 +231,8 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/slides/:slideId',
     asyncHandler(async (req, res) => {
-      const { id, slideId } = req.params;
+      const id = queryString(req.params.id);
+      const slideId = queryString(req.params.slideId);
       const body = req.body as UpdateSlideRequest;
 
       try {
@@ -255,7 +263,8 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.delete(
     '/:id/slides/:slideId',
     asyncHandler(async (req, res) => {
-      const { id, slideId } = req.params;
+      const id = queryString(req.params.id);
+      const slideId = queryString(req.params.slideId);
 
       try {
         await presentationService.removeSlide(id, slideId);
@@ -284,7 +293,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/groups/order',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as ReorderGroupsRequest;
 
       // Validate request body
@@ -315,7 +324,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.post(
     '/:id/groups',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as CreateGroupRequest;
 
       // Validate required fields
@@ -359,7 +368,8 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/groups/:groupId',
     asyncHandler(async (req, res) => {
-      const { id, groupId } = req.params;
+      const id = queryString(req.params.id);
+      const groupId = queryString(req.params.groupId);
       const body = req.body as UpdateGroupRequest;
 
       // Validate required field
@@ -390,7 +400,8 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.delete(
     '/:id/groups/:groupId',
     asyncHandler(async (req, res) => {
-      const { id, groupId } = req.params;
+      const id = queryString(req.params.id);
+      const groupId = queryString(req.params.groupId);
 
       try {
         await presentationService.deleteGroup(id, groupId);
@@ -419,7 +430,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.post(
     '/:id/tabs',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as CreateTabRequest;
 
       // Validate required fields
@@ -463,7 +474,8 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/tabs/:tabId',
     asyncHandler(async (req, res) => {
-      const { id, tabId } = req.params;
+      const id = queryString(req.params.id);
+      const tabId = queryString(req.params.tabId);
       const body = req.body as UpdateTabRequest;
 
       // Validate required field
@@ -503,7 +515,8 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.delete(
     '/:id/tabs/:tabId',
     asyncHandler(async (req, res) => {
-      const { id, tabId } = req.params;
+      const id = queryString(req.params.id);
+      const tabId = queryString(req.params.tabId);
       const strategy = (req.query.strategy as string) || 'orphan';
 
       try {
@@ -534,7 +547,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/tabs/order',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as ReorderTabsRequest;
 
       // Validate request body
@@ -570,7 +583,8 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/groups/:groupId/parent',
     asyncHandler(async (req, res) => {
-      const { id, groupId } = req.params;
+      const id = queryString(req.params.id);
+      const groupId = queryString(req.params.groupId);
       const body = req.body as SetGroupParentRequest;
 
       // Validate required field
@@ -606,7 +620,8 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.delete(
     '/:id/groups/:groupId/parent',
     asyncHandler(async (req, res) => {
-      const { id, groupId } = req.params;
+      const id = queryString(req.params.id);
+      const groupId = queryString(req.params.groupId);
 
       try {
         await presentationService.removeGroupParent(id, groupId);
@@ -635,7 +650,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.get(
     '/:id/manifest',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const config = await loadConfig();
       const manifest = await presentationService.getManifest(id);
 
@@ -665,7 +680,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/manifest',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const manifest = req.body;
 
       // Validate manifest against JSON Schema
@@ -697,14 +712,17 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.patch(
     '/:id/manifest',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const updates = req.body;
 
       // Get current manifest
       const currentManifest = (await presentationService.getManifest(id)) || {};
 
       // Perform deep merge to simulate final result
-      const mergedManifest = deepMerge(currentManifest, updates);
+      const mergedManifest = deepMerge(
+        currentManifest as Record<string, unknown>,
+        updates as Record<string, unknown>
+      );
 
       // Validate merged result
       const validationResult = validate(mergedManifest);
@@ -739,7 +757,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.post(
     '/:id/manifest/slides/bulk',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as BulkAddSlidesRequest;
       const dryRun = body.dryRun || req.query.dryRun === 'true';
 
@@ -804,7 +822,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.post(
     '/:id/manifest/groups/bulk',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as BulkAddGroupsRequest;
       const dryRun = body.dryRun || req.query.dryRun === 'true';
 
@@ -870,7 +888,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/manifest/sync',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as SyncManifestRequest;
 
       try {
@@ -900,7 +918,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.post(
     '/:id/manifest/validate',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as ValidateManifestRequest;
 
       // Validate request body
@@ -912,10 +930,11 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
       const schemaValidation = validate(body.manifest);
 
       if (!schemaValidation.valid) {
-        const errors = schemaValidation.errors?.map((e) => ({
-          path: e.field,
-          message: e.message,
-        })) || [];
+        const errors =
+          schemaValidation.errors?.map((e) => ({
+            path: e.field,
+            message: e.message,
+          })) || [];
 
         res.json({
           valid: false,
@@ -950,7 +969,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.post(
     '/:id/manifest/template',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = req.body as ApplyTemplateRequest;
 
       // Validate request body
@@ -999,7 +1018,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   router.put(
     '/:id/manifest/sync-from-index',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const body = (req.body || {}) as SyncFromIndexRequest;
 
       try {
@@ -1031,7 +1050,10 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
 /**
  * Deep merge helper for PATCH validation (matches service implementation).
  */
-function deepMerge(target: any, source: any): any {
+function deepMerge(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>
+): Record<string, unknown> {
   if (!source || typeof source !== 'object' || Array.isArray(source)) {
     return source;
   }
@@ -1048,7 +1070,10 @@ function deepMerge(target: any, source: any): any {
       } else if (sourceValue && typeof sourceValue === 'object') {
         result[key] =
           targetValue && typeof targetValue === 'object'
-            ? deepMerge(targetValue, sourceValue)
+            ? deepMerge(
+                targetValue as Record<string, unknown>,
+                sourceValue as Record<string, unknown>
+              )
             : sourceValue;
       } else {
         result[key] = sourceValue;

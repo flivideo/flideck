@@ -149,11 +149,7 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
             </span>
           )}
           {asset.recommended && (
-            <span
-              className="mr-2 text-xs"
-              style={{ color: '#ffde59' }}
-              title="Recommended"
-            >
+            <span className="mr-2 text-xs" style={{ color: '#ffde59' }} title="Recommended">
               ★
             </span>
           )}
@@ -170,8 +166,14 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
               }}
               className="p-1 rounded transition-colors"
               style={{ color: '#595959' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#4a4040';
+                e.currentTarget.style.color = '#ccba9d';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#595959';
+              }}
               title="Copy path"
             >
               ⋮
@@ -183,29 +185,53 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
                 style={{ backgroundColor: '#4a4040' }}
               >
                 <button
-                  onClick={(e) => { e.stopPropagation(); props.onCopyPath(asset, 'url'); props.onToggleCopyMenu(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    props.onCopyPath(asset, 'url');
+                    props.onToggleCopyMenu(null);
+                  }}
                   className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                   style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a5050';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Copy URL
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); props.onCopyPath(asset, 'abs'); props.onToggleCopyMenu(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    props.onCopyPath(asset, 'abs');
+                    props.onToggleCopyMenu(null);
+                  }}
                   className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                   style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a5050';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Copy Absolute
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); props.onCopyPath(asset, 'rel'); props.onToggleCopyMenu(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    props.onCopyPath(asset, 'rel');
+                    props.onToggleCopyMenu(null);
+                  }}
                   className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                   style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a5050';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Copy Relative
                 </button>
@@ -264,7 +290,9 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
             {isEditing ? (
               // Inline edit mode
               <div className="flex items-center px-2 py-1">
-                <span className="mr-2" style={{ color: '#ccba9d' }}>▼</span>
+                <span className="mr-2" style={{ color: '#ccba9d' }}>
+                  ▼
+                </span>
                 <input
                   ref={editInputRef}
                   type="text"
@@ -292,8 +320,12 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
                 onDrop={(e) => handleGroupDrop(e, group.groupId)}
                 style={{
                   borderRadius: '6px',
-                  border: dropTargetGroupId === group.groupId ? '2px solid #ffde59' : '2px solid transparent',
-                  backgroundColor: dropTargetGroupId === group.groupId ? 'rgba(255, 222, 89, 0.1)' : 'transparent',
+                  border:
+                    dropTargetGroupId === group.groupId
+                      ? '2px solid #ffde59'
+                      : '2px solid transparent',
+                  backgroundColor:
+                    dropTargetGroupId === group.groupId ? 'rgba(255, 222, 89, 0.1)' : 'transparent',
                 }}
               >
                 <button
@@ -303,8 +335,13 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
                     color: dropTargetGroupId === group.groupId ? '#ffde59' : '#ccba9d',
                     fontFamily: "'Oswald', Arial, sans-serif",
                   }}
-                  onMouseEnter={(e) => { if (dropTargetGroupId !== group.groupId) e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    if (dropTargetGroupId !== group.groupId)
+                      e.currentTarget.style.backgroundColor = '#4a4040';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   <span
                     className="mr-2 transition-transform"
@@ -318,7 +355,10 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
                   <span className="flex-1">{group.label}</span>
                   <span
                     className="text-xs px-1.5 py-0.5 rounded ml-2"
-                    style={{ backgroundColor: '#4a4040', color: dropTargetGroupId === group.groupId ? '#ffde59' : '#ccba9d' }}
+                    style={{
+                      backgroundColor: '#4a4040',
+                      color: dropTargetGroupId === group.groupId ? '#ffde59' : '#ccba9d',
+                    }}
                   >
                     {group.assets.length}
                   </span>
@@ -333,8 +373,12 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
                     }}
                     className="p-1 rounded transition-colors"
                     style={{ color: '#ccba9d' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#4a4040';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
                   >
                     ⋮
                   </button>
@@ -352,8 +396,12 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
                         }}
                         className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                         style={{ color: '#ffffff' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#5a5050';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
                         Rename
                       </button>
@@ -364,8 +412,12 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
                         }}
                         className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                         style={{ color: '#ff6b6b' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#5a5050';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
                         Delete
                       </button>
@@ -377,9 +429,7 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
 
             {/* Group Assets */}
             {!isCollapsed && (
-              <div className="pl-2 mt-1 space-y-0.5">
-                {group.assets.map(renderAssetRow)}
-              </div>
+              <div className="pl-2 mt-1 space-y-0.5">{group.assets.map(renderAssetRow)}</div>
             )}
           </div>
         );
@@ -389,7 +439,9 @@ export const SidebarGrouped = memo(function SidebarGrouped(props: SidebarGrouped
       <div className="mt-3 mb-2">
         {props.isCreatingGroup ? (
           <div className="flex items-center px-2 py-1">
-            <span className="mr-2 text-xs" style={{ color: '#ccba9d' }}>+</span>
+            <span className="mr-2 text-xs" style={{ color: '#ccba9d' }}>
+              +
+            </span>
             <input
               ref={newGroupInputRef}
               type="text"

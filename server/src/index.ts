@@ -28,7 +28,10 @@ let currentPresentationsRoot: string;
  * Parse a file path to extract presentation and asset information.
  * Returns null if the path is not a valid presentation asset.
  */
-function parseAssetPath(filePath: string, presentationsRoot: string): { presentationId: string; assetId: string; filename: string } | null {
+function parseAssetPath(
+  filePath: string,
+  presentationsRoot: string
+): { presentationId: string; assetId: string; filename: string } | null {
   // Get relative path from presentations root
   const relativePath = path.relative(presentationsRoot, filePath);
   if (!relativePath || relativePath.startsWith('..')) {
@@ -46,7 +49,18 @@ function parseAssetPath(filePath: string, presentationsRoot: string): { presenta
 
   // Only handle files that are presentation assets (HTML, CSS, JS, images, etc.)
   const ext = path.extname(filename).toLowerCase();
-  const assetExtensions = ['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.json'];
+  const assetExtensions = [
+    '.html',
+    '.css',
+    '.js',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.svg',
+    '.webp',
+    '.json',
+  ];
   if (!assetExtensions.includes(ext)) {
     return null;
   }

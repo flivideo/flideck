@@ -17,12 +17,14 @@ When working with AI tools, users need file paths to reference specific slides. 
 ## Solution
 
 Add a modifier key interaction to the Assets sidebar. When the modifier key is held:
+
 - Hovering over a slide reveals copy buttons
 - Hovering over the "Assets" header reveals copy-all buttons
 
 ### Single Slide (Modifier + Hover on slide row)
 
 **Normal state:**
+
 ```
 ┌─────────────────────────────┐
 │ ∷  index    Index           │  ← click navigates
@@ -30,6 +32,7 @@ Add a modifier key interaction to the Assets sidebar. When the modifier key is h
 ```
 
 **Modifier held + hover:**
+
 ```
 ┌─────────────────────────────┐
 │ ∷  index    Index           │
@@ -42,6 +45,7 @@ Click any button → copies that format to clipboard.
 ### All Slides (Modifier + Hover on "Assets" header)
 
 **Normal state:**
+
 ```
 ┌─────────────────────────────┐
 │  ASSETS                     │
@@ -51,6 +55,7 @@ Click any button → copies that format to clipboard.
 ```
 
 **Modifier held + hover on header:**
+
 ```
 ┌─────────────────────────────┐
 │  ASSETS                     │
@@ -64,11 +69,11 @@ Click any button → copies ALL paths (newline-separated) to clipboard.
 
 ## Copy Formats
 
-| Button | Format | Example |
-|--------|--------|---------|
-| **URL** | iframe URL | `http://localhost:5201/presentations/bmad/index.html` |
-| **Abs** | Absolute path | `/Users/david/presentations/bmad/index.html` |
-| **Rel** | Relative path | `presentations/bmad/index.html` |
+| Button  | Format        | Example                                               |
+| ------- | ------------- | ----------------------------------------------------- |
+| **URL** | iframe URL    | `http://localhost:5201/presentations/bmad/index.html` |
+| **Abs** | Absolute path | `/Users/david/presentations/bmad/index.html`          |
+| **Rel** | Relative path | `presentations/bmad/index.html`                       |
 
 ## Acceptance Criteria
 
@@ -104,6 +109,7 @@ Click any button → copies ALL paths (newline-separated) to clipboard.
 **Implemented:** 2025-12-21
 
 **What was done:**
+
 - Created `useModifierKey` hook to track Alt/Option key state globally
 - Added hover tracking for asset rows and "Assets" header
 - When Alt + hover on asset row, three copy buttons appear (URL, ABS, REL)
@@ -112,12 +118,15 @@ Click any button → copies ALL paths (newline-separated) to clipboard.
 - Uses `navigator.clipboard.writeText()` for clipboard access
 
 **Path formats:**
+
 - URL: Full iframe URL from asset.url
 - ABS: `presentation.path + '/' + asset.filename`
 - REL: `presentation.id + '/' + asset.filename` (relative to presentationsRoot)
 
 **Files created:**
+
 - `client/src/hooks/useModifierKey.ts`
 
 **Files modified:**
+
 - `client/src/components/layout/Sidebar.tsx`

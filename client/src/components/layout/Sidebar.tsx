@@ -46,16 +46,15 @@ export function Sidebar({
   collapsedGroups: externalCollapsedGroups,
   onSetCollapsedGroups,
 }: SidebarProps) {
-  const selectedPresentation = presentations.find(
-    (p) => p.id === selectedPresentationId
-  );
+  const selectedPresentation = presentations.find((p) => p.id === selectedPresentationId);
 
   // Resizable sidebar (FR-28)
   const { width, setPreset } = useResizableSidebar();
 
   // Display mode management
   // FR-25: Display mode is orthogonal to container tabs (flat/grouped affects rendering, tabs filter content)
-  const { mode, autoMode, hasOverride, setOverride, clearOverride } = useDisplayMode(selectedPresentation);
+  const { mode, autoMode, hasOverride, setOverride, clearOverride } =
+    useDisplayMode(selectedPresentation);
 
   // Drag-and-drop state
   const [draggedAssetId, setDraggedAssetId] = useState<string | null>(null);
@@ -88,7 +87,6 @@ export function Sidebar({
   const [menuOpenGroupId, setMenuOpenGroupId] = useState<string | null>(null);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [newGroupLabel, setNewGroupLabel] = useState('');
-
 
   // Mode switcher dropdown state
   const [isModeSwitcherOpen, setIsModeSwitcherOpen] = useState(false);
@@ -144,7 +142,8 @@ export function Sidebar({
         effectiveTabId = groups[def.parent].tabId;
       }
 
-      const shouldSkip = activeContainerTabId && effectiveTabId && effectiveTabId !== activeContainerTabId;
+      const shouldSkip =
+        activeContainerTabId && effectiveTabId && effectiveTabId !== activeContainerTabId;
       if (shouldSkip) {
         assetsByGroup.delete(groupId); // Remove so it doesn't appear as orphan
         continue;
@@ -217,22 +216,25 @@ export function Sidebar({
   }, [selectedPresentation, activeContainerTabId, tabIndexFiles]);
 
   // Toggle group collapse
-  const toggleGroup = useCallback((groupId: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-      try {
-        localStorage.setItem('flideck-collapsed-groups', JSON.stringify([...next]));
-      } catch {
-        // Ignore
-      }
-      return next;
-    });
-  }, []);
+  const toggleGroup = useCallback(
+    (groupId: string) => {
+      setCollapsedGroups((prev) => {
+        const next = new Set(prev);
+        if (next.has(groupId)) {
+          next.delete(groupId);
+        } else {
+          next.add(groupId);
+        }
+        try {
+          localStorage.setItem('flideck-collapsed-groups', JSON.stringify([...next]));
+        } catch {
+          // Ignore
+        }
+        return next;
+      });
+    },
+    [setCollapsedGroups]
+  );
 
   // Group management handlers
   const startEditingGroup = useCallback((groupId: string, currentLabel: string) => {
@@ -253,10 +255,9 @@ export function Sidebar({
     }
 
     try {
-      await api.put(
-        `/api/presentations/${selectedPresentation.id}/groups/${editingGroupId}`,
-        { label: editingGroupLabel.trim() }
-      );
+      await api.put(`/api/presentations/${selectedPresentation.id}/groups/${editingGroupId}`, {
+        label: editingGroupLabel.trim(),
+      });
       onAssetsReordered?.();
       toast.success('Group renamed');
     } catch (error) {
@@ -264,21 +265,30 @@ export function Sidebar({
       toast.error('Failed to rename group');
     }
     cancelEditingGroup();
-  }, [selectedPresentation, editingGroupId, editingGroupLabel, cancelEditingGroup, onAssetsReordered]);
+  }, [
+    selectedPresentation,
+    editingGroupId,
+    editingGroupLabel,
+    cancelEditingGroup,
+    onAssetsReordered,
+  ]);
 
-  const deleteGroup = useCallback(async (groupId: string) => {
-    if (!selectedPresentation) return;
+  const deleteGroup = useCallback(
+    async (groupId: string) => {
+      if (!selectedPresentation) return;
 
-    try {
-      await api.delete(`/api/presentations/${selectedPresentation.id}/groups/${groupId}`);
-      onAssetsReordered?.();
-      toast.success('Group deleted');
-    } catch (error) {
-      console.error('Failed to delete group:', error);
-      toast.error('Failed to delete group');
-    }
-    setMenuOpenGroupId(null);
-  }, [selectedPresentation, onAssetsReordered]);
+      try {
+        await api.delete(`/api/presentations/${selectedPresentation.id}/groups/${groupId}`);
+        onAssetsReordered?.();
+        toast.success('Group deleted');
+      } catch (error) {
+        console.error('Failed to delete group:', error);
+        toast.error('Failed to delete group');
+      }
+      setMenuOpenGroupId(null);
+    },
+    [selectedPresentation, onAssetsReordered]
+  );
 
   const startCreatingGroup = useCallback(() => {
     setIsCreatingGroup(true);
@@ -329,11 +339,19 @@ export function Sidebar({
       toast.error('Failed to create group');
     }
     cancelCreatingGroup();
-  }, [selectedPresentation, newGroupLabel, cancelCreatingGroup, onAssetsReordered, presentations, selectedPresentationId]);
+  }, [
+    selectedPresentation,
+    newGroupLabel,
+    cancelCreatingGroup,
+    onAssetsReordered,
+    presentations,
+    selectedPresentationId,
+  ]);
 
   // Close menus when clicking outside
   useEffect(() => {
-    const anyMenuOpen = menuOpenGroupId || copyMenuOpenAssetId || isHeaderCopyMenuOpen || isModeSwitcherOpen;
+    const anyMenuOpen =
+      menuOpenGroupId || copyMenuOpenAssetId || isHeaderCopyMenuOpen || isModeSwitcherOpen;
     if (!anyMenuOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -396,48 +414,59 @@ export function Sidebar({
     }
   }, []);
 
-  const copyAssetPath = useCallback((asset: Asset, format: 'url' | 'abs' | 'rel') => {
-    if (!selectedPresentation) return;
+  const copyAssetPath = useCallback(
+    (asset: Asset, format: 'url' | 'abs' | 'rel') => {
+      if (!selectedPresentation) return;
 
-    let text: string;
-    let label: string;
+      let text: string;
+      let label: string;
 
-    switch (format) {
-      case 'url':
-        text = asset.url || '';
-        label = 'URL';
-        break;
-      case 'abs':
-        text = `${selectedPresentation.path}/${asset.filename}`;
-        label = 'absolute path';
-        break;
-      case 'rel':
-        text = `${selectedPresentation.id}/${asset.filename}`;
-        label = 'relative path';
-        break;
-    }
-
-    copyToClipboard(text, label);
-  }, [selectedPresentation, copyToClipboard]);
-
-  const copyAllPaths = useCallback((format: 'url' | 'abs' | 'rel') => {
-    if (!selectedPresentation) return;
-
-    const paths = selectedPresentation.assets.map((asset) => {
       switch (format) {
         case 'url':
-          return asset.url || '';
+          text = asset.url || '';
+          label = 'URL';
+          break;
         case 'abs':
-          return `${selectedPresentation.path}/${asset.filename}`;
+          text = `${selectedPresentation.path}/${asset.filename}`;
+          label = 'absolute path';
+          break;
         case 'rel':
-          return `${selectedPresentation.id}/${asset.filename}`;
+          text = `${selectedPresentation.id}/${asset.filename}`;
+          label = 'relative path';
+          break;
       }
-    });
 
-    const text = paths.join('\n');
-    const label = format === 'url' ? 'all URLs' : format === 'abs' ? 'all absolute paths' : 'all relative paths';
-    copyToClipboard(text, label);
-  }, [selectedPresentation, copyToClipboard]);
+      copyToClipboard(text, label);
+    },
+    [selectedPresentation, copyToClipboard]
+  );
+
+  const copyAllPaths = useCallback(
+    (format: 'url' | 'abs' | 'rel') => {
+      if (!selectedPresentation) return;
+
+      const paths = selectedPresentation.assets.map((asset) => {
+        switch (format) {
+          case 'url':
+            return asset.url || '';
+          case 'abs':
+            return `${selectedPresentation.path}/${asset.filename}`;
+          case 'rel':
+            return `${selectedPresentation.id}/${asset.filename}`;
+        }
+      });
+
+      const text = paths.join('\n');
+      const label =
+        format === 'url'
+          ? 'all URLs'
+          : format === 'abs'
+            ? 'all absolute paths'
+            : 'all relative paths';
+      copyToClipboard(text, label);
+    },
+    [selectedPresentation, copyToClipboard]
+  );
 
   // Drag-and-drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, assetId: string) => {
@@ -446,13 +475,16 @@ export function Sidebar({
     e.dataTransfer.setData('text/plain', assetId);
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent, assetId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (assetId !== draggedAssetId) {
-      setDropTargetId(assetId);
-    }
-  }, [draggedAssetId]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, assetId: string) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (assetId !== draggedAssetId) {
+        setDropTargetId(assetId);
+      }
+    },
+    [draggedAssetId]
+  );
 
   const handleDragLeave = useCallback(() => {
     setDropTargetId(null);
@@ -463,89 +495,93 @@ export function Sidebar({
     setDropTargetId(null);
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent, targetAssetId: string) => {
-    e.preventDefault();
+  const handleDrop = useCallback(
+    async (e: React.DragEvent, targetAssetId: string) => {
+      e.preventDefault();
 
-    if (!selectedPresentation || !draggedAssetId || draggedAssetId === targetAssetId) {
-      handleDragEnd();
-      return;
-    }
-
-    const assets = [...selectedPresentation.assets];
-    const draggedAsset = assets.find((a) => a.id === draggedAssetId);
-    const targetAsset = assets.find((a) => a.id === targetAssetId);
-    const draggedIndex = assets.findIndex((a) => a.id === draggedAssetId);
-    const targetIndex = assets.findIndex((a) => a.id === targetAssetId);
-
-    if (draggedIndex === -1 || targetIndex === -1 || !draggedAsset || !targetAsset) {
-      handleDragEnd();
-      return;
-    }
-
-    // Check if moving between groups (cross-group drag)
-    const sourceGroup = draggedAsset.group || null;
-    const targetGroup = targetAsset.group || null;
-    const isCrossGroupDrag = sourceGroup !== targetGroup;
-
-    const previousOrder = selectedPresentation.assets.map((a) => a.filename);
-    previousOrderRef.current = {
-      presentationId: selectedPresentation.id,
-      order: previousOrder,
-    };
-
-    try {
-      // If cross-group drag, update the group assignment first
-      if (isCrossGroupDrag) {
-        await api.put(
-          `/api/presentations/${selectedPresentation.id}/slides/${draggedAsset.id}`,
-          { group: targetGroup }
-        );
-        toast.success(targetGroup ? `Moved to ${targetGroup}` : 'Moved to root');
+      if (!selectedPresentation || !draggedAssetId || draggedAssetId === targetAssetId) {
+        handleDragEnd();
+        return;
       }
 
-      // Then reorder
-      const [draggedItem] = assets.splice(draggedIndex, 1);
-      assets.splice(targetIndex, 0, draggedItem);
-      const newOrder = assets.map((a) => a.filename);
+      const assets = [...selectedPresentation.assets];
+      const draggedAsset = assets.find((a) => a.id === draggedAssetId);
+      const targetAsset = assets.find((a) => a.id === targetAssetId);
+      const draggedIndex = assets.findIndex((a) => a.id === draggedAssetId);
+      const targetIndex = assets.findIndex((a) => a.id === targetAssetId);
 
-      await api.put(`/api/presentations/${selectedPresentation.id}/order`, { order: newOrder });
-      onAssetsReordered?.();
-    } catch (error) {
-      console.error('Failed to save asset order:', error);
-      previousOrderRef.current = null;
-      toast.error('Failed to move slide');
-    }
+      if (draggedIndex === -1 || targetIndex === -1 || !draggedAsset || !targetAsset) {
+        handleDragEnd();
+        return;
+      }
 
-    handleDragEnd();
-  }, [selectedPresentation, draggedAssetId, handleDragEnd, onAssetsReordered]);
+      // Check if moving between groups (cross-group drag)
+      const sourceGroup = draggedAsset.group || null;
+      const targetGroup = targetAsset.group || null;
+      const isCrossGroupDrag = sourceGroup !== targetGroup;
+
+      const previousOrder = selectedPresentation.assets.map((a) => a.filename);
+      previousOrderRef.current = {
+        presentationId: selectedPresentation.id,
+        order: previousOrder,
+      };
+
+      try {
+        // If cross-group drag, update the group assignment first
+        if (isCrossGroupDrag) {
+          await api.put(`/api/presentations/${selectedPresentation.id}/slides/${draggedAsset.id}`, {
+            group: targetGroup,
+          });
+          toast.success(targetGroup ? `Moved to ${targetGroup}` : 'Moved to root');
+        }
+
+        // Then reorder
+        const [draggedItem] = assets.splice(draggedIndex, 1);
+        assets.splice(targetIndex, 0, draggedItem);
+        const newOrder = assets.map((a) => a.filename);
+
+        await api.put(`/api/presentations/${selectedPresentation.id}/order`, { order: newOrder });
+        onAssetsReordered?.();
+      } catch (error) {
+        console.error('Failed to save asset order:', error);
+        previousOrderRef.current = null;
+        toast.error('Failed to move slide');
+      }
+
+      handleDragEnd();
+    },
+    [selectedPresentation, draggedAssetId, handleDragEnd, onAssetsReordered]
+  );
 
   // Drop to group handler (for grouped mode - dropping onto group headers)
-  const handleDropToGroup = useCallback(async (_e: React.DragEvent, groupId: string | null) => {
-    if (!selectedPresentation || !draggedAssetId) return;
+  const handleDropToGroup = useCallback(
+    async (_e: React.DragEvent, groupId: string | null) => {
+      if (!selectedPresentation || !draggedAssetId) return;
 
-    const draggedAsset = selectedPresentation.assets.find((a) => a.id === draggedAssetId);
-    if (!draggedAsset) return;
+      const draggedAsset = selectedPresentation.assets.find((a) => a.id === draggedAssetId);
+      if (!draggedAsset) return;
 
-    // Check if already in this group
-    const currentGroup = draggedAsset.group || null;
-    if (currentGroup === groupId) {
+      // Check if already in this group
+      const currentGroup = draggedAsset.group || null;
+      if (currentGroup === groupId) {
+        handleDragEnd();
+        return;
+      }
+
+      try {
+        await api.put(`/api/presentations/${selectedPresentation.id}/slides/${draggedAsset.id}`, {
+          group: groupId,
+        });
+        onAssetsReordered?.();
+        toast.success(groupId ? `Moved to ${groupId}` : 'Moved to root');
+      } catch (error) {
+        console.error('Failed to move slide to group:', error);
+        toast.error('Failed to move slide');
+      }
       handleDragEnd();
-      return;
-    }
-
-    try {
-      await api.put(
-        `/api/presentations/${selectedPresentation.id}/slides/${draggedAsset.id}`,
-        { group: groupId }
-      );
-      onAssetsReordered?.();
-      toast.success(groupId ? `Moved to ${groupId}` : 'Moved to root');
-    } catch (error) {
-      console.error('Failed to move slide to group:', error);
-      toast.error('Failed to move slide');
-    }
-    handleDragEnd();
-  }, [selectedPresentation, draggedAssetId, onAssetsReordered, handleDragEnd]);
+    },
+    [selectedPresentation, draggedAssetId, onAssetsReordered, handleDragEnd]
+  );
 
   // Render the index row (for grouped mode)
   const renderIndexRow = (asset: Asset) => {
@@ -697,30 +733,51 @@ export function Sidebar({
                 <button
                   onClick={() => setPreset('small')}
                   className="px-1.5 py-1 rounded text-xs transition-colors"
-                  style={{ color: '#ccba9d', backgroundColor: width === 280 ? '#4a4040' : 'transparent' }}
+                  style={{
+                    color: '#ccba9d',
+                    backgroundColor: width === 280 ? '#4a4040' : 'transparent',
+                  }}
                   title="Small (280px)"
-                  onMouseEnter={(e) => { if (width !== 280) e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                  onMouseLeave={(e) => { if (width !== 280) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    if (width !== 280) e.currentTarget.style.backgroundColor = '#4a4040';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (width !== 280) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   S
                 </button>
                 <button
                   onClick={() => setPreset('medium')}
                   className="px-1.5 py-1 rounded text-xs transition-colors"
-                  style={{ color: '#ccba9d', backgroundColor: width === 380 ? '#4a4040' : 'transparent' }}
+                  style={{
+                    color: '#ccba9d',
+                    backgroundColor: width === 380 ? '#4a4040' : 'transparent',
+                  }}
                   title="Medium (380px)"
-                  onMouseEnter={(e) => { if (width !== 380) e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                  onMouseLeave={(e) => { if (width !== 380) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    if (width !== 380) e.currentTarget.style.backgroundColor = '#4a4040';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (width !== 380) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   M
                 </button>
                 <button
                   onClick={() => setPreset('large')}
                   className="px-1.5 py-1 rounded text-xs transition-colors"
-                  style={{ color: '#ccba9d', backgroundColor: width === 480 ? '#4a4040' : 'transparent' }}
+                  style={{
+                    color: '#ccba9d',
+                    backgroundColor: width === 480 ? '#4a4040' : 'transparent',
+                  }}
                   title="Large (480px)"
-                  onMouseEnter={(e) => { if (width !== 480) e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                  onMouseLeave={(e) => { if (width !== 480) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    if (width !== 480) e.currentTarget.style.backgroundColor = '#4a4040';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (width !== 480) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   L
                 </button>
@@ -763,10 +820,7 @@ export function Sidebar({
                     >
                       Auto {!hasOverride && '✓'}
                     </button>
-                    <div
-                      className="my-1 border-t"
-                      style={{ borderColor: '#595959' }}
-                    />
+                    <div className="my-1 border-t" style={{ borderColor: '#595959' }} />
                     {/* Only flat and grouped modes - tabbed renderer was removed in FR-24 */}
                     {(['flat', 'grouped'] as const).map((m) => (
                       <button
@@ -945,7 +999,6 @@ export function Sidebar({
               />
             </div>
           )}
-
         </div>
       )}
 

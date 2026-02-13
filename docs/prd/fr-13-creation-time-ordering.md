@@ -16,15 +16,18 @@ As a presenter, I want new slides to appear in the order I created them so that 
 ## Problem
 
 Currently, when no `flideck.json` manifest exists, FliDeck sorts assets:
+
 1. `index.html` first
 2. Then alphabetically by name
 
 This means if I create `intro.html` at 12:00pm and `problem.html` at 1:00pm, they appear as:
+
 - index.html
 - intro.html
 - problem.html
 
 But if I create `zebra.html` at 12:00pm and `alpha.html` at 1:00pm, they appear as:
+
 - index.html
 - alpha.html ← created second, but appears first
 - zebra.html
@@ -38,6 +41,7 @@ This breaks the natural flow of creation. Slides should appear in the order they
 Change the default ordering logic in `PresentationService.discoverAssets()`:
 
 **Current (alphabetical):**
+
 ```typescript
 assets.sort((a, b) => {
   if (a.isIndex) return -1;
@@ -47,6 +51,7 @@ assets.sort((a, b) => {
 ```
 
 **New (creation time):**
+
 ```typescript
 assets.sort((a, b) => {
   if (a.isIndex) return -1;
@@ -72,8 +77,8 @@ assets.sort((a, b) => {
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
+| File                                         | Change                                                     |
+| -------------------------------------------- | ---------------------------------------------------------- |
 | `server/src/services/PresentationService.ts` | Change default sort from `localeCompare` to `lastModified` |
 
 ### Consideration: mtime vs birthtime
@@ -103,6 +108,7 @@ const createdAt = stat.birthtimeMs || stat.mtimeMs;
 **Implemented:** 2025-12-22
 
 **What was done:**
+
 - Added `createdAt` field to Asset interface (uses birthtime, falls back to mtime)
 - Changed default sort from alphabetical (`localeCompare`) to creation time (oldest first)
 - `index.html` still always appears first regardless of creation time

@@ -17,6 +17,7 @@ Environment variables are set at startup and require restart to change. Users ne
 ## Solution
 
 Replace environment variable configuration with a `config.json` file that:
+
 - Lives at project root
 - Is gitignored (user-specific)
 - Has a committed `config.example.json` template
@@ -55,6 +56,7 @@ Replace environment variable configuration with a `config.json` file that:
 - Update `config.example.json` whenever new config options are added
 
 **Files to create/modify:**
+
 - `config.json` (new, gitignored)
 - `config.example.json` (new, committed)
 - `.gitignore` (add config.json)
@@ -79,6 +81,7 @@ Replace environment variable configuration with a `config.json` file that:
    - Dynamic static file serving for presentations
 
 **Hot Reload Flow:**
+
 1. User edits `config.json`
 2. Chokidar detects change (500ms debounce)
 3. Callback reloads config
@@ -90,6 +93,7 @@ Replace environment variable configuration with a `config.json` file that:
    - `config:changed` event emitted to clients
 
 **Testing Verified:**
+
 - Config loading with tilde expansion
 - Fallback to example config
 - Hot reload without server restart

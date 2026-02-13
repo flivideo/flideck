@@ -9,6 +9,7 @@ Creating a new group fails with "Failed to create group" error when the presenta
 **Presentation:** claude-plugin-marketplace
 
 **Steps to reproduce:**
+
 1. Open presentation in flat mode
 2. Switch to grouped mode using display mode switcher
 3. Click "+ Add Group" button in sidebar
@@ -16,11 +17,13 @@ Creating a new group fails with "Failed to create group" error when the presenta
 5. Press Enter or click save
 
 **Expected result:**
+
 - Group is created successfully
 - Group appears in sidebar
 - Toast notification confirms creation
 
 **Actual result:**
+
 - Error toast: "Failed to create group"
 - Group is not created
 - No group appears in sidebar
@@ -76,14 +79,17 @@ Creating a new group fails with "Failed to create group" error when the presenta
 ## Related Code
 
 **Client:**
+
 - `client/src/components/layout/Sidebar.tsx` - Group creation handler
 - `client/src/components/layout/SidebarGrouped.tsx` - "+ Add Group" UI
 
 **Server:**
+
 - `server/src/routes/presentations.ts` - `POST /api/presentations/:id/groups` endpoint
 - `server/src/services/PresentationService.ts` - `createGroup()` method
 
 **API:**
+
 - Endpoint: `POST /api/presentations/:id/groups`
 - Request body: `{ id: string, label: string }`
 - Expected response: `{ success: true }` or error
@@ -118,12 +124,14 @@ Creating a new group fails with "Failed to create group" error when the presenta
    - Added `presentations` and `selectedPresentationId` to useCallback dependencies for proper closure
 
 **How it fixes the bug:**
+
 - If `selectedPresentation` is undefined, user now sees a clear error message instead of silent failure
 - Console logging helps diagnose if this is a data loading issue, prop passing issue, or race condition
 - The error message guides users to refresh or wait for data to load
 - Does not mask the underlying issue - makes it visible for further debugging if needed
 
 **Testing:**
+
 - Manual test: Open presentation in flat mode
 - Switch to grouped mode using display mode switcher
 - Click "+ Add Group" / "+ New Group" button

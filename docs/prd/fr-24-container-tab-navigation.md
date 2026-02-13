@@ -9,6 +9,7 @@ Move the tab bar from inside iframe content to the FliDeck container level. Each
 ## Problem Statement
 
 **Current state:**
+
 - Tabs are embedded inside index.html (iframe content)
 - Each presentation has ONE index.html with all tabs hardcoded
 - In presentation mode (hide header + sidebar), tab navigation is lost
@@ -16,6 +17,7 @@ Move the tab bar from inside iframe content to the FliDeck container level. Each
 - No separation between tab navigation and content
 
 **Issues:**
+
 1. **Presentation mode loses navigation** - hiding sidebar means losing all navigation
 2. **Monolithic index.html** - one complex file with all tabs, hard to maintain
 3. **Sidebar/iframe disconnect** - sidebar tabs don't match iframe tabs
@@ -42,6 +44,7 @@ Move tabs to container level:
 ```
 
 **Key changes:**
+
 - Sidebar spans full height (header to bottom, left side)
 - Tab bar sits to RIGHT of sidebar, below header
 - Each tab loads a DIFFERENT index file into iframe
@@ -92,13 +95,12 @@ Add `tabs` array to manifest:
     "mary-analysis": { "label": "Analysis", "tab": "mary", "order": 2 },
     "john-prd": { "label": "PRD", "tab": "john", "order": 1 }
   },
-  "slides": [
-    { "file": "analyst-workflow-intro.html", "group": "mary-workflows" }
-  ]
+  "slides": [{ "file": "analyst-workflow-intro.html", "group": "mary-workflows" }]
 }
 ```
 
 **New properties:**
+
 - `tabs[]` - Array of tab definitions
 - `tabs[].file` - Index HTML file to load for this tab
 - `tabs[].subtitle` - Optional subtitle shown under tab label
@@ -107,6 +109,7 @@ Add `tabs` array to manifest:
 ### Behavior
 
 **When clicking a tab:**
+
 1. FliDeck updates iframe `src` to tab's `file` (e.g., `index-mary.html`)
 2. Sidebar filters to show only groups where `tab === activeTabId`
 3. Slides filter accordingly
@@ -114,12 +117,14 @@ Add `tabs` array to manifest:
 5. Active tab persists to localStorage
 
 **Presentation mode (F key):**
+
 - Header: **Hidden**
 - Sidebar: **Hidden**
 - Tab bar: **Visible** (shifts to top of viewport)
 - Content: **Full width minus tab bar? Or tab bar becomes horizontal top bar?**
 
 **No tabs defined:**
+
 - If `tabs` array is empty/missing, no tab bar shown
 - Reverts to current behavior (grouped/flat sidebar)
 
@@ -140,6 +145,7 @@ presentation-folder/
 ```
 
 **Index file contents:**
+
 - Card grid showing slides for that tab
 - Uses flideck-index.js for reorder sync
 - Simpler than monolithic index.html (no embedded tab system)
@@ -147,10 +153,12 @@ presentation-folder/
 ### flideck-index.js Coupling
 
 The coupling is STILL NEEDED for:
+
 - **Slide reorder sync** - when slides move in sidebar, index page reflects change
 - **Slide add/remove sync** - when slides are added/removed
 
 What's REMOVED from coupling:
+
 - **Tab navigation** - now handled by container
 - **Tab state persistence** - now handled by container
 
@@ -164,7 +172,7 @@ Updated library usage:
     // No tab config needed - container handles tabs
     onReorder: (slides) => {
       // Re-render card grid with new order
-    }
+    },
   });
 </script>
 ```
@@ -172,6 +180,7 @@ Updated library usage:
 ## Acceptance Criteria
 
 ### Tab Bar UI
+
 - [ ] Tab bar renders between header and content area
 - [ ] Tab bar is to the right of sidebar
 - [ ] Tabs display label and optional subtitle
@@ -180,29 +189,34 @@ Updated library usage:
 - [ ] Tab bar horizontally scrolls if many tabs
 
 ### Tab Navigation
+
 - [ ] Clicking tab loads corresponding file into iframe
 - [ ] Active tab persists to localStorage per presentation
 - [ ] Sidebar filters groups by active tab
 - [ ] Slides filter to show only slides in active tab's groups
 
 ### Presentation Mode
+
 - [ ] Tab bar remains visible when header/sidebar hidden
 - [ ] Tab navigation works in presentation mode
 - [ ] Tab bar repositions appropriately (top of viewport?)
 
 ### Manifest Support
+
 - [ ] `tabs` array in manifest defines tabs
 - [ ] `tabs[].file` specifies index file to load
 - [ ] `groups[].tab` links group to a tab
 - [ ] Missing `tabs` array = no tab bar (backward compatible)
 
 ### Tab CRUD (extending FR-22)
+
 - [ ] Create tab via API adds to `tabs` array
 - [ ] Delete tab removes from `tabs` array
 - [ ] Rename tab updates `tabs[].label`
 - [ ] Reorder tabs updates `tabs[].order`
 
 ### Backward Compatibility
+
 - [ ] Presentations without `tabs` array work as before
 - [ ] Legacy `groups[].tab: true` deprecated but still functional?
 
@@ -227,6 +241,7 @@ Updated library usage:
 ### Presentation Mode Layout
 
 When in presentation mode:
+
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │ MARY │ JOHN │ WINSTON │ EPIC 1 │ EPIC 2 │ ... │ EPIC 7 │            │  ← Tab bar at top
@@ -240,6 +255,7 @@ When in presentation mode:
 ### Migration Path
 
 For existing presentations like BMAD Poem:
+
 1. Split monolithic `index.html` into `index-mary.html`, `index-john.html`, etc.
 2. Add `tabs` array to manifest
 3. Update `groups` to have `tab` property
@@ -258,12 +274,12 @@ For existing presentations like BMAD Poem:
 
 ## Design Decisions
 
-| Question | Decision |
-|----------|----------|
-| **Tab bar styling** | Same as current sidebar tabs (consistent look). Future enhancement: tabs could inherit styling from their loaded page (out of scope for v1). |
-| **Missing index file** | Show error message in iframe content area. |
-| **Default tab** | First in `tabs[]` array by order. Use localStorage to remember last viewed tab per presentation. |
-| **Keyboard navigation** | Mouse only for now. No keyboard shortcuts. |
+| Question                | Decision                                                                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tab bar styling**     | Same as current sidebar tabs (consistent look). Future enhancement: tabs could inherit styling from their loaded page (out of scope for v1). |
+| **Missing index file**  | Show error message in iframe content area.                                                                                                   |
+| **Default tab**         | First in `tabs[]` array by order. Use localStorage to remember last viewed tab per presentation.                                             |
+| **Keyboard navigation** | Mouse only for now. No keyboard shortcuts.                                                                                                   |
 
 ## Priority
 

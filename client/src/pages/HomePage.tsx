@@ -68,7 +68,7 @@ export function HomePage() {
               style={{
                 fontFamily: "'Oswald', Arial, sans-serif",
                 textTransform: 'uppercase',
-                color: '#ccba9d'
+                color: '#ccba9d',
               }}
             >
               Available Presentations
@@ -81,7 +81,7 @@ export function HomePage() {
                   className="rounded-lg p-4 text-left transition-all duration-200 border"
                   style={{
                     backgroundColor: '#3d3535',
-                    borderColor: '#4a4040'
+                    borderColor: '#4a4040',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = '#ffde59';
@@ -92,9 +92,7 @@ export function HomePage() {
                     e.currentTarget.style.backgroundColor = '#3d3535';
                   }}
                 >
-                  <h3 className="text-white font-medium mb-1">
-                    {presentation.name}
-                  </h3>
+                  <h3 className="text-white font-medium mb-1">{presentation.name}</h3>
                   <p className="text-sm" style={{ color: '#ccba9d' }}>
                     {presentation.assets.length} asset
                     {presentation.assets.length !== 1 ? 's' : ''}

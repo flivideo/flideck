@@ -11,11 +11,11 @@ Add full CRUD operations for tabs in both API and UI, plus group-tab relationshi
 **Current state (after FR-17 and FR-20):**
 
 | Operation | Groups API | Groups UI | Tabs API | Tabs UI |
-|-----------|:----------:|:---------:|:--------:|:-------:|
-| Create | ✅ | ✅ | ⚠️ | ❌ |
-| Delete | ✅ | ✅ | ⚠️ | ❌ |
-| Rename | ✅ | ✅ | ⚠️ | ❌ |
-| Reorder | ✅ | ❌ | ⚠️ | ❌ |
+| --------- | :--------: | :-------: | :------: | :-----: |
+| Create    |     ✅     |    ✅     |    ⚠️    |   ❌    |
+| Delete    |     ✅     |    ✅     |    ⚠️    |   ❌    |
+| Rename    |     ✅     |    ✅     |    ⚠️    |   ❌    |
+| Reorder   |     ✅     |    ❌     |    ⚠️    |   ❌    |
 
 - ✅ = Implemented
 - ❌ = Not implemented
@@ -23,13 +23,14 @@ Add full CRUD operations for tabs in both API and UI, plus group-tab relationshi
 
 **Group-Tab relationships (parent/child):**
 
-| Operation | API | UI |
-|-----------|:---:|:--:|
-| Move group under tab | ❌ | ❌ |
-| Remove group from tab | ❌ | ❌ |
-| Move group to different tab | ❌ | ❌ |
+| Operation                   | API | UI  |
+| --------------------------- | :-: | :-: |
+| Move group under tab        | ❌  | ❌  |
+| Remove group from tab       | ❌  | ❌  |
+| Move group to different tab | ❌  | ❌  |
 
 **Impact:**
+
 - Users cannot create/manage tabs without editing JSON
 - No way to organize groups under tabs via UI
 - Group reorder UI still missing from FR-17
@@ -40,14 +41,15 @@ Add full CRUD operations for tabs in both API and UI, plus group-tab relationshi
 
 Extend existing group endpoints to explicitly handle tabs:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/presentations/:id/tabs` | Create tab |
-| DELETE | `/api/presentations/:id/tabs/:tabId` | Delete tab |
-| PUT | `/api/presentations/:id/tabs/:tabId` | Rename tab |
-| PUT | `/api/presentations/:id/tabs/order` | Reorder tabs |
+| Method | Endpoint                             | Description  |
+| ------ | ------------------------------------ | ------------ |
+| POST   | `/api/presentations/:id/tabs`        | Create tab   |
+| DELETE | `/api/presentations/:id/tabs/:tabId` | Delete tab   |
+| PUT    | `/api/presentations/:id/tabs/:tabId` | Rename tab   |
+| PUT    | `/api/presentations/:id/tabs/order`  | Reorder tabs |
 
 **Create Tab:**
+
 ```json
 POST /api/presentations/:id/tabs
 {
@@ -55,24 +57,30 @@ POST /api/presentations/:id/tabs
   "label": "Personas"
 }
 ```
+
 Creates group with `tab: true`.
 
 **Delete Tab:**
+
 ```json
 DELETE /api/presentations/:id/tabs/personas
 ```
+
 Options for child groups:
+
 - `?orphan=true` (default) - Child groups become parentless (appear in General)
 - `?cascade=true` - Delete child groups too
 - `?reparent=otherId` - Move children to another tab
 
 **Reorder Tabs:**
+
 ```json
 PUT /api/presentations/:id/tabs/order
 {
   "order": ["mary", "john", "winston"]
 }
 ```
+
 Only reorders groups where `tab: true`.
 
 ### 2. Tab UI
@@ -93,6 +101,7 @@ Only reorders groups where `tab: true`.
 - **Drag tab headers** to reorder
 
 **Inline rename:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ [Mary] [[John_________] ✓ ✗] [Winston] [Epic 1]            │
@@ -101,12 +110,13 @@ Only reorders groups where `tab: true`.
 
 ### 3. Group-Tab Relationship API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| PUT | `/api/presentations/:id/groups/:groupId/parent` | Set/change parent tab |
-| DELETE | `/api/presentations/:id/groups/:groupId/parent` | Remove from tab |
+| Method | Endpoint                                        | Description           |
+| ------ | ----------------------------------------------- | --------------------- |
+| PUT    | `/api/presentations/:id/groups/:groupId/parent` | Set/change parent tab |
+| DELETE | `/api/presentations/:id/groups/:groupId/parent` | Remove from tab       |
 
 **Move group under tab:**
+
 ```json
 PUT /api/presentations/:id/groups/tutorials/parent
 {
@@ -115,19 +125,23 @@ PUT /api/presentations/:id/groups/tutorials/parent
 ```
 
 **Remove group from tab:**
+
 ```json
 DELETE /api/presentations/:id/groups/tutorials/parent
 ```
+
 Group becomes parentless (appears in General tab or at root in grouped mode).
 
 ### 4. Group-Tab Relationship UI
 
 **In tabbed mode - drag group to different tab:**
+
 - Drag group header onto a tab header
 - Visual feedback: tab header highlights
 - Drop assigns `parent` to that tab
 
 **In tabbed mode - context menu on group:**
+
 ```
 ┌──────────────────┐
 │ Move to tab →    │ ▶ [Mary]
@@ -145,16 +159,19 @@ Group becomes parentless (appears in General tab or at root in grouped mode).
 Complete the deferred group reorder from FR-17:
 
 **Grouped mode:**
+
 - Drag group headers to reorder
 - Visual feedback: drop zone indicator between groups
 
 **Tabbed mode:**
+
 - Drag group headers within a tab to reorder
 - Order persists per-tab
 
 ## Acceptance Criteria
 
 ### Tab API
+
 - [x] `POST /api/presentations/:id/tabs` creates tab (group with `tab: true`)
 - [x] `DELETE /api/presentations/:id/tabs/:tabId` deletes tab
 - [x] `DELETE` with `?strategy=orphan` makes child groups parentless (default)
@@ -164,6 +181,7 @@ Complete the deferred group reorder from FR-17:
 - [x] `PUT /api/presentations/:id/tabs/order` reorders tabs only
 
 ### Tab UI
+
 - [x] "+ New Tab" button in tab bar
 - [x] Context menu on tab headers (rename, delete)
 - [x] Inline rename for tabs
@@ -171,18 +189,21 @@ Complete the deferred group reorder from FR-17:
 - [ ] Drag tab headers to reorder (deferred - less critical)
 
 ### Group-Tab API
+
 - [x] `PUT /api/presentations/:id/groups/:groupId/parent` sets parent
 - [x] `DELETE /api/presentations/:id/groups/:groupId/parent` removes parent
 - [x] Setting non-existent parent returns 404
 - [x] Setting parent to non-tab group returns 400
 
 ### Group-Tab UI
+
 - [x] Drag group header to tab header moves group under tab
 - [x] Context menu "Move to tab" submenu
 - [x] "Remove from tab" option in context menu
 - [x] Visual feedback when dragging over tab headers
 
 ### Group Reorder UI (FR-17 completion)
+
 - [ ] Drag group headers to reorder in grouped mode (deferred)
 - [ ] Drag group headers to reorder within tab in tabbed mode (deferred)
 - [ ] Visual drop zone indicators (deferred)
@@ -202,6 +223,7 @@ createGroup(id, { ...body, tab: true });
 ### Delete cascade behavior
 
 When deleting a tab with children:
+
 1. Default (`?orphan=true`): Set `parent: undefined` on all child groups
 2. Cascade (`?cascade=true`): Delete all child groups (and their slides lose group assignment)
 3. Reparent (`?reparent=newTabId`): Update `parent` on all child groups
@@ -237,9 +259,11 @@ Both affect the `order` property; tabs/order is a filtered convenience.
 ### Completed (2025-12-24)
 
 #### Backend Implementation
+
 All Tab CRUD and Group-Tab relationship API endpoints have been implemented:
 
 **Files Modified:**
+
 - `shared/src/types.ts` - Added FR-22 type definitions:
   - `CreateTabRequest`, `UpdateTabRequest`, `ReorderTabsRequest`
   - `SetGroupParentRequest`
@@ -261,6 +285,7 @@ All Tab CRUD and Group-Tab relationship API endpoints have been implemented:
 - `CLAUDE.md` - Updated API documentation table
 
 **Implementation Details:**
+
 - Tab deletion supports three strategies via query parameter:
   - `?strategy=orphan` (default) - Makes child groups parentless
   - `?strategy=cascade` - Deletes child groups and their slides
@@ -278,6 +303,7 @@ All Tab CRUD and Group-Tab relationship API endpoints have been implemented:
 All core tab management UI features have been implemented:
 
 **Files Modified:**
+
 - `client/src/components/layout/Sidebar.tsx` - Added tab management state and handlers:
   - `startEditingTab()`, `cancelEditingTab()`, `saveTabLabel()` - Tab inline rename
   - `deleteTab()` - Tab deletion with strategy support
@@ -295,6 +321,7 @@ All core tab management UI features have been implemented:
   - Drag handle (⋮⋮) on groups indicating they can be dragged to tabs
 
 **Features Implemented:**
+
 - Tab CRUD: Create, rename, delete tabs via UI
 - Group-tab relationships: Drag groups to tabs, or use context menu
 - Visual feedback: Tab headers highlight when dragging groups over them
@@ -302,6 +329,7 @@ All core tab management UI features have been implemented:
 - Inline editing: Click rename → edit in place → Enter/Escape/blur to save/cancel
 
 **Deferred Features:**
+
 - Tab reorder via drag-and-drop (less critical, API exists)
 - Group reorder UI in grouped/tabbed modes (deferred from FR-17)
 - Visual drop zone indicators for group reordering

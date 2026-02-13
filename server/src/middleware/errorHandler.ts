@@ -20,11 +20,7 @@ export class AppError extends Error {
 /**
  * Type for async request handlers that return Promises.
  */
-type AsyncRequestHandler = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => Promise<void>;
+type AsyncRequestHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
 /**
  * Wraps async route handlers to properly catch and forward errors.
@@ -40,12 +36,7 @@ export function asyncHandler(fn: AsyncRequestHandler): RequestHandler {
  * Global error handler middleware.
  * Logs errors and returns appropriate JSON responses.
  */
-export function errorHandler(
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction
-): void {
+export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
   // Log error
   console.error('Error:', err.message);
   if (process.env.NODE_ENV === 'development') {

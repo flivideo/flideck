@@ -39,11 +39,11 @@ These are **orthogonal** concerns that work together:
 
 ### Supported Modes
 
-| Mode | Description | Use Case | Renderer |
-|------|-------------|----------|----------|
-| `flat` | Simple list, no grouping | 1-15 slides | `SidebarFlat.tsx` |
-| `grouped` | Collapsible group sections | 15+ slides with groups | `SidebarGrouped.tsx` |
-| `tabbed` | **OBSOLETE** | Removed in FR-24 | **No renderer exists** |
+| Mode      | Description                | Use Case               | Renderer               |
+| --------- | -------------------------- | ---------------------- | ---------------------- |
+| `flat`    | Simple list, no grouping   | 1-15 slides            | `SidebarFlat.tsx`      |
+| `grouped` | Collapsible group sections | 15+ slides with groups | `SidebarGrouped.tsx`   |
+| `tabbed`  | **OBSOLETE**               | Removed in FR-24       | **No renderer exists** |
 
 ### Auto-Detection Logic
 
@@ -72,6 +72,7 @@ function detectDisplayMode(presentation): DisplayMode {
 ### What Are Container Tabs?
 
 Container tabs are a **navigation layer** that:
+
 1. Display as tabs at the top of the content area
 2. Each tab loads a different HTML file (index-{tabname}.html)
 3. Filter sidebar content to show only relevant groups
@@ -94,11 +95,11 @@ Container tabs are a **navigation layer** that:
 
 ### Tab-to-Content Mapping
 
-| Component | Behavior When Tab Active |
-|-----------|-------------------------|
-| TabBar | Shows tabs, highlights active one |
-| AssetViewer | Loads tab's index file via `src` attribute |
-| Sidebar | Filters to show only groups with matching `tabId` |
+| Component   | Behavior When Tab Active                          |
+| ----------- | ------------------------------------------------- |
+| TabBar      | Shows tabs, highlights active one                 |
+| AssetViewer | Loads tab's index file via `src` attribute        |
+| Sidebar     | Filters to show only groups with matching `tabId` |
 
 ### Filtering Logic
 
@@ -114,6 +115,7 @@ for (const [groupId, def] of sortedGroups) {
 ```
 
 **Important rules:**
+
 - Groups WITH `tabId` matching active tab: **SHOWN**
 - Groups WITH `tabId` NOT matching active tab: **HIDDEN**
 - Groups WITHOUT `tabId`: **SHOWN IN ALL TABS**
@@ -125,10 +127,10 @@ for (const [groupId, def] of sortedGroups) {
 
 ### Two Rendering Modes
 
-| Condition | Rendering Method | Component Props |
-|-----------|-----------------|-----------------|
-| Container tab active | iframe `src={tabFile}` | `indexFile` prop |
-| Individual asset selected | iframe `srcdoc={content}` | `content` prop |
+| Condition                 | Rendering Method          | Component Props  |
+| ------------------------- | ------------------------- | ---------------- |
+| Container tab active      | iframe `src={tabFile}`    | `indexFile` prop |
+| Individual asset selected | iframe `srcdoc={content}` | `content` prop   |
 
 ### State Transitions
 
@@ -191,6 +193,7 @@ This is intentional (FR-25 decision) - root-level content is "universal." Howeve
 **Problem:** Sidebar shows nothing after clicking a container tab.
 
 **Causes:**
+
 1. Groups have `tabId` that doesn't match any actual tab
 2. Groups all have `tabId` for different tabs
 3. "Tabbed" display mode selected (has no renderer)
@@ -207,17 +210,17 @@ This is **intentional** (BUG-2 fix). When navigating between assets with keyboar
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `Sidebar.tsx` | Main coordinator, filtering logic |
-| `SidebarFlat.tsx` | Flat mode renderer |
-| `SidebarGrouped.tsx` | Grouped mode renderer |
-| `useDisplayMode.ts` | Display mode state + persistence |
-| `displayMode.ts` | Auto-detection logic |
-| `useContainerTab.ts` | Container tab state + persistence |
-| `TabBar.tsx` | Container tab UI |
-| `PresentationPage.tsx` | Orchestrates all state |
-| `AssetViewer.tsx` | Content rendering (src vs srcdoc) |
+| File                   | Purpose                           |
+| ---------------------- | --------------------------------- |
+| `Sidebar.tsx`          | Main coordinator, filtering logic |
+| `SidebarFlat.tsx`      | Flat mode renderer                |
+| `SidebarGrouped.tsx`   | Grouped mode renderer             |
+| `useDisplayMode.ts`    | Display mode state + persistence  |
+| `displayMode.ts`       | Auto-detection logic              |
+| `useContainerTab.ts`   | Container tab state + persistence |
+| `TabBar.tsx`           | Container tab UI                  |
+| `PresentationPage.tsx` | Orchestrates all state            |
+| `AssetViewer.tsx`      | Content rendering (src vs srcdoc) |
 
 ---
 
@@ -238,16 +241,18 @@ This is **intentional** (BUG-2 fix). When navigating between assets with keyboar
 **Context:** User reported empty sidebar when selecting "Tabbed" mode on bmad-poem presentation.
 
 **Root Cause:** BUG-5 fix had inverted logic:
+
 - Code: Hide "Tabbed" when NO tabs exist
 - Should be: Hide "Tabbed" ALWAYS (since no renderer exists)
 
 **Technical Detail:**
+
 ```typescript
 // Sidebar.tsx line 682-687 - INVERTED LOGIC
 if (m === 'tabbed' && (!selectedPresentation?.tabs || selectedPresentation.tabs.length === 0)) {
-  return false;  // Hides when NO tabs (correct)
+  return false; // Hides when NO tabs (correct)
 }
-return true;  // Shows when tabs EXIST (wrong - no renderer!)
+return true; // Shows when tabs EXIST (wrong - no renderer!)
 ```
 
 **Fix Required:** Hide "Tabbed" from mode switcher unconditionally since there's no `SidebarTabbed` component.

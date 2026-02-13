@@ -9,6 +9,7 @@ Keyboard navigation (Cmd/Ctrl + arrow keys) stops updating the iframe content af
 **Presentation:** bmad-poem (or any presentation using container tabs from FR-24)
 
 **Steps to reproduce:**
+
 1. Open a presentation with container tabs (has `tabs[]` array in manifest)
 2. Click on a container tab (e.g., "Mary", "John", "Winston")
 3. Press `Cmd + →` (or `Ctrl + →` on Windows/Linux) to navigate to next asset
@@ -16,11 +17,13 @@ Keyboard navigation (Cmd/Ctrl + arrow keys) stops updating the iframe content af
 5. Observe iframe content DOES NOT update
 
 **Expected result:**
+
 - Sidebar highlight moves to next asset
 - Iframe updates to show the new asset content
 - Navigation works seamlessly
 
 **Actual result:**
+
 - Sidebar highlight moves correctly
 - Iframe remains showing the container tab's index file (e.g., `index-mary.html`)
 - Asset content is not displayed
@@ -30,16 +33,19 @@ Keyboard navigation (Cmd/Ctrl + arrow keys) stops updating the iframe content af
 **Container tab mode vs Asset mode:**
 
 Container tabs (FR-24) load index files using iframe `src` attribute:
+
 ```tsx
 <iframe src="/api/assets/bmad-poem/index-mary.html" />
 ```
 
 Regular asset navigation uses iframe `srcdoc` attribute:
+
 ```tsx
 <iframe srcdoc="<html>...</html>" />
 ```
 
 **Per HTML spec:** When both `src` and `srcdoc` are present, `srcdoc` takes precedence. However, after clicking a container tab:
+
 1. Iframe `src` is set to the tab's index file
 2. Navigation logic tries to set `srcdoc` to the asset content
 3. But the `src` attribute is still present (or vice versa)
@@ -48,6 +54,7 @@ Regular asset navigation uses iframe `srcdoc` attribute:
 **Navigation handler doesn't understand modes:**
 
 The keyboard navigation handler (`PresentationPage.tsx`) likely:
+
 - Updates the URL/state to point to an asset
 - Sidebar highlights the asset
 - BUT iframe is still in "container tab mode" showing an index file
@@ -74,22 +81,26 @@ The keyboard navigation handler (`PresentationPage.tsx`) likely:
 ## Proposed Solution
 
 **Option 1: Disable navigation in container tab mode**
+
 - When a container tab is active, disable Cmd+arrow navigation
 - Show toast: "Navigation disabled in tab overview mode"
 - User must click assets in sidebar to navigate
 
 **Option 2: Navigate exits container tab mode**
+
 - When user presses Cmd+arrow while in container tab, exit tab mode
 - Switch to first asset in sidebar
 - Clear container tab state
 - Show normal asset content
 
 **Option 3: Navigate within tab context**
+
 - Cmd+arrow navigates between assets in the active tab's groups
 - Stay in asset viewing mode (not container tab mode)
 - Container tab remains "active" conceptually but show asset content
 
 **Recommendation:** **Option 3** - Most intuitive for users
+
 - Container tab filters which assets are visible
 - Cmd+arrows navigate between those filtered assets
 - Never show index file when navigating between assets
@@ -107,11 +118,13 @@ The keyboard navigation handler (`PresentationPage.tsx`) likely:
 ## Related Code
 
 **Client:**
+
 - `client/src/pages/PresentationPage.tsx` - Navigation handlers, container tab state
 - `client/src/components/ui/AssetViewer.tsx` - Iframe src/srcdoc handling
 - `client/src/hooks/useContainerTab.ts` - Container tab state management
 
 **Key logic to review:**
+
 - Keyboard event handlers (arrow keys)
 - `handleNavigate()` or equivalent function
 - Iframe attribute clearing (removeAttribute per FR-24 line 350)
@@ -135,6 +148,7 @@ The keyboard navigation handler (`PresentationPage.tsx`) likely:
 **Solution Implemented**: Option 3 - Navigate within tab context
 
 When users navigate with Cmd+arrow keys (or quick filter) after clicking a container tab, the navigation now:
+
 1. Selects the target asset
 2. Clears the active container tab state
 3. Switches the iframe from showing index file (src) to showing asset content (srcdoc)
@@ -151,12 +165,14 @@ When users navigate with Cmd+arrow keys (or quick filter) after clicking a conta
    - Ensures consistency across all navigation methods
 
 **Behavior:**
+
 - Click container tab → Shows index file
 - Press Cmd+arrow → Exits tab mode, shows first/next asset content
 - Sidebar highlight and iframe content stay in sync
 - Quick filter (Cmd+K) also exits tab mode when selecting assets
 
 **Testing:**
+
 - Manual test: Open bmad-poem presentation
 - Click "Mary" container tab → index-mary.html loads
 - Press Cmd+→ → Exits tab mode, shows first asset in sidebar

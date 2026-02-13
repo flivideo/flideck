@@ -9,11 +9,13 @@ The group order displayed in the sidebar doesn't match the order rendered in the
 **Presentation:** bmad-agents
 
 **Observed behavior:**
+
 - Sidebar shows groups in one order (e.g., Group A, Group B, Group C)
 - index.html renders groups in different order (e.g., Group C, Group A, Group B)
 - User clicks on "Group B" in sidebar, but index.html scrolls to wrong section
 
 **Expected behavior:**
+
 - Sidebar and index.html show groups in the same order
 - Order is determined by manifest `groups[].order` property
 - Clicking a group in sidebar scrolls to correct section in index.html
@@ -23,11 +25,13 @@ The group order displayed in the sidebar doesn't match the order rendered in the
 ### Hypothesis 1: Sidebar doesn't respect manifest order
 
 **Check:**
+
 - `SidebarGrouped.tsx` - Does it sort by `groups[].order`?
 - Review `Sidebar.tsx` line 118: `sortedGroups` sorting logic
 - Verify order values are parsed correctly (number vs string)
 
 **Expected code:**
+
 ```typescript
 const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.order);
 ```
@@ -35,16 +39,19 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 ### Hypothesis 2: Index.html doesn't use manifest order
 
 **Check:**
+
 - Does index.html use `flideck-index.js` library?
 - Does the library read manifest data and apply order?
 - Or is index.html statically generated with hardcoded order?
 
 **If index.html is static:** This is expected behavior
+
 - Sidebar reads from manifest
 - Index.html was generated earlier with different order
 - Solution: Regenerate index.html or add flideck-index.js integration
 
 **If index.html uses flideck-index.js:** This is a bug
+
 - Library should sync order from manifest
 - Check library event listeners for `groups:reordered`
 - Verify order is applied to DOM elements
@@ -52,11 +59,13 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 ### Hypothesis 3: Manifest has no order, using fallback
 
 **Check:**
+
 - Open manifest file (index.json)
 - Verify all groups have `order` property
 - Check if some groups are missing order (may default to 9999 or alphabetical)
 
 **Fallback behavior:**
+
 - Groups without explicit order may sort differently in different contexts
 - Sidebar may use one fallback (insertion order)
 - Index.html may use another (alphabetical)
@@ -64,6 +73,7 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 ## Technical Investigation Needed
 
 **Step 1: Verify manifest data**
+
 1. Open presentation folder
 2. Read `index.json` manifest
 3. Check `groups` object:
@@ -77,6 +87,7 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 4. Confirm all groups have `order` property
 
 **Step 2: Verify sidebar rendering**
+
 1. Open browser DevTools
 2. Inspect sidebar group elements
 3. Check actual DOM order matches expected order
@@ -84,6 +95,7 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 5. Verify sorting logic is correct
 
 **Step 3: Verify index.html rendering**
+
 1. Open `index.html` in editor
 2. Check if it uses `<script src="/flideck-index.js"></script>`
 3. If yes: Check if `FliDeckIndex.init()` is called
@@ -91,6 +103,7 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 5. Inspect rendered HTML in browser to see actual group order
 
 **Step 4: Check flideck-index.js integration**
+
 1. Open `server/public/flideck-index.js`
 2. Check if it reads manifest data
 3. Verify it applies group order to DOM elements
@@ -99,20 +112,24 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 ## Possible Solutions
 
 ### Solution 1: Fix sidebar sorting (if sidebar is wrong)
+
 - Update sorting logic in `Sidebar.tsx`
 - Ensure `order` property is used consistently
 
 ### Solution 2: Add flideck-index.js to index.html (if missing)
+
 - Edit index.html to include library
 - Add initialization script
 - Sync group order from manifest
 
 ### Solution 3: Regenerate index.html (if static and outdated)
+
 - Use agent to regenerate index.html with correct order
 - Match manifest order
 - Document regeneration process
 
 ### Solution 4: Fix manifest order (if order values are wrong)
+
 - Update manifest `groups[].order` values
 - Ensure they match intended order
 - Reorder via API or manual edit
@@ -128,14 +145,17 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 ## Related Code
 
 **Sidebar:**
+
 - `client/src/components/layout/Sidebar.tsx` - Line 118: Group sorting
 - `client/src/components/layout/SidebarGrouped.tsx` - Group rendering
 
 **Index.html integration:**
+
 - `server/public/flideck-index.js` - Order sync logic
 - Presentation's `index.html` - Library usage (or lack thereof)
 
 **Manifest:**
+
 - `server/src/services/PresentationService.ts` - Manifest parsing
 - Presentation's `index.json` - Group definitions with `order` property
 
@@ -181,6 +201,7 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 This is **not a bug** - it's expected behavior given current architecture. The sidebar correctly reads and displays manifest order. Index.html shows its static order. These can diverge over time.
 
 **Why this happens:**
+
 - Sidebar = dynamic (reads manifest on every load)
 - Index.html = static (generated once, doesn't auto-update)
 
@@ -209,11 +230,13 @@ Three approaches to solve this if needed in the future:
 ## Notes
 
 This may not be a bug if:
+
 - Index.html is statically generated without flideck-index.js integration
 - Different presentations have different integration levels
 - Order mismatch is due to stale static files
 
 Investigation needed to determine if this is:
+
 1. A bug in sidebar sorting
 2. A bug in flideck-index.js
 3. Expected behavior for static index.html files

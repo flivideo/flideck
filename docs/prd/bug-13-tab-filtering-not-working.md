@@ -7,16 +7,19 @@ When a container tab is selected (e.g., EPIC1), the sidebar still shows groups f
 ## Problem Statement
 
 **Current behavior:**
+
 - Click on "EPIC1" tab in the tab bar
 - Sidebar shows: EPIC1, JOHN SLIDES, MARY SLIDES, WINSTON SLIDES (all groups)
 - All groups are visible regardless of which tab is active
 
 **Expected behavior (per FR-24):**
+
 - Click on "EPIC1" tab
 - Sidebar shows ONLY groups where `tabId === "epic1"` (plus groups with no `tabId` - shared/root assets)
 - JOHN SLIDES, MARY SLIDES, WINSTON SLIDES should be hidden
 
 **Impact:**
+
 - Sidebar is cluttered with irrelevant groups
 - User has to mentally filter which groups belong to current tab
 - Defeats the purpose of tabbed organization
@@ -24,6 +27,7 @@ When a container tab is selected (e.g., EPIC1), the sidebar still shows groups f
 ## Screenshots
 
 **Observed:** EPIC1 tab active, but sidebar shows all groups:
+
 ```
 ASSETS                    [EPIC1] JOHN  MARY  WINSTON
 ─────────────────────────────────────────────────────
@@ -36,6 +40,7 @@ ASSETS                    [EPIC1] JOHN  MARY  WINSTON
 ```
 
 **Expected:** Only groups with `tabId: "epic1"` visible (could be one or many):
+
 ```
 ASSETS                    [EPIC1] JOHN  MARY  WINSTON
 ─────────────────────────────────────────────────────
@@ -57,13 +62,14 @@ If the manifest groups don't have `tabId` set, they're treated as "shared" group
 ```json
 {
   "groups": {
-    "epic1": { "label": "Epic1", "order": 1 },           // No tabId!
+    "epic1": { "label": "Epic1", "order": 1 }, // No tabId!
     "john-slides": { "label": "John Slides", "order": 2 } // No tabId!
   }
 }
 ```
 
 Should be:
+
 ```json
 {
   "groups": {
@@ -78,16 +84,20 @@ Should be:
 The sidebar filtering code in `Sidebar.tsx` may not be correctly filtering by `activeContainerTabId`.
 
 Per FR-24:
+
 > **Sidebar Filtering**
+>
 > - Groups filtered by `tabId` when `activeContainerTabId` is set
 > - Only shows groups belonging to active container tab
 
 ## Investigation Steps
 
 1. **Check manifest data:**
+
    ```bash
    curl http://localhost:5201/api/presentations/bmad-poem/manifest | jq '.groups'
    ```
+
    Look for `tabId` property on each group.
 
 2. **Check sidebar component:**
@@ -127,6 +137,7 @@ The `tabId` on a group says "this group belongs to this tab" - it's a many-to-on
 ### Option 1: Fix Manifest Data (if Cause A)
 
 Update bmad-poem's `index.json` to add proper `tabId` to each group:
+
 ```json
 {
   "groups": {
@@ -141,6 +152,7 @@ Update bmad-poem's `index.json` to add proper `tabId` to each group:
 ### Option 2: Fix Sidebar Code (if Cause B)
 
 In `Sidebar.tsx`, ensure filtering logic:
+
 ```typescript
 const visibleGroups = Object.entries(groups).filter(([id, group]) => {
   if (!activeContainerTabId) return true; // No tab selected, show all
@@ -177,24 +189,24 @@ When `sync-from-index` creates groups from parsing index HTML files, automatical
 **Root Cause Update (2025-01-02)**: Additional bug found - when groups were filtered out due to tab mismatch, they weren't being removed from the `assetsByGroup` Map. This caused them to appear as "orphan groups" with auto-generated labels derived from their group IDs (e.g., `epic1-slides` → "EPIC1 SLIDES").
 
 **Fix Applied (2025-12-30)**:
+
 1. `PresentationPage.tsx`: Stop clearing `activeContainerTabId` when selecting assets - keep sidebar filtered
 2. `PresentationPage.tsx`: New `handleTabChange` clears `selectedAssetId` when switching tabs (shows tab index)
 3. `Sidebar.tsx`: Add `filteredFlatAssets` for flat mode filtering by active tab
 
-**Fix Applied (2025-01-02)**:
-4. `Sidebar.tsx`: Always call `assetsByGroup.delete(groupId)` when skipping a group - prevents orphan group loop from picking up filtered groups
-5. `sidebarOrder.ts`: Same fix for keyboard navigation - ensure parent tabId inheritance works, skip `tab: true` groups
+**Fix Applied (2025-01-02)**: 4. `Sidebar.tsx`: Always call `assetsByGroup.delete(groupId)` when skipping a group - prevents orphan group loop from picking up filtered groups 5. `sidebarOrder.ts`: Same fix for keyboard navigation - ensure parent tabId inheritance works, skip `tab: true` groups
 
 **Key Code Pattern (the bug)**:
+
 ```typescript
 // BEFORE (buggy):
 if (shouldSkip) {
-  continue;  // Group skipped BUT still in assetsByGroup map!
+  continue; // Group skipped BUT still in assetsByGroup map!
 }
 
 // AFTER (fixed):
 if (shouldSkip) {
-  assetsByGroup.delete(groupId);  // Remove before continuing
+  assetsByGroup.delete(groupId); // Remove before continuing
   continue;
 }
 ```

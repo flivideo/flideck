@@ -34,9 +34,7 @@ export function Sidebar({
   onAssetsReordered,
   showPresentations = true,
 }: SidebarProps) {
-  const selectedPresentation = presentations.find(
-    (p) => p.id === selectedPresentationId
-  );
+  const selectedPresentation = presentations.find((p) => p.id === selectedPresentationId);
 
   // Drag-and-drop state
   const [draggedAssetId, setDraggedAssetId] = useState<string | null>(null);
@@ -95,8 +93,7 @@ export function Sidebar({
     const result: GroupedAssets[] = [];
 
     // Add defined groups in order
-    const sortedGroups = Object.entries(groups)
-      .sort(([, a], [, b]) => a.order - b.order);
+    const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.order);
 
     for (const [groupId, def] of sortedGroups) {
       const assets = assetsByGroup.get(groupId) || [];
@@ -129,9 +126,7 @@ export function Sidebar({
   // Get root-level assets (no group, excluding index) - shown without a header
   const rootAssets = useMemo(() => {
     if (!selectedPresentation) return [];
-    return selectedPresentation.assets.filter(
-      (a) => !a.isIndex && !a.group
-    );
+    return selectedPresentation.assets.filter((a) => !a.isIndex && !a.group);
   }, [selectedPresentation]);
 
   // Toggle group collapse
@@ -174,10 +169,9 @@ export function Sidebar({
     }
 
     try {
-      await api.put(
-        `/api/presentations/${selectedPresentation.id}/groups/${editingGroupId}`,
-        { label: editingGroupLabel.trim() }
-      );
+      await api.put(`/api/presentations/${selectedPresentation.id}/groups/${editingGroupId}`, {
+        label: editingGroupLabel.trim(),
+      });
       onAssetsReordered?.();
       toast.success('Group renamed');
     } catch (error) {
@@ -185,21 +179,30 @@ export function Sidebar({
       toast.error('Failed to rename group');
     }
     cancelEditingGroup();
-  }, [selectedPresentation, editingGroupId, editingGroupLabel, cancelEditingGroup, onAssetsReordered]);
+  }, [
+    selectedPresentation,
+    editingGroupId,
+    editingGroupLabel,
+    cancelEditingGroup,
+    onAssetsReordered,
+  ]);
 
-  const deleteGroup = useCallback(async (groupId: string) => {
-    if (!selectedPresentation) return;
+  const deleteGroup = useCallback(
+    async (groupId: string) => {
+      if (!selectedPresentation) return;
 
-    try {
-      await api.delete(`/api/presentations/${selectedPresentation.id}/groups/${groupId}`);
-      onAssetsReordered?.();
-      toast.success('Group deleted');
-    } catch (error) {
-      console.error('Failed to delete group:', error);
-      toast.error('Failed to delete group');
-    }
-    setMenuOpenGroupId(null);
-  }, [selectedPresentation, onAssetsReordered]);
+      try {
+        await api.delete(`/api/presentations/${selectedPresentation.id}/groups/${groupId}`);
+        onAssetsReordered?.();
+        toast.success('Group deleted');
+      } catch (error) {
+        console.error('Failed to delete group:', error);
+        toast.error('Failed to delete group');
+      }
+      setMenuOpenGroupId(null);
+    },
+    [selectedPresentation, onAssetsReordered]
+  );
 
   const startCreatingGroup = useCallback(() => {
     setIsCreatingGroup(true);
@@ -307,48 +310,59 @@ export function Sidebar({
     }
   }, []);
 
-  const copyAssetPath = useCallback((asset: Asset, format: 'url' | 'abs' | 'rel') => {
-    if (!selectedPresentation) return;
+  const copyAssetPath = useCallback(
+    (asset: Asset, format: 'url' | 'abs' | 'rel') => {
+      if (!selectedPresentation) return;
 
-    let text: string;
-    let label: string;
+      let text: string;
+      let label: string;
 
-    switch (format) {
-      case 'url':
-        text = asset.url || '';
-        label = 'URL';
-        break;
-      case 'abs':
-        text = `${selectedPresentation.path}/${asset.filename}`;
-        label = 'absolute path';
-        break;
-      case 'rel':
-        text = `${selectedPresentation.id}/${asset.filename}`;
-        label = 'relative path';
-        break;
-    }
-
-    copyToClipboard(text, label);
-  }, [selectedPresentation, copyToClipboard]);
-
-  const copyAllPaths = useCallback((format: 'url' | 'abs' | 'rel') => {
-    if (!selectedPresentation) return;
-
-    const paths = selectedPresentation.assets.map((asset) => {
       switch (format) {
         case 'url':
-          return asset.url || '';
+          text = asset.url || '';
+          label = 'URL';
+          break;
         case 'abs':
-          return `${selectedPresentation.path}/${asset.filename}`;
+          text = `${selectedPresentation.path}/${asset.filename}`;
+          label = 'absolute path';
+          break;
         case 'rel':
-          return `${selectedPresentation.id}/${asset.filename}`;
+          text = `${selectedPresentation.id}/${asset.filename}`;
+          label = 'relative path';
+          break;
       }
-    });
 
-    const text = paths.join('\n');
-    const label = format === 'url' ? 'all URLs' : format === 'abs' ? 'all absolute paths' : 'all relative paths';
-    copyToClipboard(text, label);
-  }, [selectedPresentation, copyToClipboard]);
+      copyToClipboard(text, label);
+    },
+    [selectedPresentation, copyToClipboard]
+  );
+
+  const copyAllPaths = useCallback(
+    (format: 'url' | 'abs' | 'rel') => {
+      if (!selectedPresentation) return;
+
+      const paths = selectedPresentation.assets.map((asset) => {
+        switch (format) {
+          case 'url':
+            return asset.url || '';
+          case 'abs':
+            return `${selectedPresentation.path}/${asset.filename}`;
+          case 'rel':
+            return `${selectedPresentation.id}/${asset.filename}`;
+        }
+      });
+
+      const text = paths.join('\n');
+      const label =
+        format === 'url'
+          ? 'all URLs'
+          : format === 'abs'
+            ? 'all absolute paths'
+            : 'all relative paths';
+      copyToClipboard(text, label);
+    },
+    [selectedPresentation, copyToClipboard]
+  );
 
   const handleDragStart = useCallback((e: React.DragEvent, assetId: string) => {
     setDraggedAssetId(assetId);
@@ -356,13 +370,16 @@ export function Sidebar({
     e.dataTransfer.setData('text/plain', assetId);
   }, []);
 
-  const handleDragOver = useCallback((e: React.DragEvent, assetId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (assetId !== draggedAssetId) {
-      setDropTargetId(assetId);
-    }
-  }, [draggedAssetId]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, assetId: string) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (assetId !== draggedAssetId) {
+        setDropTargetId(assetId);
+      }
+    },
+    [draggedAssetId]
+  );
 
   const handleDragLeave = useCallback(() => {
     setDropTargetId(null);
@@ -373,48 +390,51 @@ export function Sidebar({
     setDropTargetId(null);
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent, targetAssetId: string) => {
-    e.preventDefault();
+  const handleDrop = useCallback(
+    async (e: React.DragEvent, targetAssetId: string) => {
+      e.preventDefault();
 
-    if (!selectedPresentation || !draggedAssetId || draggedAssetId === targetAssetId) {
+      if (!selectedPresentation || !draggedAssetId || draggedAssetId === targetAssetId) {
+        handleDragEnd();
+        return;
+      }
+
+      const assets = [...selectedPresentation.assets];
+      const draggedIndex = assets.findIndex((a) => a.id === draggedAssetId);
+      const targetIndex = assets.findIndex((a) => a.id === targetAssetId);
+
+      if (draggedIndex === -1 || targetIndex === -1) {
+        handleDragEnd();
+        return;
+      }
+
+      // Save previous order for undo (Cmd+Z)
+      const previousOrder = selectedPresentation.assets.map((a) => a.filename);
+      previousOrderRef.current = {
+        presentationId: selectedPresentation.id,
+        order: previousOrder,
+      };
+
+      // Remove dragged item and insert at new position
+      const [draggedItem] = assets.splice(draggedIndex, 1);
+      assets.splice(targetIndex, 0, draggedItem);
+
+      // Get new order as filenames
+      const newOrder = assets.map((a) => a.filename);
+
+      // Save to server
+      try {
+        await api.put(`/api/presentations/${selectedPresentation.id}/order`, { order: newOrder });
+        onAssetsReordered?.();
+      } catch (error) {
+        console.error('Failed to save asset order:', error);
+        previousOrderRef.current = null; // Clear on error
+      }
+
       handleDragEnd();
-      return;
-    }
-
-    const assets = [...selectedPresentation.assets];
-    const draggedIndex = assets.findIndex((a) => a.id === draggedAssetId);
-    const targetIndex = assets.findIndex((a) => a.id === targetAssetId);
-
-    if (draggedIndex === -1 || targetIndex === -1) {
-      handleDragEnd();
-      return;
-    }
-
-    // Save previous order for undo (Cmd+Z)
-    const previousOrder = selectedPresentation.assets.map((a) => a.filename);
-    previousOrderRef.current = {
-      presentationId: selectedPresentation.id,
-      order: previousOrder,
-    };
-
-    // Remove dragged item and insert at new position
-    const [draggedItem] = assets.splice(draggedIndex, 1);
-    assets.splice(targetIndex, 0, draggedItem);
-
-    // Get new order as filenames
-    const newOrder = assets.map((a) => a.filename);
-
-    // Save to server
-    try {
-      await api.put(`/api/presentations/${selectedPresentation.id}/order`, { order: newOrder });
-      onAssetsReordered?.();
-    } catch (error) {
-      console.error('Failed to save asset order:', error);
-      previousOrderRef.current = null; // Clear on error
-    }
-
-    handleDragEnd();
-  }, [selectedPresentation, draggedAssetId, handleDragEnd, onAssetsReordered]);
+    },
+    [selectedPresentation, draggedAssetId, handleDragEnd, onAssetsReordered]
+  );
 
   // Render the index row (special styling, shows presentation name)
   const renderIndexRow = (asset: Asset) => {
@@ -425,10 +445,7 @@ export function Sidebar({
     const displayName = selectedPresentation?.name || 'Index';
 
     return (
-      <div
-        key={asset.id}
-        className="mb-2 relative flex items-center"
-      >
+      <div key={asset.id} className="mb-2 relative flex items-center">
         <button
           draggable
           onDragStart={(e) => handleDragStart(e, asset.id)}
@@ -439,11 +456,7 @@ export function Sidebar({
           onClick={() => onSelectAsset(selectedPresentation!.id, asset.id)}
           className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
           style={{
-            backgroundColor: isDropTarget
-              ? '#ffde59'
-              : isSelected
-                ? '#ccba9d'
-                : '#4a4040',
+            backgroundColor: isDropTarget ? '#ffde59' : isSelected ? '#ccba9d' : '#4a4040',
             color: isDropTarget || isSelected ? '#342d2d' : '#ffffff',
             opacity: isDragging ? 0.5 : 1,
             cursor: 'grab',
@@ -469,8 +482,14 @@ export function Sidebar({
             }}
             className="p-1 ml-1 rounded transition-colors"
             style={{ color: '#595959' }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#4a4040';
+              e.currentTarget.style.color = '#ccba9d';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#595959';
+            }}
             title="Copy path"
           >
             ⋮
@@ -482,29 +501,53 @@ export function Sidebar({
               style={{ backgroundColor: '#4a4040' }}
             >
               <button
-                onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); setCopyMenuOpenAssetId(null); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyAssetPath(asset, 'url');
+                  setCopyMenuOpenAssetId(null);
+                }}
                 className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                 style={{ color: '#ffffff' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5a5050';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 Copy URL
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); setCopyMenuOpenAssetId(null); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyAssetPath(asset, 'abs');
+                  setCopyMenuOpenAssetId(null);
+                }}
                 className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                 style={{ color: '#ffffff' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5a5050';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 Copy Absolute
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); setCopyMenuOpenAssetId(null); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyAssetPath(asset, 'rel');
+                  setCopyMenuOpenAssetId(null);
+                }}
                 className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                 style={{ color: '#ffffff' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5a5050';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
               >
                 Copy Relative
               </button>
@@ -537,9 +580,7 @@ export function Sidebar({
           onDragLeave={handleDragLeave}
           onDragEnd={handleDragEnd}
           onDrop={(e) => handleDrop(e, asset.id)}
-          onClick={() =>
-            onSelectAsset(selectedPresentation!.id, asset.id)
-          }
+          onClick={() => onSelectAsset(selectedPresentation!.id, asset.id)}
           className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center"
           style={{
             backgroundColor: isDropTarget
@@ -571,11 +612,7 @@ export function Sidebar({
             </span>
           )}
           {asset.recommended && (
-            <span
-              className="mr-2 text-xs"
-              style={{ color: '#ffde59' }}
-              title="Recommended"
-            >
+            <span className="mr-2 text-xs" style={{ color: '#ffde59' }} title="Recommended">
               ★
             </span>
           )}
@@ -592,8 +629,14 @@ export function Sidebar({
               }}
               className="p-1 rounded transition-colors"
               style={{ color: '#595959' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#4a4040';
+                e.currentTarget.style.color = '#ccba9d';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#595959';
+              }}
               title="Copy path"
             >
               ⋮
@@ -605,29 +648,53 @@ export function Sidebar({
                 style={{ backgroundColor: '#4a4040' }}
               >
                 <button
-                  onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'url'); setCopyMenuOpenAssetId(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyAssetPath(asset, 'url');
+                    setCopyMenuOpenAssetId(null);
+                  }}
                   className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                   style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a5050';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Copy URL
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'abs'); setCopyMenuOpenAssetId(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyAssetPath(asset, 'abs');
+                    setCopyMenuOpenAssetId(null);
+                  }}
                   className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                   style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a5050';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Copy Absolute
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); copyAssetPath(asset, 'rel'); setCopyMenuOpenAssetId(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyAssetPath(asset, 'rel');
+                    setCopyMenuOpenAssetId(null);
+                  }}
                   className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                   style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a5050';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Copy Relative
                 </button>
@@ -667,8 +734,14 @@ export function Sidebar({
                 }}
                 className="p-1 rounded transition-colors"
                 style={{ color: '#595959' }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#4a4040';
+                  e.currentTarget.style.color = '#ccba9d';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#595959';
+                }}
                 title="Copy all paths"
               >
                 ⋮
@@ -680,29 +753,53 @@ export function Sidebar({
                   style={{ backgroundColor: '#4a4040' }}
                 >
                   <button
-                    onClick={(e) => { e.stopPropagation(); copyAllPaths('url'); setIsHeaderCopyMenuOpen(false); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyAllPaths('url');
+                      setIsHeaderCopyMenuOpen(false);
+                    }}
                     className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                     style={{ color: '#ffffff' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#5a5050';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
                   >
                     Copy All URLs
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); copyAllPaths('abs'); setIsHeaderCopyMenuOpen(false); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyAllPaths('abs');
+                      setIsHeaderCopyMenuOpen(false);
+                    }}
                     className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                     style={{ color: '#ffffff' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#5a5050';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
                   >
                     Copy All Absolute
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); copyAllPaths('rel'); setIsHeaderCopyMenuOpen(false); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyAllPaths('rel');
+                      setIsHeaderCopyMenuOpen(false);
+                    }}
                     className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                     style={{ color: '#ffffff' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#5a5050';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
                   >
                     Copy All Relative
                   </button>
@@ -729,7 +826,9 @@ export function Sidebar({
                   {isEditing ? (
                     // Inline edit mode
                     <div className="flex items-center px-2 py-1">
-                      <span className="mr-2" style={{ color: '#ccba9d' }}>▼</span>
+                      <span className="mr-2" style={{ color: '#ccba9d' }}>
+                        ▼
+                      </span>
                       <input
                         ref={editInputRef}
                         type="text"
@@ -758,8 +857,12 @@ export function Sidebar({
                           color: '#ccba9d',
                           fontFamily: "'Oswald', Arial, sans-serif",
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#4a4040';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
                       >
                         <span
                           className="mr-2 transition-transform"
@@ -788,8 +891,12 @@ export function Sidebar({
                           }}
                           className="p-1 rounded transition-colors"
                           style={{ color: '#ccba9d' }}
-                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#4a4040';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
                         >
                           ⋮
                         </button>
@@ -807,8 +914,12 @@ export function Sidebar({
                               }}
                               className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                               style={{ color: '#ffffff' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#5a5050';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }}
                             >
                               Rename
                             </button>
@@ -819,8 +930,12 @@ export function Sidebar({
                               }}
                               className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                               style={{ color: '#ff6b6b' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#5a5050';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                              }}
                             >
                               Delete
                             </button>
@@ -832,9 +947,7 @@ export function Sidebar({
 
                   {/* Group Assets */}
                   {!isCollapsed && (
-                    <div className="pl-4 mt-1">
-                      {group.assets.map(renderAssetRow)}
-                    </div>
+                    <div className="pl-4 mt-1">{group.assets.map(renderAssetRow)}</div>
                   )}
                 </div>
               );
@@ -845,7 +958,9 @@ export function Sidebar({
               <div className="mt-3 mb-2">
                 {isCreatingGroup ? (
                   <div className="flex items-center px-2 py-1">
-                    <span className="mr-2 text-xs" style={{ color: '#ccba9d' }}>+</span>
+                    <span className="mr-2 text-xs" style={{ color: '#ccba9d' }}>
+                      +
+                    </span>
                     <input
                       ref={newGroupInputRef}
                       type="text"
@@ -895,7 +1010,10 @@ export function Sidebar({
 
       {/* Presentations List (shown on HomePage, hidden on PresentationPage) */}
       {showPresentations && (
-        <div className={`overflow-y-auto ${selectedPresentation ? 'border-t' : 'flex-1'}`} style={{ borderColor: '#4a4040' }}>
+        <div
+          className={`overflow-y-auto ${selectedPresentation ? 'border-t' : 'flex-1'}`}
+          style={{ borderColor: '#4a4040' }}
+        >
           <div className="p-3 border-b" style={{ borderColor: '#4a4040' }}>
             <h2
               className="text-xs font-semibold uppercase tracking-wide"
@@ -906,7 +1024,9 @@ export function Sidebar({
           </div>
           <nav className="p-2">
             {presentations.length === 0 ? (
-              <p className="text-sm p-2" style={{ color: '#595959' }}>No presentations found</p>
+              <p className="text-sm p-2" style={{ color: '#595959' }}>
+                No presentations found
+              </p>
             ) : (
               presentations.map((presentation) => (
                 <button
@@ -914,8 +1034,9 @@ export function Sidebar({
                   onClick={() => onSelectPresentation(presentation.id)}
                   className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors"
                   style={{
-                    backgroundColor: selectedPresentationId === presentation.id ? '#ffde59' : 'transparent',
-                    color: selectedPresentationId === presentation.id ? '#342d2d' : '#ffffff'
+                    backgroundColor:
+                      selectedPresentationId === presentation.id ? '#ffde59' : 'transparent',
+                    color: selectedPresentationId === presentation.id ? '#342d2d' : '#ffffff',
                   }}
                   onMouseEnter={(e) => {
                     if (selectedPresentationId !== presentation.id) {
@@ -931,7 +1052,10 @@ export function Sidebar({
                   {presentation.name}
                   <span
                     className="ml-2 text-xs"
-                    style={{ color: selectedPresentationId === presentation.id ? '#342d2d' : '#ccba9d', opacity: 0.8 }}
+                    style={{
+                      color: selectedPresentationId === presentation.id ? '#342d2d' : '#ccba9d',
+                      opacity: 0.8,
+                    }}
                   >
                     ({presentation.assets.length})
                   </span>

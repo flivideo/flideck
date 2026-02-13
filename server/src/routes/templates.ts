@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getTemplates, getTemplateById } from '../utils/manifestTemplates.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
+import { queryString } from '../utils/queryString.js';
 
 interface RouteConfig {
   io: Server;
@@ -32,7 +33,7 @@ export function createTemplateRoutes(_config: RouteConfig): Router {
   router.get(
     '/manifest/:id',
     asyncHandler(async (req, res) => {
-      const { id } = req.params;
+      const id = queryString(req.params.id);
       const template = getTemplateById(id);
 
       if (!template) {

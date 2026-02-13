@@ -2,13 +2,7 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import fs from 'fs/promises';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
-import {
-  loadConfig,
-  saveConfig,
-  expandPath,
-  collapsePath,
-  type Config,
-} from '../config.js';
+import { loadConfig, saveConfig, expandPath, collapsePath, type Config } from '../config.js';
 import { PresentationService } from '../services/PresentationService.js';
 import { WatcherManager } from '../WatcherManager.js';
 
@@ -80,7 +74,10 @@ export function createConfigRoutes({ io, watcherManager }: RouteConfig): Router 
       // Only update if actually changed
       if (expandedPath !== previousRoot) {
         // Add previous root to history
-        const newHistory = [previousRoot, ...currentConfig.history.filter((h) => h !== previousRoot)].slice(0, 10);
+        const newHistory = [
+          previousRoot,
+          ...currentConfig.history.filter((h) => h !== previousRoot),
+        ].slice(0, 10);
 
         const newConfig: Config = {
           presentationsRoot: expandedPath,

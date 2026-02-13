@@ -51,7 +51,12 @@ const KEYBOARD_FORWARD_SCRIPT = `
  * Injects a script to forward keyboard events to parent for FliDeck controls.
  * Reloads automatically when reloadKey changes (triggered by file system changes).
  */
-export function AssetViewer({ content, presentationId, reloadKey = 0, indexFile }: AssetViewerProps) {
+export function AssetViewer({
+  content,
+  presentationId,
+  reloadKey = 0,
+  indexFile,
+}: AssetViewerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loadError, setLoadError] = useState(false);
 
@@ -75,9 +80,10 @@ export function AssetViewer({ content, presentationId, reloadKey = 0, indexFile 
       const baseUrl = `/presentations/${presentationId}/`;
 
       // Add cache-busting meta tag when reloading
-      const cacheBuster = reloadKey > 0
-        ? `<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">`
-        : '';
+      const cacheBuster =
+        reloadKey > 0
+          ? `<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">`
+          : '';
 
       const contentWithBase = content.replace(
         '<head>',
@@ -127,7 +133,14 @@ export function AssetViewer({ content, presentationId, reloadKey = 0, indexFile 
               File Not Found
             </h2>
             <p className="text-sm mb-4" style={{ color: '#999' }}>
-              The index file <code className="px-2 py-1 rounded" style={{ backgroundColor: '#4a4040', color: '#ffde59' }}>{indexFile}</code> could not be loaded.
+              The index file{' '}
+              <code
+                className="px-2 py-1 rounded"
+                style={{ backgroundColor: '#4a4040', color: '#ffde59' }}
+              >
+                {indexFile}
+              </code>{' '}
+              could not be loaded.
             </p>
             <p className="text-xs" style={{ color: '#666' }}>
               Make sure the file exists in the presentation folder.

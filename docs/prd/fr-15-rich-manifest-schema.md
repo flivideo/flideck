@@ -75,12 +75,12 @@ Update FliDeck to read the full manifest schema and display groups in the sideba
 
 ### Schema Sections
 
-| Section | Purpose | FliDeck Usage |
-|---------|---------|---------------|
-| `meta` | Presentation-level metadata | Display name in header (optional) |
-| `stats` | Aggregate counts | Could show in UI (optional) |
+| Section  | Purpose                                 | FliDeck Usage                      |
+| -------- | --------------------------------------- | ---------------------------------- |
+| `meta`   | Presentation-level metadata             | Display name in header (optional)  |
+| `stats`  | Aggregate counts                        | Could show in UI (optional)        |
 | `groups` | Group definitions with labels and order | **Required** for sidebar groupings |
-| `slides` | Ordered slide array with metadata | **Required** for sidebar display |
+| `slides` | Ordered slide array with metadata       | **Required** for sidebar display   |
 
 ### Backward Compatibility
 
@@ -101,6 +101,7 @@ If manifest uses old format, convert internally:
 ### Sidebar Groupings
 
 Think of groups like subfolders in a file system:
+
 - **Root level** = slides with no `group` property (appear without a header)
 - **Groups** = subfolders with collapsible headers
 
@@ -136,7 +137,7 @@ Think of groups like subfolders in a file system:
 5. [x] Slides display their `title` if provided, otherwise formatted filename
 6. [x] Groups are collapsible (click to expand/collapse)
 7. [x] Drag-drop reordering updates `slides` array order in manifest
-8. [ ] Dragging between groups updates the slide's `group` field *(deferred - see notes)*
+8. [ ] Dragging between groups updates the slide's `group` field _(deferred - see notes)_
 9. [x] Slides without `group` appear at root level (no "Ungrouped" header)
 10. [x] Group header shows count of slides in group
 11. [x] Cmd+←/→ navigation follows sidebar order (respects groups)
@@ -147,11 +148,11 @@ Think of groups like subfolders in a file system:
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `shared/src/types.ts` | Add full schema types |
+| File                                         | Change                                   |
+| -------------------------------------------- | ---------------------------------------- |
+| `shared/src/types.ts`                        | Add full schema types                    |
 | `server/src/services/PresentationService.ts` | Parse new schema, maintain compatibility |
-| `client/src/components/layout/Sidebar.tsx` | Render grouped sections, collapsible UI |
+| `client/src/components/layout/Sidebar.tsx`   | Render grouped sections, collapsible UI  |
 
 ### Type Definitions
 
@@ -220,7 +221,7 @@ function parseManifest(manifest: IndexManifest): ParsedManifest {
   // Legacy format
   if (manifest.assets?.order) {
     return {
-      slides: manifest.assets.order.map(file => ({ file })),
+      slides: manifest.assets.order.map((file) => ({ file })),
       groups: {},
       meta: undefined,
       stats: undefined,
@@ -235,6 +236,7 @@ function parseManifest(manifest: IndexManifest): ParsedManifest {
 ### Writing Logic
 
 When saving (drag-drop reorder):
+
 - Preserve all existing fields (`meta`, `stats`, etc.)
 - Update only `slides` array order and `group` assignments
 - Do NOT clobber metadata that FliDeck doesn't manage
@@ -293,6 +295,7 @@ Note: Root-level slides (no `group` property) appear at the top without any head
 **Implemented:** 2025-12-22
 
 **What was done:**
+
 - Added rich schema types: `ManifestMeta`, `ManifestStats`, `GroupDefinition`, `ManifestSlide`
 - Extended `Asset` type with `group`, `title`, `description`, `recommended` fields
 - Extended `Presentation` type with `groups` and `meta` fields
@@ -305,13 +308,16 @@ Note: Root-level slides (no `group` property) appear at the top without any head
 - Drag-drop reordering preserves all slide metadata when saving
 
 **Deferred:**
+
 - Cross-group drag-drop (moving a slide to a different group) - requires more complex drop zone detection and UI feedback. Current drag-drop reorders within the flat list but doesn't change group assignments. → **See FR-20** for completion.
 
 **Fixed in follow-up:**
+
 - Cmd+←/→ navigation now follows the sidebar order (index first, root slides, then grouped slides in group order). Added `getSidebarOrder` utility function in `client/src/utils/sidebarOrder.ts`.
 - Verified AC #9 was already working correctly - root assets (no `group` property) appear at top of sidebar without any header.
 
 **Open questions resolved:**
+
 - Group collapse state: Persisted in localStorage
 - Recommended badge: Shows ★ next to recommended slides
 

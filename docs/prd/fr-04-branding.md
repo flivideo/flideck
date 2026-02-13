@@ -17,6 +17,7 @@ FliDeck currently uses default/generic styling. Need to apply AppyDave brand col
 ## Research Sources
 
 **Structured Data (primary):**
+
 - `/ad/brains/brand-dave/data-systems/collections/appydave-brand-identity/current.json`
   - Color palette with hex values and usage rules
   - Contrast pairings (text colors per background)
@@ -26,18 +27,21 @@ FliDeck currently uses default/generic styling. Need to apply AppyDave brand col
   - Layout specs (spacing, border-radius)
 
 **Visual Reference:**
+
 - `/ad/brains/brand-dave/presentation-assets/color-exploration/index.html`
   - Master color palette with swatches
   - Typography examples using brand fonts
   - Interactive color combinations
 
 **Original Guidelines:**
+
 - `/ad/appydave-brand/design-system/brand-guide.md`
 - `/ad/appydave-brand/design-system/visual-design-system.md`
 
 ## Scope
 
 Apply branding to:
+
 1. **Sample presentations** - Template slides with AppyDave styling
 2. **FliDeck frame** - App chrome, navigation, controls
 
@@ -64,6 +68,7 @@ _To be refined_
 ## Completion Notes
 
 **What was done:**
+
 - Added Google Fonts (Bebas Neue, Oswald, Roboto) to index.html
 - Created brand color CSS variables in index.css with semantic mappings
 - Implemented AppyDave two-tone logo ("Appy" gold, "Dave" yellow) in Header
@@ -79,6 +84,7 @@ _To be refined_
 - Added 200ms transition animations per brand guidelines
 
 **Files changed:**
+
 - `client/index.html` (modified - added Google Fonts)
 - `client/src/index.css` (modified - brand colors and typography)
 - `client/src/components/layout/Header.tsx` (modified - branded logo)
@@ -89,6 +95,7 @@ _To be refined_
 - `client/src/pages/ConfigPage.tsx` (modified - brand styling)
 
 **Testing notes:**
+
 1. Run `npm run dev` to start client and server
 2. Verify header shows "AppyDave FliDeck" with two-tone logo
 3. Check presentation cards have brand colors and yellow hover border

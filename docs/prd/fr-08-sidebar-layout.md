@@ -59,6 +59,7 @@ Add dropdown arrow (▼) to the right of presentation name in header. Clicking o
 ```
 
 **Dropdown behavior:**
+
 - Shows all available presentations
 - Current presentation marked (bullet or checkmark)
 - Click to switch (navigates to that presentation)
@@ -67,6 +68,7 @@ Add dropdown arrow (▼) to the right of presentation name in header. Clicking o
 ### 3. Simplify Sidebar
 
 With presentation switching moved to header, the sidebar Presentations section becomes optional:
+
 - **Option A:** Remove entirely (sidebar = assets only)
 - **Option B:** Keep collapsed "DECKS (8)" that expands on click
 
@@ -119,11 +121,11 @@ Recommend **Option A** for cleaner UI. The header dropdown handles presentation 
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `client/src/components/layout/Header.tsx` | Add dropdown arrow and popup menu |
+| File                                       | Change                                         |
+| ------------------------------------------ | ---------------------------------------------- |
+| `client/src/components/layout/Header.tsx`  | Add dropdown arrow and popup menu              |
 | `client/src/components/layout/Sidebar.tsx` | Remove presentations section, keep assets only |
-| `client/src/pages/PresentationPage.tsx` | Pass all presentations to Header for dropdown |
+| `client/src/pages/PresentationPage.tsx`    | Pass all presentations to Header for dropdown  |
 
 ### Implementation Notes
 
@@ -150,6 +152,7 @@ Recommend **Option A** for cleaner UI. The header dropdown handles presentation 
 ## Completion Notes
 
 **What was done:**
+
 - Flipped sidebar order: Assets now at top, Presentations at bottom (when shown)
 - Added `showPresentations` prop to Sidebar (default true, set false on PresentationPage)
 - Added presentation dropdown in Header with arrow indicator
@@ -158,11 +161,13 @@ Recommend **Option A** for cleaner UI. The header dropdown handles presentation 
 - PresentationPage now fetches all presentations for the dropdown
 
 **Files changed:**
+
 - `client/src/components/layout/Sidebar.tsx` - Reordered sections, added showPresentations prop
 - `client/src/components/layout/Header.tsx` - Added dropdown with presentations prop
 - `client/src/pages/PresentationPage.tsx` - Pass presentations to Header, hide sidebar presentations
 
 **Testing notes:**
+
 1. Start dev server with `npm run dev`
 2. Navigate to a presentation
 3. Verify sidebar shows only Assets (at top)
@@ -173,6 +178,7 @@ Recommend **Option A** for cleaner UI. The header dropdown handles presentation 
 8. Go to Home page - verify presentations list still works there
 
 **Deviations from spec:**
+
 - None - implemented Option A (remove presentations from sidebar on PresentationPage)
 
 **Status:** Complete

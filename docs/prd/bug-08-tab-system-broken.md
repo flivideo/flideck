@@ -9,6 +9,7 @@ Container tabs (FR-24) don't work at all in the bmad-poem presentation. This is 
 **Presentation:** bmad-poem (and potentially other presentations using container tabs)
 
 **Observed symptoms:**
+
 - Container tabs (Mary, John, Winston, Epic 1, etc.) are visible in tab bar
 - Clicking a tab does NOT load its corresponding index file
 - OR: Tabs load but content is broken/blank
@@ -16,6 +17,7 @@ Container tabs (FR-24) don't work at all in the bmad-poem presentation. This is 
 - OR: Navigation between tabs fails entirely
 
 **Impact:**
+
 - Tabbed presentations are completely unusable
 - Cannot access content organized by container tabs
 - bmad-poem presentation (complex, multi-tab) is broken
@@ -51,6 +53,7 @@ Container tabs (FR-24) don't work at all in the bmad-poem presentation. This is 
 ## Steps to Reproduce
 
 **Minimal repro:**
+
 1. Ensure FliDeck is running (`npm run dev`)
 2. Ensure bmad-poem presentation is in `presentationsRoot`
 3. Navigate to bmad-poem presentation
@@ -61,6 +64,7 @@ Container tabs (FR-24) don't work at all in the bmad-poem presentation. This is 
 ## Expected Behavior (Per FR-24)
 
 **Container tabs should:**
+
 1. Render in TabBar component at top of content area
 2. Show tab labels from manifest (e.g., "Mary", "John")
 3. Highlight active tab
@@ -69,6 +73,7 @@ Container tabs (FR-24) don't work at all in the bmad-poem presentation. This is 
 6. Persist active tab to localStorage
 
 **Architecture:**
+
 ```
 ┌──────────────────────────────────────────────────────────┐
 │ Header                                                   │
@@ -133,6 +138,7 @@ Container tabs (FR-24) don't work at all in the bmad-poem presentation. This is 
 ## Related Code
 
 **Files to check:**
+
 - `client/src/components/ui/TabBar.tsx` - Tab rendering and click handlers
 - `client/src/hooks/useContainerTab.ts` - Container tab state
 - `client/src/pages/PresentationPage.tsx` - TabBar integration
@@ -142,38 +148,45 @@ Container tabs (FR-24) don't work at all in the bmad-poem presentation. This is 
 
 **FR-24 Implementation Files:**
 Per FR-24 completion notes (line 335-347):
+
 - TabBar component created
 - useContainerTab hook created
 - AssetViewer updated for dual mode (src vs srcdoc)
 - PresentationPage integrated TabBar
 
 **Known issues from FR-24:**
+
 - Bug fix #1: iframe src/srcdoc precedence (line 350)
 - Bug fix #2: Sidebar tabbed mode removed (line 352)
 
 ## Possible Root Causes
 
 **Hypothesis 1: Manifest missing/wrong**
+
 - bmad-poem doesn't have `tabs[]` array
 - Tab file paths are wrong
 - Files don't exist on disk
 
 **Hypothesis 2: TabBar not rendering**
+
 - Component not imported/used
 - Conditional rendering logic hiding it
 - React error preventing render
 
 **Hypothesis 3: Click handler broken**
+
 - Event handler not attached
 - State not updating
 - Iframe not receiving new src
 
 **Hypothesis 4: Server not serving tab index files**
+
 - API endpoint broken
 - File paths wrong (relative vs absolute)
 - MIME type issues
 
 **Hypothesis 5: Regression from recent changes**
+
 - BUG-2 fix broke tab system
 - FR-25 changes broke filtering
 - Display mode logic interfering
@@ -193,6 +206,7 @@ Per FR-24 completion notes (line 335-347):
 **None** - if tabs are completely broken, presentation is unusable.
 
 **Possible manual workaround:**
+
 - Open index files directly: `http://localhost:5201/api/assets/bmad-poem/index-mary.html`
 - But loses FliDeck navigation
 
@@ -217,12 +231,14 @@ Per FR-24 completion notes (line 335-347):
 **Root Cause**: The bmad-poem presentation had container tab index files (index-mary.html, index-john.html, index-winston.html, index-epic1.html) but the manifest.json file was missing the `tabs` array definition.
 
 **Investigation Results**:
+
 1. Verified manifest structure - `tabs` array was missing
 2. Verified index files exist - All 4 tab index files present on disk
 3. Code review - Container tab system is working correctly
 4. The system requires explicit tab definitions in manifest to enable tabs
 
 **Solution**: Added tabs array to bmad-poem/index.json manifest:
+
 ```json
 {
   "tabs": [

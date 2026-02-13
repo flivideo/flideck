@@ -23,9 +23,7 @@ export function getSidebarOrder(
   const result: Asset[] = [];
 
   // Build set of tab index filenames to exclude
-  const tabIndexFiles = new Set(
-    (presentation.tabs || []).map((t) => t.file)
-  );
+  const tabIndexFiles = new Set((presentation.tabs || []).map((t) => t.file));
 
   // Helper: Check if an asset should be included based on active tab
   const shouldIncludeAsset = (asset: Asset): boolean => {

@@ -39,18 +39,20 @@ Testing revealed a fundamental architectural confusion between **container tabs*
 
 **Two tab systems coexist:**
 
-| Feature | Sidebar Tabs (FR-22) | Container Tabs (FR-24) |
-|---------|----------------------|------------------------|
-| **Location** | Inside sidebar (REMOVED) | Top of content area (CURRENT) |
-| **Data** | Groups with `tab: true` | `tabs[]` array in manifest |
-| **Purpose** | Organize sidebar groups | Load different index files |
-| **Index files** | One `index.html` | Multiple (one per tab) |
-| **Status** | Deprecated/removed | Active |
+| Feature         | Sidebar Tabs (FR-22)     | Container Tabs (FR-24)        |
+| --------------- | ------------------------ | ----------------------------- |
+| **Location**    | Inside sidebar (REMOVED) | Top of content area (CURRENT) |
+| **Data**        | Groups with `tab: true`  | `tabs[]` array in manifest    |
+| **Purpose**     | Organize sidebar groups  | Load different index files    |
+| **Index files** | One `index.html`         | Multiple (one per tab)        |
+| **Status**      | Deprecated/removed       | Active                        |
 
 **Per FR-24 Implementation Notes (line 352):**
+
 > "Sidebar tabbed mode removed - Since container tabs now handle tab navigation at the top of the content area, the old sidebar tabbed mode (SidebarTabbed component) was removed."
 
 **But FR-23 still references the OLD model:**
+
 > "Tabbed Mode: Drag tab headers left/right to reorder tabs, Drag group headers within a tab to reorder nested groups"
 
 This refers to the REMOVED sidebar tab system, not container tabs.
@@ -88,21 +90,24 @@ This refers to the REMOVED sidebar tab system, not container tabs.
 **Steps:** Compare sidebar group order to index.html rendering
 **Category:** **BUG** (or **FEATURE** if index.html doesn't respect manifest order)
 **Cause:** Either:
-  - Manifest `order` not applied to groups correctly
-  - Index.html rendering doesn't use manifest order (needs flideck-index.js integration)
-**Priority:** Medium
-**Action:** Investigate whether bug is in sidebar rendering or index.html rendering
+
+- Manifest `order` not applied to groups correctly
+- Index.html rendering doesn't use manifest order (needs flideck-index.js integration)
+  **Priority:** Medium
+  **Action:** Investigate whether bug is in sidebar rendering or index.html rendering
 
 ---
 
 ### 4. FR-MODIFY: FR-23 References Wrong Tab System
 
 **Current FR-23 description:**
+
 - References "tabbed mode" which was the OLD sidebar tab system
 - Talks about dragging tab headers in sidebar (REMOVED feature)
 - Confuses container tabs with sidebar tabs
 
 **Action Required:** **Rewrite FR-23** to:
+
 1. Remove references to sidebar tabbed mode (obsolete)
 2. Focus on group reorder UI in flat/grouped modes
 3. Clarify that container tabs are managed via FR-24 UI (already implemented)
@@ -115,16 +120,19 @@ This refers to the REMOVED sidebar tab system, not container tabs.
 ### 5. NEW-FR: Display Mode Should Be Smart About Container Tabs
 
 **Problem:** When container tabs exist, the sidebar display mode switcher is confusing:
+
 - "Flat" mode shows ALL assets across ALL tabs (wrong)
 - "Grouped" mode shows ALL groups across ALL tabs (wrong)
 - "Tabbed" mode → renders as "Grouped" per line 52 of Sidebar.tsx
 
 **Expected Behavior:**
+
 - When `tabs[]` exists in manifest → sidebar should ALWAYS filter by active container tab
 - Display mode should only affect HOW groups within the tab are rendered (flat vs grouped)
 - "Tabbed" display mode is meaningless when container tabs exist
 
 **Action:** Create **FR-25: Smart Display Mode with Container Tabs**
+
 - Auto-hide display mode switcher when container tabs present? OR
 - Change mode switcher to "List" vs "Groups" (remove "Tabbed" option)
 - Always apply container tab filtering regardless of display mode
@@ -140,6 +148,7 @@ This refers to the REMOVED sidebar tab system, not container tabs.
 **Category:** **PROCESS / TECH-DEBT**
 **Not a bug or requirement** - just messy implementation
 **Action:**
+
 - Document in brainstorming-notes.md for future tech-debt cleanup
 - Out of scope for current work
 
@@ -153,6 +162,7 @@ This refers to the REMOVED sidebar tab system, not container tabs.
 **Category:** **IDEA / BRAINSTORM**
 **Not a requirement** - just a design decision to consider
 **Action:**
+
 - Add to brainstorming-notes.md
 - Discuss with stakeholder if/when presentation creation UX becomes priority
 
@@ -179,6 +189,7 @@ Container Tabs (FR-24)
 ```
 
 **Key Insight:** Container tabs and display modes are ORTHOGONAL:
+
 - Container tabs = WHICH content to show (filter layer)
 - Display mode = HOW to render that content (presentation layer)
 
@@ -226,21 +237,22 @@ Container Tabs (FR-24)
 
 ## Impact Summary
 
-| Issue | Type | Priority | Impact |
-|-------|------|----------|--------|
-| Group creation fails in grouped mode | BUG | High | Blocks users from organizing presentations |
-| Navigation breaks after tab click | BUG | High | Core UX broken in tabbed presentations |
-| Groups out of order | BUG/FEATURE | Medium | Confusing navigation, data inconsistency |
-| FR-23 references wrong architecture | FR-MODIFY | Medium | Developer confusion, wasted implementation time |
-| Display mode confusing with container tabs | NEW-FR | Medium | UX clarity, mode switcher misleading |
-| CSS handling messy | PROCESS | Low | Code quality, future maintenance burden |
-| Presentation creation location | IDEA | Low | Future UX consideration |
+| Issue                                      | Type        | Priority | Impact                                          |
+| ------------------------------------------ | ----------- | -------- | ----------------------------------------------- |
+| Group creation fails in grouped mode       | BUG         | High     | Blocks users from organizing presentations      |
+| Navigation breaks after tab click          | BUG         | High     | Core UX broken in tabbed presentations          |
+| Groups out of order                        | BUG/FEATURE | Medium   | Confusing navigation, data inconsistency        |
+| FR-23 references wrong architecture        | FR-MODIFY   | Medium   | Developer confusion, wasted implementation time |
+| Display mode confusing with container tabs | NEW-FR      | Medium   | UX clarity, mode switcher misleading            |
+| CSS handling messy                         | PROCESS     | Low      | Code quality, future maintenance burden         |
+| Presentation creation location             | IDEA        | Low      | Future UX consideration                         |
 
 ---
 
 ## Next Steps
 
 **For Product Owner:**
+
 1. Review this analysis with stakeholder
 2. Confirm prioritization
 3. Create bug tickets for #1 and #2
@@ -249,6 +261,7 @@ Container Tabs (FR-24)
 6. Update brainstorming-notes.md with low-priority items
 
 **For Developer:**
+
 1. Fix navigation bug (container tab mode detection)
 2. Fix group creation bug (investigate API failure)
 3. Verify group ordering behavior (sidebar + index.html)

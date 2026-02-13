@@ -19,10 +19,12 @@ With multiple presentations and many slides/assets within each, scrolling throug
 Implement a Cmd+K quick filter overlay that works in two contexts:
 
 ### Context 1: Inside a Presentation
+
 - Filters the sidebar asset list
 - Matches against asset/slide filenames
 
 ### Context 2: On the Dashboard
+
 - Filters the presentation list
 - Matches against presentation names
 
@@ -41,6 +43,7 @@ Minimal overlay modal (VS Code / Raycast pattern):
 ```
 
 **Behavior:**
+
 - Cmd+K opens overlay (works anywhere)
 - Type to filter list (case-insensitive, substring match)
 - Arrow keys to navigate results
@@ -49,6 +52,7 @@ Minimal overlay modal (VS Code / Raycast pattern):
 - Clicking outside closes
 
 **Visual:**
+
 - Semi-transparent backdrop dims content
 - Centered modal, ~400px wide
 - Results list scrolls if > 8 items
@@ -84,6 +88,7 @@ Minimal overlay modal (VS Code / Raycast pattern):
 **Implemented:** 2025-12-21
 
 **What was done:**
+
 - Created `QuickFilter` modal component using React Portal
 - VS Code/Raycast-style UI with search input, results list, keyboard hints
 - Created `useQuickFilter` hook for global Cmd+K (Mac) / Ctrl+K (Windows/Linux) shortcut
@@ -94,9 +99,11 @@ Minimal overlay modal (VS Code / Raycast pattern):
 - Shows subtitle info (asset count for presentations, "index" badge for index assets)
 
 **Files created:**
+
 - `client/src/components/ui/QuickFilter.tsx`
 - `client/src/hooks/useQuickFilter.ts`
 
 **Files modified:**
+
 - `client/src/pages/HomePage.tsx`
 - `client/src/pages/PresentationPage.tsx`

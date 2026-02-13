@@ -6,12 +6,12 @@ Documentation for FliDeck - Local-first presentation harness for folder-based HT
 
 ## Quick Links
 
-| Document | Purpose |
-|----------|---------|
-| [backlog.md](backlog.md) | Requirements index with status |
-| [changelog.md](changelog.md) | Implementation history |
-| [brainstorming-notes.md](brainstorming-notes.md) | Ideas and exploration |
-| [prd/](prd/) | Individual requirement specs |
+| Document                                         | Purpose                        |
+| ------------------------------------------------ | ------------------------------ |
+| [backlog.md](backlog.md)                         | Requirements index with status |
+| [changelog.md](changelog.md)                     | Implementation history         |
+| [brainstorming-notes.md](brainstorming-notes.md) | Ideas and exploration          |
+| [prd/](prd/)                                     | Individual requirement specs   |
 
 ---
 

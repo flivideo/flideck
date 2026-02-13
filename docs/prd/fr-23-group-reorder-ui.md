@@ -7,12 +7,14 @@ Add drag-and-drop UI for reordering groups in grouped display mode. The API exis
 ## Problem Statement
 
 **Current state:**
+
 - Users can create, rename, and delete groups via UI
 - Users can drag-and-drop assets to reorder them
 - Users can drag assets between groups to move them
 - Users **cannot** reorder groups themselves via drag-and-drop
 
 **Impact:**
+
 - The only way to reorder groups is via API calls or manual manifest editing
 - Inconsistent UX: assets are draggable, but their parent groups are not
 - Poor discoverability: users expect groups to be draggable
@@ -22,16 +24,19 @@ Add drag-and-drop UI for reordering groups in grouped display mode. The API exis
 ## Scope Clarification
 
 **This FR covers:**
+
 - Drag-and-drop reordering of groups in **grouped display mode** only
 - Visual feedback during drag (drop zones, drag handles)
 - API integration with existing `PUT /api/presentations/:id/groups/order` endpoint
 
 **This FR does NOT cover:**
+
 - Container tab reordering (handled by FR-24 - already has API, UI deferred)
 - Flat mode (no groups to reorder)
 - Cross-group asset dragging (already implemented in FR-20)
 
 **Architectural note:**
+
 - This FR was originally written when "tabbed mode" referred to sidebar tabs (FR-22)
 - FR-24 moved tabs to container level and deprecated sidebar tabs
 - This rewrite focuses solely on group reordering in grouped display mode
@@ -61,6 +66,7 @@ Add drag-and-drop UI for reordering groups in grouped display mode. The API exis
 ```
 
 **Drag interaction:**
+
 1. Hover over group header → drag handle (⋮⋮) appears
 2. Click and drag group header
 3. Drop zone indicators (horizontal lines) appear between groups
@@ -69,6 +75,7 @@ Add drag-and-drop UI for reordering groups in grouped display mode. The API exis
 6. API call persists new order to manifest
 
 **Visual feedback:**
+
 - Drag handle icon (⋮⋮) appears on group header hover
 - Dragged group header becomes semi-transparent during drag
 - Drop zones show as horizontal blue/gold line between groups
@@ -79,10 +86,12 @@ Add drag-and-drop UI for reordering groups in grouped display mode. The API exis
 **Separate drag state for groups:**
 
 Current implementation has drag state for assets:
+
 - `draggedAssetId` - which asset is being dragged
 - `dropTargetId` - where asset will be dropped
 
 Add parallel state for groups:
+
 - `draggedGroupId` - which group is being dragged
 - `groupDropTargetId` - where group will be dropped
 
@@ -101,9 +110,10 @@ onDrop={(e) => handleGroupDrop(e, targetGroupId)}
 **API integration:**
 
 Call existing endpoint:
+
 ```typescript
 await api.put(`/presentations/${presentationId}/groups/order`, {
-  order: ['intro', 'getting-started', 'advanced-topics']
+  order: ['intro', 'getting-started', 'advanced-topics'],
 });
 ```
 
@@ -112,6 +122,7 @@ API is already implemented in FR-17, no backend changes needed.
 ## Acceptance Criteria
 
 ### Grouped Mode
+
 - [ ] Group headers show drag handle (⋮⋮) on hover
 - [ ] Group headers are draggable (not just the icon)
 - [ ] Dragging group header shows visual feedback (transparency)
@@ -123,6 +134,7 @@ API is already implemented in FR-17, no backend changes needed.
 - [ ] Undo action available if drag was accidental (toast with "Undo"?)
 
 ### Edge Cases
+
 - [ ] Cannot drag group above index.html asset
 - [ ] Dragging group doesn't interfere with asset drag-and-drop
 - [ ] Works with collapsed groups (group stays collapsed after reorder)
@@ -130,6 +142,7 @@ API is already implemented in FR-17, no backend changes needed.
 - [ ] Works when sidebar is filtered by container tab (FR-24)
 
 ### Accessibility
+
 - [ ] Keyboard alternative for reordering (up/down arrows on focused group?)
 - [ ] Screen reader announces drag state ("Dragging Introduction group")
 - [ ] Screen reader announces drop zones ("Drop before Getting Started")
@@ -137,22 +150,26 @@ API is already implemented in FR-17, no backend changes needed.
 ## Technical Notes
 
 **API already exists:**
+
 - `PUT /api/presentations/:id/groups/order` - Reorder all groups (FR-17)
 - Request body: `{ order: string[] }` - Array of group IDs in new order
 - Socket.io event: `groups:reordered` - Notifies other clients
 
 **Drag-and-drop implementation:**
+
 - Use HTML5 Drag and Drop API
 - Similar pattern to existing asset drag-and-drop in Sidebar.tsx
 - Separate state from asset drag to avoid conflicts
 - Use `dataTransfer.effectAllowed = 'move'`
 
 **Drop zone rendering:**
+
 - Render invisible drop zones between each group
 - Show visual indicator (border-top or horizontal line) on dragOver
 - Calculate drop position based on cursor Y position
 
 **Optimistic updates:**
+
 - Update group order immediately in UI (don't wait for API)
 - If API fails, revert to previous order and show error toast
 - Store previous order in ref for undo/revert
@@ -199,11 +216,13 @@ This feature is well-specified and has a clear implementation path, but it's mar
 **When to implement:**
 
 Implement this feature when:
+
 1. Users frequently request group reordering UI
 2. Group management becomes a primary workflow
 3. Polish pass is needed for drag-and-drop consistency
 
 **Implementation ready:**
+
 - API endpoint exists and is tested (`PUT /api/presentations/:id/groups/order`)
 - Technical approach is documented
 - UI patterns match existing asset drag-and-drop

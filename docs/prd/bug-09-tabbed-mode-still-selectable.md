@@ -9,6 +9,7 @@ When a presentation has container tabs (like bmad-poem with Mary, John, Winston,
 **Presentation:** bmad-poem (and any presentation with container tabs defined)
 
 **Steps to reproduce:**
+
 1. Open a presentation that HAS container tabs (`tabs[]` array in manifest)
 2. Click the mode switcher icon (next to "ASSETS" header)
 3. Observe that "Flat", "Grouped", AND "Tabbed" options are shown
@@ -16,10 +17,12 @@ When a presentation has container tabs (like bmad-poem with Mary, John, Winston,
 5. Observe sidebar becomes empty
 
 **Expected result:**
+
 - "Tabbed" option should NOT be visible (mode is obsolete, removed in FR-24)
 - Only "Flat" and "Grouped" should be available
 
 **Actual result:**
+
 - "Tabbed" is visible and selectable
 - Selecting it results in completely empty sidebar
 - Assets section shows nothing
@@ -32,14 +35,16 @@ When a presentation has container tabs (like bmad-poem with Mary, John, Winston,
 In `Sidebar.tsx` lines 682-687, the filter logic is **inverted**:
 
 ```typescript
-{(['flat', 'grouped', 'tabbed'] as const).filter(m => {
-  // BUG: Logic is backwards!
-  // Hide tabbed mode when NO container tabs are present
-  if (m === 'tabbed' && (!selectedPresentation?.tabs || selectedPresentation.tabs.length === 0)) {
-    return false;  // Hides when NO tabs
-  }
-  return true;  // SHOWS when tabs EXIST - but no renderer!
-})}
+{
+  (['flat', 'grouped', 'tabbed'] as const).filter((m) => {
+    // BUG: Logic is backwards!
+    // Hide tabbed mode when NO container tabs are present
+    if (m === 'tabbed' && (!selectedPresentation?.tabs || selectedPresentation.tabs.length === 0)) {
+      return false; // Hides when NO tabs
+    }
+    return true; // SHOWS when tabs EXIST - but no renderer!
+  });
+}
 ```
 
 ### Why It Breaks
@@ -61,6 +66,7 @@ In `Sidebar.tsx` lines 682-687, the filter logic is **inverted**:
 ### BUG-5 Fix Was Incorrect
 
 BUG-5 completion notes claimed:
+
 > "Presentations WITH container tabs: Can select flat/grouped (tabbed hidden in dropdown)"
 
 But the code does the **opposite** - it hides "tabbed" when tabs DON'T exist, and shows it when they DO exist.

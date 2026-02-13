@@ -34,6 +34,7 @@ Each presentation can optionally include a `flideck.json` manifest file:
 ```
 
 **Design decisions:**
+
 - Use filenames with extension (explicit, no ambiguity)
 - Nested under `assets.order` to allow future manifest extensions
 - File is optional - absence means use default ordering
@@ -51,6 +52,7 @@ Each presentation can optionally include a `flideck.json` manifest file:
 ```
 
 **Self-healing handles:**
+
 - Renamed files → old name skipped, new name appended
 - Deleted files → silently removed from order
 - New files → automatically appear at end
@@ -59,6 +61,7 @@ Each presentation can optionally include a `flideck.json` manifest file:
 ### Drag-and-Drop UI
 
 In the sidebar assets list:
+
 - User drags an asset to new position
 - On drop: save new order to `flideck.json`
 - Visual feedback during drag (highlight drop target)
@@ -66,12 +69,14 @@ In the sidebar assets list:
 ### File Write Behavior
 
 When FliDeck writes `flideck.json`:
+
 1. Write file to presentation folder
 2. Existing watcher detects change (debounced)
 3. Cache invalidates, client refetches
 4. TanStack Query already has optimistic data → no flicker
 
 External changes to `flideck.json`:
+
 - Watcher detects → reload → UI updates
 
 No special "ignore own writes" logic needed - the debounce and optimistic updates handle it naturally.
@@ -95,13 +100,13 @@ No special "ignore own writes" logic needed - the debounce and optimistic update
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
-| `server/src/services/PresentationService.ts` | Read manifest, apply ordering logic |
-| `server/src/routes/` (new or existing) | `PUT /api/presentations/:id/order` endpoint |
-| `client/src/components/layout/Sidebar.tsx` | Drag-and-drop UI |
-| `shared/src/types.ts` | `FlideckManifest` type |
-| `CLAUDE.md` | Update "not an editor" statement |
+| File                                         | Change                                      |
+| -------------------------------------------- | ------------------------------------------- |
+| `server/src/services/PresentationService.ts` | Read manifest, apply ordering logic         |
+| `server/src/routes/` (new or existing)       | `PUT /api/presentations/:id/order` endpoint |
+| `client/src/components/layout/Sidebar.tsx`   | Drag-and-drop UI                            |
+| `shared/src/types.ts`                        | `FlideckManifest` type                      |
+| `CLAUDE.md`                                  | Update "not an editor" statement            |
 
 ### API Endpoint
 
@@ -114,6 +119,7 @@ Response: { "success": true }
 ### Drag-and-Drop Implementation
 
 Options:
+
 - Native HTML5 drag-and-drop (no dependencies, ~50-100 lines)
 - Library like `@dnd-kit/core` (smoother UX, adds dependency)
 
@@ -138,6 +144,7 @@ Update `CLAUDE.md` to reflect that FliDeck can write `flideck.json` manifest fil
 ## Completion Notes
 
 **What was done:**
+
 - Added `FlideckManifest` and `UpdateAssetOrderRequest` types to `shared/src/types.ts`
 - Updated `PresentationService` with manifest reading, self-healing ordering logic, and save functionality
 - Added `PUT /api/presentations/:id/order` endpoint for saving asset order
@@ -145,6 +152,7 @@ Update `CLAUDE.md` to reflect that FliDeck can write `flideck.json` manifest fil
 - Updated `CLAUDE.md` with new API endpoint and Asset Ordering documentation
 
 **Files changed:**
+
 - `shared/src/types.ts` (modified) - Added manifest types
 - `server/src/services/PresentationService.ts` (modified) - Added ordering logic
 - `server/src/routes/presentations.ts` (modified) - Added PUT endpoint
@@ -152,6 +160,7 @@ Update `CLAUDE.md` to reflect that FliDeck can write `flideck.json` manifest fil
 - `CLAUDE.md` (modified) - Updated documentation
 
 **Testing notes:**
+
 1. Start the dev server with `npm run dev`
 2. Select a presentation with multiple assets
 3. Drag an asset to a new position
@@ -160,6 +169,7 @@ Update `CLAUDE.md` to reflect that FliDeck can write `flideck.json` manifest fil
 6. Test self-healing: manually edit `flideck.json` with a non-existent file, verify it's skipped
 
 **Deviations from spec:**
+
 - Used native HTML5 drag-and-drop as recommended (no external library)
 - Did not add `onAssetsReordered` callback wiring in PresentationPage since socket invalidation handles cache refresh automatically
 

@@ -7,12 +7,14 @@ Formalize the `index.json` manifest schema and expose it via API endpoints. This
 ## Problem Statement
 
 **Current state (after FR-14/15/16/17):**
+
 - `index.json` is the canonical manifest filename (FR-14)
 - Rich schema with groups, slides, metadata exists (FR-15)
 - Slide CRUD API exists (FR-16)
 - Group CRUD API exists (FR-17)
 
 **What's missing:**
+
 - Schema is implicitly defined in TypeScript types (`shared/src/types.ts`) - not queryable
 - No way for agents to discover the schema programmatically
 - No direct "get/set entire manifest" endpoints (only granular slide/group endpoints)
@@ -20,6 +22,7 @@ Formalize the `index.json` manifest schema and expose it via API endpoints. This
 - Documentation and code can drift apart
 
 **Impact:**
+
 - Claude agents need embedded documentation to understand manifest structure
 - Agents must make multiple API calls instead of one manifest read/write
 - FR-20 (UI modes) and FR-21 (agent tooling) need a formalized data foundation
@@ -59,7 +62,10 @@ Create a JSON Schema document that defines the manifest structure:
         "properties": {
           "label": { "type": "string" },
           "order": { "type": "integer" },
-          "tab": { "type": "boolean", "description": "If true, this group appears as a tab in tabbed mode" }
+          "tab": {
+            "type": "boolean",
+            "description": "If true, this group appears as a tab in tabbed mode"
+          }
         },
         "required": ["label", "order"]
       }
@@ -84,12 +90,12 @@ Create a JSON Schema document that defines the manifest structure:
 
 ### 2. New API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/schema/manifest` | Returns JSON Schema definition |
-| GET | `/api/presentations/:id/manifest` | Returns raw manifest JSON |
-| PUT | `/api/presentations/:id/manifest` | Full manifest replacement (validates against schema) |
-| PATCH | `/api/presentations/:id/manifest` | Partial update (merge semantics) |
+| Method | Endpoint                          | Description                                          |
+| ------ | --------------------------------- | ---------------------------------------------------- |
+| GET    | `/api/schema/manifest`            | Returns JSON Schema definition                       |
+| GET    | `/api/presentations/:id/manifest` | Returns raw manifest JSON                            |
+| PUT    | `/api/presentations/:id/manifest` | Full manifest replacement (validates against schema) |
+| PATCH  | `/api/presentations/:id/manifest` | Partial update (merge semantics)                     |
 
 ### 3. Validation Layer
 
@@ -152,6 +158,7 @@ This FR formalizes and extends that foundation with schema self-documentation an
 ## Completion Notes
 
 **What was done:**
+
 - Created formal JSON Schema at `shared/schema/manifest.schema.json` with full validation rules
 - Installed and configured `ajv` and `ajv-formats` for JSON Schema validation
 - Created `manifestValidator.ts` utility with `validate()`, `validateOrThrow()`, and `getSchema()` functions
@@ -166,11 +173,13 @@ This FR formalizes and extends that foundation with schema self-documentation an
 - Updated CLAUDE.md API documentation table
 
 **Files created:**
+
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/shared/schema/manifest.schema.json` - JSON Schema definition
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/server/src/utils/manifestValidator.ts` - Validation utility
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/server/src/routes/schema.ts` - Schema routes
 
 **Files modified:**
+
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/server/src/services/PresentationService.ts` - Added manifest CRUD methods
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/server/src/routes/presentations.ts` - Added manifest endpoints
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/server/src/routes/index.ts` - Registered schema routes
@@ -178,6 +187,7 @@ This FR formalizes and extends that foundation with schema self-documentation an
 - `/Users/davidcruwys/dev/ad/flivideo/flideck/package.json` - Added ajv dependencies
 
 **Testing notes:**
+
 - `GET /api/schema/manifest` - Returns full JSON Schema with examples
 - `GET /api/presentations/:id/manifest` - Returns raw manifest or {} if none exists
 - `PUT /api/presentations/:id/manifest` - Validates and replaces entire manifest
@@ -186,6 +196,7 @@ This FR formalizes and extends that foundation with schema self-documentation an
 - All operations emit Socket.io events to notify clients
 
 **Schema features:**
+
 - Full property definitions with types, descriptions, and constraints
 - Pattern validation for filenames (must be .html without path separators)
 - Legacy `assets.order` format documented for backwards compatibility

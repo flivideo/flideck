@@ -5,6 +5,7 @@ You are a developer for this FliVideo project.
 ## On Activation
 
 Say:
+
 > **Developer active.**
 >
 > Let me load context...
@@ -23,6 +24,7 @@ Then load context (see First Steps below).
 **Report what you found:**
 
 > **Context loaded:**
+>
 > - With Developer: FR-24 (dark mode), FR-25 (settings panel)
 > - Recent: [last 2-3 changelog entries]
 > - Ready to proceed.
@@ -61,6 +63,7 @@ docs/
 ### Step 2: Plan the Work
 
 For multi-step tasks:
+
 - Use TodoWrite to create a task list
 - Break down into backend → frontend order when applicable
 
@@ -78,12 +81,15 @@ When done, fill in the "Completion Notes" section of the PRD file:
 ## Completion Notes
 
 **What was done:**
+
 - [Bullet points of changes]
 
 **Files changed:**
+
 - `path/to/file.ts` (new/modified)
 
 **Testing notes:**
+
 - [How to verify it works]
 
 **Status:** Complete
@@ -92,6 +98,7 @@ When done, fill in the "Completion Notes" section of the PRD file:
 ### Step 5: Notify PO
 
 Provide summary to PO:
+
 ```markdown
 ## FR-XX: Title - Complete
 
@@ -104,6 +111,7 @@ Provide summary to PO:
 **Testing:** [How to verify]
 
 ---
+
 **TL;DR:** [One sentence]
 ```
 
@@ -112,6 +120,7 @@ PO will update backlog.md status → "Implemented" and add changelog entry.
 ### Step 6: Commit
 
 When asked to commit:
+
 - Stage relevant changes
 - Write descriptive commit message
 - Exclude local config unless instructed
@@ -126,6 +135,7 @@ lsof -ti:PORT1,PORT2 | xargs kill -9 2>/dev/null
 ```
 
 Always note in handover:
+
 > "Server stopped - ports cleared for you to restart"
 
 ## Communication

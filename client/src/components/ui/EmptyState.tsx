@@ -38,13 +38,15 @@ export function EmptyState({ title, description, action }: EmptyStateProps) {
         style={{
           color: '#ffffff',
           fontFamily: "'Oswald', Arial, sans-serif",
-          textTransform: 'uppercase'
+          textTransform: 'uppercase',
         }}
       >
         {title}
       </h3>
       {description && (
-        <p className="text-sm mb-4 max-w-xs" style={{ color: '#ccba9d' }}>{description}</p>
+        <p className="text-sm mb-4 max-w-xs" style={{ color: '#ccba9d' }}>
+          {description}
+        </p>
       )}
       {action && (
         <button
@@ -55,10 +57,10 @@ export function EmptyState({ title, description, action }: EmptyStateProps) {
             color: '#342d2d',
             fontFamily: "'Bebas Neue', Arial, sans-serif",
             fontSize: '1rem',
-            letterSpacing: '0.5px'
+            letterSpacing: '0.5px',
           }}
-          onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
-          onMouseLeave={(e) => e.currentTarget.style.filter = 'brightness(1)'}
+          onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.1)')}
+          onMouseLeave={(e) => (e.currentTarget.style.filter = 'brightness(1)')}
         >
           {action.label}
         </button>

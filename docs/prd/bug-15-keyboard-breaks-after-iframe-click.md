@@ -2,11 +2,12 @@
 
 ## Summary
 
-Cmd+Arrow keyboard navigation stops working after clicking a slide card from within a tab landing page (index-*.html). This is a **critical bug** that breaks the presentation workflow.
+Cmd+Arrow keyboard navigation stops working after clicking a slide card from within a tab landing page (index-\*.html). This is a **critical bug** that breaks the presentation workflow.
 
 ## Problem Statement
 
 **Reproduction steps:**
+
 1. Go to `http://localhost:5200/presentation/bmad-poem`
 2. Click on "EPIC1" tab in the tab bar
 3. Tab landing page loads (`index-epic1.html`) showing card grid
@@ -16,9 +17,11 @@ Cmd+Arrow keyboard navigation stops working after clicking a slide card from wit
 7. Press `Cmd+Right` → **BROKEN** - nothing happens
 
 **Expected behavior:**
+
 - Cmd+Arrow should ALWAYS work, regardless of how user navigated to current slide
 
 **Impact:**
+
 - **Cannot present** - keyboard navigation is essential for smooth presentations
 - Have to use mouse to click sidebar items
 - Defeats purpose of keyboard shortcuts
@@ -29,10 +32,10 @@ Cmd+Arrow keyboard navigation stops working after clicking a slide card from wit
 
 FliDeck has two ways of loading content into the iframe:
 
-| Mode | Trigger | How It Works | Keyboard Bridge |
-|------|---------|--------------|-----------------|
-| **Tab mode** | Click tab in tab bar | `iframe.src = "index-epic1.html"` | **NOT INJECTED** (external file) |
-| **Slide mode** | Click slide in sidebar | `iframe.srcdoc = "<html>...</html>"` | **INJECTED** (inline content) |
+| Mode           | Trigger                | How It Works                         | Keyboard Bridge                  |
+| -------------- | ---------------------- | ------------------------------------ | -------------------------------- |
+| **Tab mode**   | Click tab in tab bar   | `iframe.src = "index-epic1.html"`    | **NOT INJECTED** (external file) |
+| **Slide mode** | Click slide in sidebar | `iframe.srcdoc = "<html>...</html>"` | **INJECTED** (inline content)    |
 
 ### What Happens
 
@@ -73,6 +76,7 @@ Window handler fires, but:
 **The iframe boundary is opaque to FliDeck's state management.**
 
 When a user clicks a card INSIDE the iframe:
+
 1. The iframe navigates internally (`src` changes)
 2. FliDeck (React) has NO IDEA this happened
 3. `selectedAssetId` doesn't update
@@ -98,29 +102,34 @@ The "nothing currently" is the bug. Iframe clicks need to notify FliDeck.
 Index pages should notify FliDeck when user clicks a card:
 
 **In index-epic1.html:**
+
 ```html
 <script>
-  document.querySelectorAll('[data-slide]').forEach(card => {
+  document.querySelectorAll('[data-slide]').forEach((card) => {
     card.addEventListener('click', (e) => {
       e.preventDefault(); // Don't navigate internally
       const slideFile = card.dataset.slide;
-      window.parent.postMessage({
-        type: 'flideck:navigate',
-        slide: slideFile
-      }, '*');
+      window.parent.postMessage(
+        {
+          type: 'flideck:navigate',
+          slide: slideFile,
+        },
+        '*'
+      );
     });
   });
 </script>
 ```
 
 **In FliDeck (PresentationPage.tsx):**
+
 ```typescript
 useEffect(() => {
   const handleMessage = (event: MessageEvent) => {
     if (event.data?.type === 'flideck:navigate') {
       const slideFile = event.data.slide;
       // Update React state
-      const assetIndex = assets.findIndex(a => a.file === slideFile);
+      const assetIndex = assets.findIndex((a) => a.file === slideFile);
       setSelectedAssetId(slideFile);
       setCurrentAssetIndex(assetIndex);
       // Load slide via srcdoc (with keyboard bridge injected)
@@ -132,11 +141,13 @@ useEffect(() => {
 ```
 
 **Pros:**
+
 - Clean separation of concerns
 - FliDeck controls all navigation
 - Keyboard bridge always injected via srcdoc
 
 **Cons:**
+
 - Requires ALL index pages to include the script
 - Existing index pages won't work until updated
 
@@ -157,7 +168,7 @@ useEffect(() => {
       const currentUrl = iframe.contentWindow?.location.href;
       if (currentUrl) {
         const filename = currentUrl.split('/').pop();
-        const assetIndex = assets.findIndex(a => a.file === filename);
+        const assetIndex = assets.findIndex((a) => a.file === filename);
         if (assetIndex >= 0) {
           setSelectedAssetId(filename);
           setCurrentAssetIndex(assetIndex);
@@ -174,21 +185,25 @@ useEffect(() => {
 ```
 
 **Pros:**
+
 - Works without modifying index pages
 - Automatic detection
 
 **Cons:**
+
 - Cross-origin restrictions may block reading iframe URL
 - Still doesn't inject keyboard bridge into the newly loaded page
 
 ### Solution C: Intercept All Navigation (Most Robust)
 
 Inject a script into ALL iframe content (both `src` and `srcdoc`) that:
+
 1. Intercepts all `<a>` clicks and form submissions
 2. Sends postMessage to parent
 3. Lets parent decide how to handle
 
 **Cons:**
+
 - Complex injection for `src` loaded content
 - May interfere with legitimate internal navigation
 
@@ -207,11 +222,13 @@ const loadTabIndex = async (tabFile: string) => {
 ```
 
 **Pros:**
+
 - Keyboard bridge always injected
 - FliDeck controls all content
 - Can inject navigation bridge too
 
 **Cons:**
+
 - More complex loading logic
 - Need to handle relative URLs in the HTML
 
@@ -225,6 +242,7 @@ const loadTabIndex = async (tabFile: string) => {
 4. **All iframe content has keyboard bridge** because everything is srcdoc
 
 This ensures:
+
 - Keyboard always works (bridge always present)
 - Navigation always updates state (postMessage)
 - Single loading mechanism (srcdoc for everything)

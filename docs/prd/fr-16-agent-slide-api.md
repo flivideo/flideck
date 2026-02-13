@@ -32,14 +32,14 @@ Add CRUD endpoints for slide management:
 
 ### Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/presentations/:id` | Get presentation with slides (exists) |
-| `POST` | `/api/presentations` | Create new presentation |
-| `POST` | `/api/presentations/:id/slides` | Add slide to presentation |
-| `PUT` | `/api/presentations/:id/slides/:slideId` | Update slide metadata |
-| `DELETE` | `/api/presentations/:id/slides/:slideId` | Remove slide from manifest |
-| `PUT` | `/api/presentations/:id/order` | Reorder slides (exists) |
+| Method   | Endpoint                                 | Description                           |
+| -------- | ---------------------------------------- | ------------------------------------- |
+| `GET`    | `/api/presentations/:id`                 | Get presentation with slides (exists) |
+| `POST`   | `/api/presentations`                     | Create new presentation               |
+| `POST`   | `/api/presentations/:id/slides`          | Add slide to presentation             |
+| `PUT`    | `/api/presentations/:id/slides/:slideId` | Update slide metadata                 |
+| `DELETE` | `/api/presentations/:id/slides/:slideId` | Remove slide from manifest            |
+| `PUT`    | `/api/presentations/:id/order`           | Reorder slides (exists)               |
 
 ### Create Presentation
 
@@ -111,11 +111,11 @@ Removes slide from manifest. Does NOT delete the HTML file.
 
 ### Files to Create/Modify
 
-| File | Change |
-|------|--------|
-| `server/src/routes/presentations.ts` | Add new endpoints |
+| File                                         | Change                                 |
+| -------------------------------------------- | -------------------------------------- |
+| `server/src/routes/presentations.ts`         | Add new endpoints                      |
 | `server/src/services/PresentationService.ts` | Add create/update/delete slide methods |
-| `shared/src/types.ts` | Add request/response types |
+| `shared/src/types.ts`                        | Add request/response types             |
 
 ### Error Handling
 
@@ -134,6 +134,7 @@ Removes slide from manifest. Does NOT delete the HTML file.
 ### Folder Creation
 
 When creating a new presentation, FliDeck should:
+
 1. Create the folder at `{presentationsRoot}/{id}/`
 2. Write `index.json` manifest
 3. NOT create any HTML files (agent's responsibility)
@@ -149,7 +150,7 @@ if (health.ok) {
   // Use API
   await fetch('http://localhost:5201/api/presentations/my-deck/slides', {
     method: 'POST',
-    body: JSON.stringify({ file: 'new.html', title: 'New Slide' })
+    body: JSON.stringify({ file: 'new.html', title: 'New Slide' }),
   });
 } else {
   // Fallback: write index.json directly
@@ -173,22 +174,26 @@ if (health.ok) {
 **Implemented:** 2025-12-22
 
 **Files changed:**
+
 - `shared/src/types.ts` - Added `CreatePresentationRequest`, `CreatePresentationResponse`, `AddSlideRequest`, `UpdateSlideRequest` types
 - `server/src/services/PresentationService.ts` - Added `createPresentation`, `addSlide`, `updateSlide`, `removeSlide` methods
 - `server/src/routes/presentations.ts` - Added 4 new endpoints
 
 **API endpoints:**
+
 - `POST /api/presentations` - Creates folder and index.json manifest
 - `POST /api/presentations/:id/slides` - Appends slide to manifest
 - `PUT /api/presentations/:id/slides/:slideId` - Updates slide metadata (title, group, description, recommended)
 - `DELETE /api/presentations/:id/slides/:slideId` - Removes slide from manifest
 
 **Error handling:**
+
 - 400: Missing required fields, invalid format
 - 404: Presentation or slide not found
 - 409: Presentation or slide already exists
 
 **Notes:**
+
 - Presentation IDs validated to be folder-name safe (alphanumeric, hyphens, underscores only)
 - Slide files must end with `.html`
 - All endpoints emit `presentations:updated` socket event with reason field

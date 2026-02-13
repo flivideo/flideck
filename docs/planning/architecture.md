@@ -8,38 +8,38 @@ Cherry-picked technology stack based on lessons learned from Storyline App and F
 
 ### Frontend
 
-| Package | Version | Source | Rationale |
-|---------|---------|--------|-----------|
-| **react** | 19.1.1 | Storyline | Latest stable |
-| **react-dom** | 19.1.1 | Storyline | Latest stable |
-| **typescript** | 5.9.2 | Storyline | Newer, stricter type checking |
-| **vite** | 7.1.5 | Storyline | Latest with better ESM support |
-| **@tanstack/react-query** | 5.87.1 | Storyline | Latest features, better caching |
-| **react-router-dom** | 7.8.2 | Storyline | Proper routing (vs hash-based) |
-| **tailwindcss** | 4.1.13 | Storyline | Latest v4 |
-| **socket.io-client** | 4.8.1 | Both | Real-time communication |
-| **sonner** | 1.7.x | FliHub | Toast notifications (Storyline lacks this) |
+| Package                   | Version | Source    | Rationale                                  |
+| ------------------------- | ------- | --------- | ------------------------------------------ |
+| **react**                 | 19.1.1  | Storyline | Latest stable                              |
+| **react-dom**             | 19.1.1  | Storyline | Latest stable                              |
+| **typescript**            | 5.9.2   | Storyline | Newer, stricter type checking              |
+| **vite**                  | 7.1.5   | Storyline | Latest with better ESM support             |
+| **@tanstack/react-query** | 5.87.1  | Storyline | Latest features, better caching            |
+| **react-router-dom**      | 7.8.2   | Storyline | Proper routing (vs hash-based)             |
+| **tailwindcss**           | 4.1.13  | Storyline | Latest v4                                  |
+| **socket.io-client**      | 4.8.1   | Both      | Real-time communication                    |
+| **sonner**                | 1.7.x   | FliHub    | Toast notifications (Storyline lacks this) |
 
 ### Backend
 
-| Package | Version | Source | Rationale |
-|---------|---------|--------|-----------|
-| **express** | 5.1.0 | Both | Latest Express |
-| **socket.io** | 4.8.1 | Both | Real-time server |
-| **typescript** | 5.9.2 | Storyline | Consistency with client |
-| **chokidar** | 3.6.0 | Both | File system watching |
-| **sharp** | 0.34.3 | Storyline | Image processing |
-| **fs-extra** | 11.3.x | FliHub | Enhanced fs operations |
-| **dotenv** | 16.4.x | FliHub | Environment configuration |
+| Package        | Version | Source    | Rationale                 |
+| -------------- | ------- | --------- | ------------------------- |
+| **express**    | 5.1.0   | Both      | Latest Express            |
+| **socket.io**  | 4.8.1   | Both      | Real-time server          |
+| **typescript** | 5.9.2   | Storyline | Consistency with client   |
+| **chokidar**   | 3.6.0   | Both      | File system watching      |
+| **sharp**      | 0.34.3  | Storyline | Image processing          |
+| **fs-extra**   | 11.3.x  | FliHub    | Enhanced fs operations    |
+| **dotenv**     | 16.4.x  | FliHub    | Environment configuration |
 
 ### Development
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| **concurrently** | 9.x | Run client + server in parallel |
-| **nodemon** | 3.1.x | Server hot reload |
-| **tsx** | 4.19.x | TypeScript execution for Node |
-| **@vitejs/plugin-react** | 4.4.x | Vite React integration |
+| Package                  | Version | Purpose                         |
+| ------------------------ | ------- | ------------------------------- |
+| **concurrently**         | 9.x     | Run client + server in parallel |
+| **nodemon**              | 3.1.x   | Server hot reload               |
+| **tsx**                  | 4.19.x  | TypeScript execution for Node   |
+| **@vitejs/plugin-react** | 4.4.x   | Vite React integration          |
 
 ---
 
@@ -47,15 +47,15 @@ Cherry-picked technology stack based on lessons learned from Storyline App and F
 
 ### Pattern Sources
 
-| Pattern | Source | Why |
-|---------|--------|-----|
-| **Socket.io Rooms** | Storyline | Multi-project isolation, scoped broadcasts |
-| **WatcherManager** | FliHub | Centralized file watching with debouncing |
-| **Service Layer** | Storyline | EventEmitter singletons for complex domain logic |
-| **Route Factory** | FliHub | Dependency injection for testability |
-| **AppError + asyncHandler** | FliHub | Cleaner error handling |
-| **TanStack + Socket invalidation** | Both | Reactive UI without polling |
-| **Shared types workspace** | Both | `@shared` path alias (Storyline style) |
+| Pattern                            | Source    | Why                                              |
+| ---------------------------------- | --------- | ------------------------------------------------ |
+| **Socket.io Rooms**                | Storyline | Multi-project isolation, scoped broadcasts       |
+| **WatcherManager**                 | FliHub    | Centralized file watching with debouncing        |
+| **Service Layer**                  | Storyline | EventEmitter singletons for complex domain logic |
+| **Route Factory**                  | FliHub    | Dependency injection for testability             |
+| **AppError + asyncHandler**        | FliHub    | Cleaner error handling                           |
+| **TanStack + Socket invalidation** | Both      | Reactive UI without polling                      |
+| **Shared types workspace**         | Both      | `@shared` path alias (Storyline style)           |
 
 ---
 
@@ -263,7 +263,7 @@ export function getSocket(): Socket {
   if (!socket) {
     socket = io(API_URL, {
       transports: ['websocket', 'polling'],
-      autoConnect: true
+      autoConnect: true,
     });
   }
   return socket;
@@ -317,7 +317,9 @@ export function useSocketInvalidation(event: string, queryKey: string[]) {
     };
 
     s.on(event, handler);
-    return () => { s.off(event, handler); };
+    return () => {
+      s.off(event, handler);
+    };
   }, [queryClient, event, JSON.stringify(queryKey)]);
 }
 
@@ -334,7 +336,7 @@ export function useFeatureSocket(
     const s = getSocket();
     const handlers = events.map(({ event, queryKey }) => ({
       event,
-      handler: () => queryClient.invalidateQueries({ queryKey })
+      handler: () => queryClient.invalidateQueries({ queryKey }),
     }));
 
     handlers.forEach(({ event, handler }) => s.on(event, handler));
@@ -377,12 +379,12 @@ export class WatcherManager {
 
     const watcher = watch(path, {
       ignoreInitial: true,
-      ignored: /(^|[\/\\])\../,  // Ignore hidden files
+      ignored: /(^|[\/\\])\../, // Ignore hidden files
       persistent: true,
       awaitWriteFinish: {
         stabilityThreshold: 100,
-        pollInterval: 50
-      }
+        pollInterval: 50,
+      },
     });
 
     watcher.on('all', (eventType, filePath) => {
@@ -411,14 +413,17 @@ export class WatcherManager {
       clearTimeout(existing);
     }
 
-    this.debounceTimers.set(timerKey, setTimeout(() => {
-      if (room) {
-        this.io.to(room).emit(event, data);
-      } else {
-        this.io.emit(event, data);
-      }
-      this.debounceTimers.delete(timerKey);
-    }, ms));
+    this.debounceTimers.set(
+      timerKey,
+      setTimeout(() => {
+        if (room) {
+          this.io.to(room).emit(event, data);
+        } else {
+          this.io.emit(event, data);
+        }
+        this.debounceTimers.delete(timerKey);
+      }, ms)
+    );
   }
 
   stop(name: string): void {
@@ -493,7 +498,7 @@ export class DataService extends EventEmitter {
     try {
       const filePath = this.getFilePath(projectId, filename);
 
-      if (!await fs.pathExists(filePath)) {
+      if (!(await fs.pathExists(filePath))) {
         return null;
       }
 
@@ -562,46 +567,58 @@ export function createProjectRoutes({ getConfig, io }: RouteConfig): Router {
   const dataService = DataService.getInstance();
 
   // GET /api/projects
-  router.get('/', asyncHandler(async (req, res) => {
-    const config = getConfig();
-    const projects = await listProjects(config.projectsRoot);
-    res.json({ success: true, data: projects });
-  }));
+  router.get(
+    '/',
+    asyncHandler(async (req, res) => {
+      const config = getConfig();
+      const projects = await listProjects(config.projectsRoot);
+      res.json({ success: true, data: projects });
+    })
+  );
 
   // GET /api/projects/:id
-  router.get('/:id', asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const data = await dataService.load(id, 'project.json');
+  router.get(
+    '/:id',
+    asyncHandler(async (req, res) => {
+      const { id } = req.params;
+      const data = await dataService.load(id, 'project.json');
 
-    if (!data) {
-      throw new AppError('Project not found', 404);
-    }
+      if (!data) {
+        throw new AppError('Project not found', 404);
+      }
 
-    res.json({ success: true, data });
-  }));
+      res.json({ success: true, data });
+    })
+  );
 
   // POST /api/projects/:id
-  router.post('/:id', asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { data } = req.body;
+  router.post(
+    '/:id',
+    asyncHandler(async (req, res) => {
+      const { id } = req.params;
+      const { data } = req.body;
 
-    await dataService.save(id, 'project.json', data);
+      await dataService.save(id, 'project.json', data);
 
-    // Emit to project room
-    io.to(`project:${id}`).emit('project:updated', { projectId: id });
+      // Emit to project room
+      io.to(`project:${id}`).emit('project:updated', { projectId: id });
 
-    res.json({ success: true });
-  }));
+      res.json({ success: true });
+    })
+  );
 
   // DELETE /api/projects/:id
-  router.delete('/:id', asyncHandler(async (req, res) => {
-    const { id } = req.params;
+  router.delete(
+    '/:id',
+    asyncHandler(async (req, res) => {
+      const { id } = req.params;
 
-    // Implementation...
+      // Implementation...
 
-    io.to(`project:${id}`).emit('project:deleted', { projectId: id });
-    res.json({ success: true });
-  }));
+      io.to(`project:${id}`).emit('project:deleted', { projectId: id });
+      res.json({ success: true });
+    })
+  );
 
   return router;
 }
@@ -631,11 +648,7 @@ export class AppError extends Error {
   }
 }
 
-type AsyncRequestHandler = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => Promise<void>;
+type AsyncRequestHandler = (req: Request, res: Response, next: NextFunction) => Promise<void>;
 
 export function asyncHandler(fn: AsyncRequestHandler): RequestHandler {
   return (req, res, next) => {
@@ -643,12 +656,7 @@ export function asyncHandler(fn: AsyncRequestHandler): RequestHandler {
   };
 }
 
-export function errorHandler(
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void {
+export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction): void {
   // Log error
   console.error('Error:', err.message);
   if (process.env.NODE_ENV === 'development') {
@@ -663,15 +671,15 @@ export function errorHandler(
     success: false,
     error: err.message,
     ...(process.env.NODE_ENV === 'development' && {
-      stack: err.stack
-    })
+      stack: err.stack,
+    }),
   });
 }
 
 export function notFoundHandler(req: Request, res: Response): void {
   res.status(404).json({
     success: false,
-    error: `Route ${req.method} ${req.path} not found`
+    error: `Route ${req.method} ${req.path} not found`,
   });
 }
 ```
@@ -705,8 +713,8 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: CLIENT_URL,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
-  }
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  },
 });
 
 // Middleware
@@ -759,7 +767,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     success: true,
     status: 'ok',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -823,10 +831,7 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
     const response = await fetch(url, {
@@ -1004,10 +1009,10 @@ export const WS_URL = import.meta.env.VITE_WS_URL || API_URL;
 
 ## Ports
 
-| Service | Port | Environment Variable |
-|---------|------|---------------------|
-| Server (Express + Socket.io) | 5101 | `PORT` |
-| Client (Vite dev) | 5173 | Vite default |
+| Service                      | Port | Environment Variable |
+| ---------------------------- | ---- | -------------------- |
+| Server (Express + Socket.io) | 5101 | `PORT`               |
+| Client (Vite dev)            | 5173 | Vite default         |
 
 ---
 

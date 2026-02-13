@@ -25,12 +25,14 @@ So that **I can customize my workspace layout and eliminate unwanted scrollbars*
    - Indicates the layout isn't optimally using available space
 
 **Impact:**
+
 - Reduced usable space for slide content
 - Visual clutter from unwanted scrollbars
 - Fixed layout doesn't adapt to different screen sizes or user preferences
 - No way for users to optimize their workspace
 
 **Desired state:**
+
 - User can drag the sidebar edge to make it wider or narrower
 - Wider sidebar: More space for long asset names
 - Narrower sidebar: More space for slide content, eliminates horizontal scrollbar
@@ -59,6 +61,7 @@ Add a vertical drag handle at the right edge of the sidebar:
 ```
 
 **Visual design:**
+
 - 4px wide hit area for easy grabbing
 - 1px border visible on hover
 - Cursor changes to `col-resize` on hover
@@ -68,17 +71,20 @@ Add a vertical drag handle at the right edge of the sidebar:
 ### Behavior
 
 **Dragging:**
+
 - Click and hold on the drag handle
 - Move mouse left/right to resize
 - Sidebar width updates in real-time during drag
 - Release to commit the new width
 
 **Constraints:**
+
 - Minimum width: 200px (prevent collapsing too small)
 - Maximum width: 600px (prevent taking entire screen)
 - Default width: 320px (current fixed width)
 
 **Persistence:**
+
 - Save width preference to localStorage: `flideck:sidebarWidth`
 - Restore on page load
 - Per-browser setting (not per-presentation)
@@ -105,11 +111,14 @@ export function useResizableSidebar(
     setIsDragging(true);
   }, []);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
-    const newWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX));
-    setWidth(newWidth);
-  }, [isDragging, minWidth, maxWidth]);
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging) return;
+      const newWidth = Math.max(minWidth, Math.min(maxWidth, e.clientX));
+      setWidth(newWidth);
+    },
+    [isDragging, minWidth, maxWidth]
+  );
 
   const handleMouseUp = useCallback(() => {
     if (isDragging) {
@@ -140,10 +149,7 @@ export function useResizableSidebar(
 const { width, isDragging, handleMouseDown } = useResizableSidebar();
 
 return (
-  <div
-    className="sidebar relative"
-    style={{ width: `${width}px` }}
-  >
+  <div className="sidebar relative" style={{ width: `${width}px` }}>
     {/* Existing sidebar content */}
 
     {/* Drag handle */}
@@ -152,7 +158,7 @@ return (
       onMouseDown={handleMouseDown}
       style={{
         backgroundColor: isDragging ? 'var(--color-gold)' : 'transparent',
-        opacity: isDragging ? 0.5 : 1
+        opacity: isDragging ? 0.5 : 1,
       }}
     />
   </div>
@@ -193,6 +199,7 @@ Current layout uses fixed sidebar width in Tailwind classes. Update to use inlin
 ### CSS Considerations
 
 **Prevent text selection during drag:**
+
 ```css
 .sidebar.dragging {
   user-select: none;
@@ -200,6 +207,7 @@ Current layout uses fixed sidebar width in Tailwind classes. Update to use inlin
 ```
 
 **Ensure main content doesn't overflow:**
+
 ```css
 .main-content {
   flex: 1;
@@ -210,6 +218,7 @@ Current layout uses fixed sidebar width in Tailwind classes. Update to use inlin
 ### Alternative: CSS Resize
 
 Could use native CSS `resize: horizontal`, but:
+
 - Less control over min/max constraints
 - Harder to persist preference
 - Less control over visual styling
@@ -218,11 +227,13 @@ Could use native CSS `resize: horizontal`, but:
 ### Edge Cases
 
 **Very narrow screens (<800px):**
+
 - Consider making sidebar collapsible on mobile
 - Or set responsive min/max based on viewport width
 - Future enhancement: Responsive constraints
 
 **Double-click to reset:**
+
 - Future enhancement: Double-click drag handle to reset to default width
 - Not required for v1
 
@@ -261,6 +272,7 @@ None - standalone UI enhancement.
 ## Completion Notes
 
 **What was done:**
+
 - Created `useResizableSidebar` hook with complete drag-to-resize logic
 - Integrated hook into Sidebar component
 - Added visual drag handle at right edge of sidebar
@@ -270,10 +282,12 @@ None - standalone UI enhancement.
 - Prevented text selection during drag with global cursor override
 
 **Files changed:**
+
 - `client/src/hooks/useResizableSidebar.ts` (new) - Custom hook for resize logic
 - `client/src/components/layout/Sidebar.tsx` (modified) - Integrated hook, added drag handle
 
 **Implementation details:**
+
 - Mouse events: `mousedown` on handle, global `mousemove`/`mouseup` during drag
 - Width calculated from `e.clientX` (mouse distance from left edge)
 - Constraints applied via `Math.max/min` during drag
@@ -283,6 +297,7 @@ None - standalone UI enhancement.
 - Z-index: 20 to appear above other sidebar content
 
 **Testing notes:**
+
 - Start dev server: `npm run dev`
 - Navigate to any presentation
 - Hover over right edge of sidebar to see drag handle appear
@@ -299,12 +314,14 @@ None - standalone UI enhancement.
 ## Bug Fixes (2026-01-07)
 
 **Bug #1: Resize only works in one direction**
+
 - **Problem:** Could resize left (narrower) but not right (wider)
 - **Root cause:** Used `e.clientX` directly as width, which only works if sidebar starts at viewport x=0
 - **Fix:** Track starting mouse position and starting width with `useRef`, calculate delta, apply to starting width
 - **Files:** `client/src/hooks/useResizableSidebar.ts`
 
 **Bug #2: Excessive left padding/spacing**
+
 - **Problem:** Too much whitespace on left side of sidebar content (20px root, 36px nested)
 - **Root cause:** Multiple layers of padding: container `p-2` (8px) + buttons `px-3` (12px) + nested `pl-4` (16px)
 - **Fix:** Reduced all horizontal padding:
@@ -335,6 +352,7 @@ None - standalone UI enhancement.
 **Solution:** Replaced drag handle with preset size buttons (S, M, L, XL).
 
 **New Implementation:**
+
 - **Preset sizes:**
   - S (Small): 280px - Default balanced size
   - M (Medium): 380px - More room for long asset names
@@ -346,6 +364,7 @@ None - standalone UI enhancement.
 - **Persistence:** Selected size saved to localStorage, restored on page load
 
 **Benefits over drag:**
+
 - ✅ Instant, predictable sizing
 - ✅ No timing/delay bugs
 - ✅ Easier to use (one click vs drag operation)
@@ -353,6 +372,7 @@ None - standalone UI enhancement.
 - ✅ Simpler implementation (no complex event handling)
 
 **Files changed:**
+
 - `client/src/hooks/useResizableSidebar.ts` - Complete rewrite to button-based approach
 - `client/src/components/layout/Sidebar.tsx` - Removed drag handle, added S/M/L/XL buttons
 

@@ -7,7 +7,9 @@ import { fileURLToPath } from 'url';
 import type { FlideckManifest } from '@flideck/shared';
 
 // Handle both CommonJS and ESM imports
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Ajv = (AjvModule as any).default || AjvModule;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const addFormats = (addFormatsModule as any).default || addFormatsModule;
 
 // Get current file directory in ESM
@@ -95,9 +97,7 @@ export function validateOrThrow(manifest: unknown): asserts manifest is FlideckM
   const result = validate(manifest);
 
   if (!result.valid) {
-    const errorMessages = result.errors
-      ?.map(e => `${e.field}: ${e.message}`)
-      .join(', ');
+    const errorMessages = result.errors?.map((e) => `${e.field}: ${e.message}`).join(', ');
 
     throw new Error(`Manifest validation failed: ${errorMessages}`);
   }

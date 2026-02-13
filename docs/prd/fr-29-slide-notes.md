@@ -13,6 +13,7 @@ So that **I can remember the context, purpose, and design intent when reviewing 
 ## Problem Statement
 
 **Current situation:**
+
 - When creating multiple slides for a presentation, it's hard to remember the context and purpose of each slide
 - Looking at a slide list days or weeks later, titles alone don't convey:
   - Why was this slide created?
@@ -22,6 +23,7 @@ So that **I can remember the context, purpose, and design intent when reviewing 
 - No structured way to capture this information at creation time
 
 **Impact:**
+
 - Lost context after creating batches of slides
 - Harder to maintain and update presentations
 - Can't remember which slides need revision vs which are complete
@@ -42,6 +44,7 @@ Without notes, the creator has to open each slide to understand it.
 **Desired state:**
 
 Agent creates slide with notes:
+
 ```
 User: "Create slide for Story 3.2 SAT testing, notes: demonstrates the new prompt workflow for BMAD training, draft version"
 
@@ -70,7 +73,7 @@ interface ManifestSlide {
   group?: string;
   order?: number;
   recommended?: boolean;
-  notes?: string;  // NEW: Optional contextual notes
+  notes?: string; // NEW: Optional contextual notes
 }
 ```
 
@@ -114,31 +117,37 @@ interface ManifestSlide {
 ### Use Cases for Notes
 
 **1. Agent Creation Context:**
+
 ```
 "notes": "Created from BMAD Method v6 chapter 3, section on SAT testing workflows."
 ```
 
 **2. Status Tracking:**
+
 ```
 "notes": "Draft. Waiting for stakeholder review before finalizing."
 ```
 
 **3. Design Intent:**
+
 ```
 "notes": "Simple version for beginners. Advanced version is in epic-3-advanced.html."
 ```
 
 **4. Source Attribution:**
+
 ```
 "notes": "Content based on Claude Code documentation, updated 2026-01-05."
 ```
 
 **5. Persona Targeting:**
+
 ```
 "notes": "Created for Mary persona (product manager). Technical version is in john-slides group."
 ```
 
 **6. Revision History:**
+
 ```
 "notes": "v2: Updated workflow diagram per feedback. Original at story-3-2-sat-v1.html."
 ```
@@ -146,27 +155,32 @@ interface ManifestSlide {
 ## Why This Approach Works
 
 **Leverage existing infrastructure:**
+
 - Manifest (`index.json`) already exists
 - Schema is FliDeck-owned via `/api/schema/manifest`
 - Agents already write to manifest via API
 - No new file format or storage mechanism needed
 
 **Notes travel with presentation:**
+
 - Stored in the presentation folder, not FliDeck's database
 - Portable - copy folder, notes come along
 - Version controllable with git
 
 **Backward compatible:**
+
 - `notes` is optional
 - Existing manifests without notes continue to work
 - No migration needed
 
 **Agent-friendly:**
+
 - Simple string field, easy for agents to populate
 - No complex structure to learn
 - Works with existing slide creation API
 
 **Future-proof:**
+
 - Foundation for UI features (display notes in sidebar, search, filter)
 - Can extend to richer formats later (markdown, timestamps, tags)
 - Can add similar fields for groups/tabs if needed
@@ -174,11 +188,13 @@ interface ManifestSlide {
 ## Acceptance Criteria
 
 **Schema & Types:**
+
 - [ ] `shared/src/types.ts` updated with `notes?: string` in `ManifestSlide` interface
 - [ ] JSON Schema in `/api/schema/manifest` includes `notes` field with type `string`, marked as optional
 - [ ] TypeScript compiler accepts manifests with and without `notes` field
 
 **API Behavior:**
+
 - [ ] `POST /api/presentations/:id/slides` accepts `notes` in request body
 - [ ] `PUT /api/presentations/:id/slides/:slideId` can update `notes` field
 - [ ] `POST /api/presentations/:id/manifest/slides/bulk` accepts `notes` for each slide
@@ -186,16 +202,19 @@ interface ManifestSlide {
 - [ ] `GET /api/presentations/:id/manifest` returns raw manifest with `notes`
 
 **Persistence:**
+
 - [ ] Notes written to `index.json` when creating slides
 - [ ] Notes persist across server restarts
 - [ ] Notes survive manifest sync operations (don't get deleted)
 
 **Backward Compatibility:**
+
 - [ ] Existing manifests without `notes` load successfully
 - [ ] Slides without `notes` display normally in UI
 - [ ] No validation errors for missing `notes` field
 
 **Documentation:**
+
 - [ ] CLAUDE.md API table mentions `notes` parameter where applicable
 - [ ] `/api/capabilities` workflow examples show `notes` usage
 - [ ] JSON Schema documentation describes `notes` field purpose
@@ -216,7 +235,7 @@ export interface ManifestSlide {
   group?: string;
   order?: number;
   recommended?: boolean;
-  notes?: string;  // Add this
+  notes?: string; // Add this
 }
 ```
 
@@ -227,22 +246,22 @@ export interface ManifestSlide {
 const manifestSchema = {
   // ... existing schema
   slides: {
-    type: "array",
+    type: 'array',
     items: {
-      type: "object",
+      type: 'object',
       properties: {
-        id: { type: "string" },
-        file: { type: "string" },
-        title: { type: "string" },
-        description: { type: "string" },
-        group: { type: "string" },
-        order: { type: "number" },
-        recommended: { type: "boolean" },
-        notes: { type: "string" }  // Add this
+        id: { type: 'string' },
+        file: { type: 'string' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        group: { type: 'string' },
+        order: { type: 'number' },
+        recommended: { type: 'boolean' },
+        notes: { type: 'string' }, // Add this
       },
-      required: ["id", "file"]
-    }
-  }
+      required: ['id', 'file'],
+    },
+  },
 };
 ```
 
@@ -250,6 +269,7 @@ const manifestSchema = {
 
 No code changes needed - routes already pass through all fields.
 Verify that:
+
 - `POST /api/presentations/:id/slides` accepts arbitrary fields
 - `PUT /api/presentations/:id/slides/:slideId` merges fields
 - Bulk operations preserve fields
@@ -279,18 +299,21 @@ Verify that:
 ### Future Enhancements (Out of Scope)
 
 **UI Display Options:**
+
 - Show notes in sidebar on hover (tooltip)
 - Add notes panel to slide viewer
 - Search/filter by notes content
 - Notes editor in FliDeck UI
 
 **Richer Format:**
+
 - Support markdown in notes
 - Add `tags: string[]` field alongside notes
 - Add `created: timestamp` and `modified: timestamp`
 - Add `author: string` field
 
 **HTML Integration:**
+
 - Also write notes as HTML comment in slide file:
   ```html
   <!-- FliDeck Notes: Demonstrates new workflow for SAT testing -->
@@ -300,16 +323,19 @@ Verify that:
 ### Validation Considerations
 
 **Should notes have max length?**
+
 - Not enforced in v1 - keep it simple
 - Future: Could add warning if notes exceed 500 chars
 - JSON has no practical size limit for strings
 
 **Should notes support newlines?**
+
 - Yes - JSON strings support `\n`
 - UI can display as multi-line or single-line truncated
 - Agent can write: `"notes": "Line 1.\nLine 2.\nLine 3."`
 
 **Should notes be searchable?**
+
 - Not in v1 - just storage
 - Future: Add notes to quick filter search (FR-9)
 - Future: Full-text search across all notes

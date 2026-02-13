@@ -30,6 +30,7 @@ ls -la docs/
 ```
 
 Note what exists:
+
 - [ ] `backlog.md` - does it have inline requirement details?
 - [ ] `docs/prd/` - does it exist? what's in it?
 - [ ] `handover-queue.md` - exists? (will be deleted)
@@ -94,22 +95,22 @@ Requirements index for FliHub.
 
 ## Requirements
 
-| # | Requirement | Added | Status |
-|---|-------------|-------|--------|
-| 1 | [FR-1: Title](prd/fr-01-name.md) | YYYY-MM-DD | Implemented |
-| 2 | [FR-2: Title](prd/fr-02-name.md) | YYYY-MM-DD | Pending |
-| 3 | [NFR-1: Title](prd/nfr-01-name.md) | YYYY-MM-DD | Pending |
+| #   | Requirement                        | Added      | Status      |
+| --- | ---------------------------------- | ---------- | ----------- |
+| 1   | [FR-1: Title](prd/fr-01-name.md)   | YYYY-MM-DD | Implemented |
+| 2   | [FR-2: Title](prd/fr-02-name.md)   | YYYY-MM-DD | Pending     |
+| 3   | [NFR-1: Title](prd/nfr-01-name.md) | YYYY-MM-DD | Pending     |
 
 ---
 
 ## Status Legend
 
-| Status | Meaning |
-|--------|---------|
-| `Pending` | Ready for development |
+| Status           | Meaning                     |
+| ---------------- | --------------------------- |
+| `Pending`        | Ready for development       |
 | `With Developer` | Currently being implemented |
-| `Implemented` | Complete |
-| `Needs Rework` | Issues found |
+| `Implemented`    | Complete                    |
+| `Needs Rework`   | Issues found                |
 
 ## Numbering
 
@@ -148,12 +149,12 @@ Documentation for FliHub - [description].
 
 ## Quick Links
 
-| Document | Purpose |
-|----------|---------|
-| [backlog.md](backlog.md) | Requirements index with status |
-| [changelog.md](changelog.md) | Implementation history |
-| [brainstorming-notes.md](brainstorming-notes.md) | Ideas and exploration |
-| [prd/](prd/) | Individual requirement specs |
+| Document                                         | Purpose                        |
+| ------------------------------------------------ | ------------------------------ |
+| [backlog.md](backlog.md)                         | Requirements index with status |
+| [changelog.md](changelog.md)                     | Implementation history         |
+| [brainstorming-notes.md](brainstorming-notes.md) | Ideas and exploration          |
+| [prd/](prd/)                                     | Individual requirement specs   |
 
 ---
 
@@ -161,13 +162,13 @@ Documentation for FliHub - [description].
 
 \`\`\`
 docs/
-├── prd/                  # Individual requirement specs (FR-XX, NFR-XX)
-├── planning/             # Architecture, initial requirements
-├── uat/                  # User Acceptance Testing results
-├── backlog.md            # Requirements index (status tracking)
-├── changelog.md          # Version history
+├── prd/ # Individual requirement specs (FR-XX, NFR-XX)
+├── planning/ # Architecture, initial requirements
+├── uat/ # User Acceptance Testing results
+├── backlog.md # Requirements index (status tracking)
+├── changelog.md # Version history
 ├── brainstorming-notes.md
-└── README.md             # This file
+└── README.md # This file
 \`\`\`
 ```
 
@@ -178,6 +179,7 @@ docs/
 The shared commands (`/po`, `/dev`, `/progress`) in `.claude/commands/` should already be updated if FliHub inherits from FliVideo.
 
 If FliHub has its own commands, update them to:
+
 - Remove `handover-queue` skill references
 - Point to `docs/prd/` for requirements
 - Update status in `backlog.md` directly
@@ -186,12 +188,12 @@ If FliHub has its own commands, update them to:
 
 ## Quick Reference
 
-| Old Pattern | New Pattern |
-|-------------|-------------|
-| Inline details in `backlog.md` | Separate PRD files in `docs/prd/` |
-| `handover-queue.md` for dev handoff | PRD file IS the handoff |
-| `handover-queue` skill | Not needed - update `backlog.md` status directly |
-| Status: `With Developer` | Same - but dev reads PRD directly |
+| Old Pattern                         | New Pattern                                      |
+| ----------------------------------- | ------------------------------------------------ |
+| Inline details in `backlog.md`      | Separate PRD files in `docs/prd/`                |
+| `handover-queue.md` for dev handoff | PRD file IS the handoff                          |
+| `handover-queue` skill              | Not needed - update `backlog.md` status directly |
+| Status: `With Developer`            | Same - but dev reads PRD directly                |
 
 ---
 

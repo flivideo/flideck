@@ -42,16 +42,10 @@ export function PresentationPage() {
 
   const { data: presentations } = usePresentations();
   const { data: presentation, isLoading, error } = usePresentation(id);
-  const { data: assetData, isLoading: assetLoading } = useAsset(
-    id,
-    selectedAssetId || undefined
-  );
+  const { data: assetData, isLoading: assetLoading } = useAsset(id, selectedAssetId || undefined);
 
   // Container tab management (FR-24)
-  const [activeContainerTabId, setActiveContainerTabId] = useContainerTab(
-    id,
-    presentation?.tabs
-  );
+  const [activeContainerTabId, setActiveContainerTabId] = useContainerTab(id, presentation?.tabs);
 
   // Join presentation room for scoped updates
   usePresentationRoom(id || null);
@@ -120,7 +114,7 @@ export function PresentationPage() {
 
       // BUG-6: Auto-expand collapsed group when navigating into it
       if (newAsset.group && collapsedGroups.has(newAsset.group)) {
-        setCollapsedGroups(prev => {
+        setCollapsedGroups((prev) => {
           const next = new Set(prev);
           next.delete(newAsset.group!);
           try {
@@ -238,9 +232,9 @@ export function PresentationPage() {
     setSelectedAssetId(assetId);
 
     // BUG-6: Auto-expand collapsed group when selecting via quick filter
-    const selectedAsset = sidebarOrderedAssets.find(a => a.id === assetId);
+    const selectedAsset = sidebarOrderedAssets.find((a) => a.id === assetId);
     if (selectedAsset?.group && collapsedGroups.has(selectedAsset.group)) {
-      setCollapsedGroups(prev => {
+      setCollapsedGroups((prev) => {
         const next = new Set(prev);
         next.delete(selectedAsset.group!);
         try {
@@ -280,11 +274,9 @@ export function PresentationPage() {
     );
   }
 
-  // Progress indicator component (only shown outside presentation mode)
-  const ProgressIndicator = () => {
-    if (totalAssets <= 1 || isPresentationMode) return null;
-
-    return (
+  // Progress indicator (only shown outside presentation mode)
+  const progressIndicator =
+    totalAssets > 1 && !isPresentationMode ? (
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 bg-brand-brown/80 backdrop-blur-sm rounded-full text-sm text-white">
         <span className="font-medium">{currentIndex + 1}</span>
         <span className="text-white/60">/</span>
@@ -297,8 +289,7 @@ export function PresentationPage() {
           />
         </div>
       </div>
-    );
-  };
+    ) : null;
 
   return (
     <div className="flex flex-col h-screen">
@@ -369,7 +360,7 @@ export function PresentationPage() {
           )}
 
           {/* Progress indicator - hidden in presentation mode and container tab mode */}
-          {!hasContainerTabs && assetData && <ProgressIndicator />}
+          {!hasContainerTabs && assetData && progressIndicator}
 
           {/* Hover-only exit button in presentation mode */}
           {isPresentationMode && (

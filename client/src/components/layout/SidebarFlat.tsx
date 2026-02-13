@@ -93,11 +93,7 @@ export const SidebarFlat = memo(function SidebarFlat({
             </span>
           )}
           {asset.recommended && (
-            <span
-              className="mr-2 text-xs"
-              style={{ color: '#ffde59' }}
-              title="Recommended"
-            >
+            <span className="mr-2 text-xs" style={{ color: '#ffde59' }} title="Recommended">
               ★
             </span>
           )}
@@ -114,8 +110,14 @@ export const SidebarFlat = memo(function SidebarFlat({
               }}
               className="p-1 rounded transition-colors"
               style={{ color: '#595959' }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#4a4040'; e.currentTarget.style.color = '#ccba9d'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#595959'; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#4a4040';
+                e.currentTarget.style.color = '#ccba9d';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#595959';
+              }}
               title="Copy path"
             >
               ⋮
@@ -127,29 +129,53 @@ export const SidebarFlat = memo(function SidebarFlat({
                 style={{ backgroundColor: '#4a4040' }}
               >
                 <button
-                  onClick={(e) => { e.stopPropagation(); onCopyPath(asset, 'url'); onToggleCopyMenu(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCopyPath(asset, 'url');
+                    onToggleCopyMenu(null);
+                  }}
                   className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                   style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a5050';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Copy URL
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); onCopyPath(asset, 'abs'); onToggleCopyMenu(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCopyPath(asset, 'abs');
+                    onToggleCopyMenu(null);
+                  }}
                   className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                   style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a5050';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Copy Absolute
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); onCopyPath(asset, 'rel'); onToggleCopyMenu(null); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCopyPath(asset, 'rel');
+                    onToggleCopyMenu(null);
+                  }}
                   className="w-full text-left px-3 py-1.5 text-sm transition-colors"
                   style={{ color: '#ffffff' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5a5050'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#5a5050';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   Copy Relative
                 </button>
@@ -161,9 +187,5 @@ export const SidebarFlat = memo(function SidebarFlat({
     );
   };
 
-  return (
-    <div className="space-y-0.5">
-      {assets.map(renderAssetRow)}
-    </div>
-  );
+  return <div className="space-y-0.5">{assets.map(renderAssetRow)}</div>;
 });

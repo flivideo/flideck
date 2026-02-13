@@ -148,7 +148,8 @@ const CAPABILITIES = {
     bulk_operations: {
       'POST /api/presentations/:id/manifest/slides/bulk': 'Add multiple slides',
       'PUT /api/presentations/:id/manifest/sync': 'Sync manifest with filesystem',
-      'PUT /api/presentations/:id/manifest/sync-from-index': 'Parse index HTML to populate manifest',
+      'PUT /api/presentations/:id/manifest/sync-from-index':
+        'Parse index HTML to populate manifest',
       'POST /api/presentations/:id/manifest/validate': 'Validate manifest',
     },
     schema: {

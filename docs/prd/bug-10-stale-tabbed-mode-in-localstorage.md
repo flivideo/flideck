@@ -9,16 +9,19 @@ Users who previously selected "Tabbed" display mode have the value persisted in 
 **Presentation:** bmad-poem (and any presentation where user previously selected "Tabbed" mode)
 
 **Steps to reproduce:**
+
 1. Before BUG-9 fix: Open presentation, select "Tabbed" mode from dropdown
 2. After BUG-9 fix: Refresh page
 3. Observe sidebar is completely empty
 4. Clicking container tabs (Mary, John, etc.) makes no difference - still empty
 
 **Expected result:**
+
 - Sidebar shows slides
 - Container tabs filter content appropriately
 
 **Actual result:**
+
 - Sidebar is completely empty
 - No slides visible regardless of mode or tab selection
 
@@ -30,8 +33,8 @@ Users who previously selected "Tabbed" display mode have the value persisted in 
 
 ```typescript
 // Lines 54-56
-const saved = localStorage.getItem(storageKey);  // Returns "tabbed"
-setSessionOverrideState(saved as DisplayMode | null);  // Sets mode to "tabbed"
+const saved = localStorage.getItem(storageKey); // Returns "tabbed"
+setSessionOverrideState(saved as DisplayMode | null); // Sets mode to "tabbed"
 ```
 
 ### Why It Breaks
@@ -51,12 +54,14 @@ setSessionOverrideState(saved as DisplayMode | null);  // Sets mode to "tabbed"
 ### BUG-9 Fix Was Incomplete
 
 BUG-9 removed "tabbed" from the dropdown, but didn't handle:
+
 1. Existing localStorage values of "tabbed"
 2. Fallback logic for obsolete mode values
 
 ## Affected Users
 
 Any user who:
+
 1. Previously used FliDeck before BUG-9 fix
 2. Selected "Tabbed" mode on any presentation
 3. Still has that value in localStorage
@@ -72,9 +77,8 @@ Add validation when loading from localStorage:
 const saved = localStorage.getItem(storageKey);
 // Sanitize: treat obsolete 'tabbed' as null (fall back to auto-detect)
 const validModes: DisplayMode[] = ['flat', 'grouped'];
-const validatedMode = saved && validModes.includes(saved as DisplayMode)
-  ? saved as DisplayMode
-  : null;
+const validatedMode =
+  saved && validModes.includes(saved as DisplayMode) ? (saved as DisplayMode) : null;
 setSessionOverrideState(validatedMode);
 ```
 
@@ -130,6 +134,7 @@ if (saved === 'tabbed') {
 ## Workaround (Immediate)
 
 Users can fix manually:
+
 1. Open DevTools (F12)
 2. Go to Application → Local Storage → localhost:5200
 3. Delete keys starting with `flideck:displayMode:`

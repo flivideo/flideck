@@ -32,9 +32,11 @@ Rename the manifest file from `flideck.json` to `index.json`.
 ### Migration Strategy
 
 1. **Read both, prefer index.json:**
+
    ```typescript
-   const manifest = await this.readManifest(folderPath, 'index.json')
-                 || await this.readManifest(folderPath, 'flideck.json');
+   const manifest =
+     (await this.readManifest(folderPath, 'index.json')) ||
+     (await this.readManifest(folderPath, 'flideck.json'));
    ```
 
 2. **Write only index.json:** New saves go to `index.json`
@@ -58,11 +60,11 @@ Rename the manifest file from `flideck.json` to `index.json`.
 
 ### Files to Modify
 
-| File | Change |
-|------|--------|
+| File                                         | Change                                        |
+| -------------------------------------------- | --------------------------------------------- |
 | `server/src/services/PresentationService.ts` | Update `MANIFEST_FILENAME`, add fallback read |
-| `CLAUDE.md` | Update documentation references |
-| `docs/prd/fr-07-asset-ordering.md` | Update references (or add note about rename) |
+| `CLAUDE.md`                                  | Update documentation references               |
+| `docs/prd/fr-07-asset-ordering.md`           | Update references (or add note about rename)  |
 
 ### Code Changes
 
@@ -99,6 +101,7 @@ private async readManifest(folderPath: string): Promise<FlideckManifest | null> 
 **Implemented:** 2025-12-22
 
 **What was done:**
+
 - Changed `MANIFEST_FILENAME` constant from `flideck.json` to `index.json`
 - Added `LEGACY_MANIFEST_FILENAME` constant for `flideck.json`
 - Updated `readManifest()` to try `index.json` first, fall back to `flideck.json`

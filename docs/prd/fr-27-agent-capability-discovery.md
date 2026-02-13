@@ -7,18 +7,21 @@ Provide a self-describing API endpoint that agents can query to discover FliDeck
 ## Problem Statement
 
 **Current state:**
+
 - Agents need embedded knowledge about FliDeck's API
 - When FliDeck adds features, all agents need updating
 - Claude's plugin system makes agent updates difficult
 - No discovery mechanism - agents must "just know" what's available
 
 **Impact:**
+
 - Agent integration is brittle
 - New features aren't automatically discoverable
 - Each agent duplicates FliDeck knowledge
 - DAM skill pattern (discovery-based) can't be applied
 
 **Desired state:**
+
 - Agent asks "What can you do?"
 - FliDeck responds with capabilities in natural language
 - Agent adapts to available features dynamically
@@ -217,6 +220,7 @@ export default router;
 ### Maintenance
 
 Keep capabilities in sync with actual features:
+
 1. Define capabilities as TypeScript const
 2. Reference from route handler
 3. Update when adding features
@@ -266,6 +270,7 @@ None - standalone feature.
 ## Completion Notes
 
 **What was done:**
+
 - Created `GET /api/capabilities` endpoint returning structured capability description
 - Response includes all concepts (presentation, tab, group, slide, manifest)
 - Response includes common workflows with examples (add_slide, create_tabbed, sync, query, sync-from-index)
@@ -276,13 +281,16 @@ None - standalone feature.
 - Added sync-from-index workflow (FR-26) to capabilities
 
 **Files created:**
+
 - `server/src/routes/capabilities.ts` - Route handler with CAPABILITIES object
 
 **Files modified:**
+
 - `server/src/routes/index.ts` - Registered capabilities route
 - `CLAUDE.md` - Added endpoint to API table
 
 **Testing notes:**
+
 ```bash
 curl http://localhost:5201/api/capabilities | jq
 ```

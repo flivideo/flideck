@@ -25,6 +25,7 @@ Add read-only query endpoints under `/api/query/` prefix. These return JSON data
 List available presentation routes from config.
 
 **Response:**
+
 ```json
 {
   "routes": [
@@ -48,6 +49,7 @@ List available presentation routes from config.
 Get details for a specific route including its presentations.
 
 **Response:**
+
 ```json
 {
   "name": "slide-decks",
@@ -74,6 +76,7 @@ Get details for a specific route including its presentations.
 Get details for a specific presentation including its slides/assets.
 
 **Response:**
+
 ```json
 {
   "id": "claude-code-intro",
@@ -126,6 +129,7 @@ Get details for a specific presentation including its slides/assets.
 ## Completion Notes
 
 **What was done:**
+
 - Created `/api/query/routes` endpoint - lists available presentation routes
 - Created `/api/query/routes/:route` endpoint - returns presentations for a route
 - Created `/api/query/presentations/:id` endpoint - returns detailed asset info with file sizes
@@ -134,10 +138,12 @@ Get details for a specific presentation including its slides/assets.
 - Adapted "routes" concept to work with current single-root architecture
 
 **Files changed:**
+
 - `server/src/routes/query.ts` (new) - Query route handlers
 - `server/src/routes/index.ts` (modified) - Register query routes
 
 **Testing notes:**
+
 ```bash
 # List routes
 curl http://localhost:5201/api/query/routes

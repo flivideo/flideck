@@ -7,17 +7,20 @@ Sidebar displays generic, repeated file basenames instead of meaningful slide ti
 ## Problem Statement
 
 **Current behavior:**
+
 - Sidebar shows: "Scorecard", "Scorecard", "Scorecard", "Cards", "Cards", "Pipeline", etc.
 - These are file basenames stripped of extensions
 - No way to distinguish between multiple "Scorecard" slides
 - Doesn't match the actual slide content (which shows "INITIATIVE 1.1", "CREATION 1.2", etc.)
 
 **Expected behavior:**
+
 - Sidebar should show meaningful titles like "E1.1 Initiative", "E1.2 Creation", etc.
 - Titles should either come from manifest `slides[].title` property
 - Or be extracted from the HTML `<title>` tag or `<h1>` element
 
 **Impact:**
+
 - Users can't find slides by name
 - Have to click through multiple identically-named items
 - Presentation workflow is frustrating
@@ -25,6 +28,7 @@ Sidebar displays generic, repeated file basenames instead of meaningful slide ti
 ## Screenshots
 
 Sidebar showing repeated generic names:
+
 ```
 ▼ EPIC1                    26
   Start Here
@@ -43,10 +47,13 @@ Meanwhile the content shows actual titles like "E1", "1.1 INITIATIVE", "1.2 CREA
 ## Root Cause Analysis
 
 1. **Manifest missing titles** - The `index.json` slides array likely has entries like:
+
    ```json
    { "file": "e1-scorecard-initiative.html" }
    ```
+
    Instead of:
+
    ```json
    { "file": "e1-scorecard-initiative.html", "title": "E1.1 Initiative Scorecard" }
    ```
@@ -60,6 +67,7 @@ Meanwhile the content shows actual titles like "E1", "1.1 INITIATIVE", "1.2 CREA
 ### Option A: Fix Manifest Data (Quick Fix)
 
 Manually or via script, update `index.json` to add meaningful titles:
+
 ```json
 {
   "slides": [
@@ -91,11 +99,11 @@ When FliDeck loads a presentation, scan HTML files for `<title>` tags and use th
 
 ## Effort Estimate
 
-| Solution | Effort | Durability |
-|----------|--------|------------|
+| Solution | Effort       | Durability                              |
+| -------- | ------------ | --------------------------------------- |
 | Option A | Low (manual) | One-time, doesn't prevent future issues |
-| Option B | Medium | Good - fixes sync workflow |
-| Option C | Medium | Best - always correct |
+| Option B | Medium       | Good - fixes sync workflow              |
+| Option C | Medium       | Best - always correct                   |
 
 **Recommendation:** Option B - enhance sync-from-index to extract titles from HTML.
 
@@ -124,15 +132,18 @@ When FliDeck loads a presentation, scan HTML files for `<title>` tags and use th
 **Solution**: Option B - Enhanced sync-from-index
 
 **What was done:**
+
 1. Added `extractTitleFromHtmlFile()` helper method that extracts `<title>` tag or first `<h1>` from HTML files
 2. Updated `syncFromIndex()` to extract titles from HTML files for all slides
 3. Title priority: HTML `<title>` tag (canonical) > card label from index page > filename fallback
 4. Merge strategy now updates titles from HTML even for existing slides without titles
 
 **Files modified:**
+
 - `server/src/services/PresentationService.ts`
 
 **Result:** Sidebar now shows meaningful titles like:
+
 - "Epic 1 — Foundation & Monorepo Setup"
 - "Story 1.1 Draft Checklist Results"
 - "Story 1.1 Implementation Complete"
