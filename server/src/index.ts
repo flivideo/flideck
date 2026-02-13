@@ -11,7 +11,6 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { WatcherManager, type ChangeEventData } from './WatcherManager.js';
 import { createRoutes } from './routes/index.js';
 import { PresentationService } from './services/PresentationService.js';
-import { MockupsService } from './services/MockupsService.js';
 import { loadConfig, getConfigPath, addToHistory, type Config } from './config.js';
 
 // Load environment variables (for PORT and CLIENT_URL only)
@@ -121,7 +120,6 @@ app.use(express.json());
 
 // Initialize services
 const presentationService = PresentationService.getInstance();
-const mockupsService = MockupsService.getInstance();
 const watcherManager = new WatcherManager(io);
 
 /**
@@ -195,12 +193,6 @@ async function initialize(): Promise<void> {
   // Initialize presentation service with config
   presentationService.setRoot(currentPresentationsRoot);
   presentationService.setClientUrl(CLIENT_URL);
-
-  // Initialize mockups service
-  // TODO: Make mockups path configurable in config.json
-  const mockupsPath = path.join(process.cwd(), '../vibedeck/vibedeck-mocks');
-  mockupsService.setRoot(mockupsPath);
-  console.log(`Mockups service initialized: ${mockupsPath}`);
 
   // Start watching presentations directory
   watcherManager.watch({
