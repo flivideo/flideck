@@ -468,6 +468,20 @@ export function Sidebar({
     [selectedPresentation, copyToClipboard]
   );
 
+  const copyFolderPath = useCallback(() => {
+    if (!selectedPresentation) return;
+    copyToClipboard(selectedPresentation.path, 'folder path');
+  }, [selectedPresentation, copyToClipboard]);
+
+  const openInFinder = useCallback(async () => {
+    if (!selectedPresentation) return;
+    try {
+      await api.post(`/api/presentations/${selectedPresentation.id}/open`, {});
+    } catch {
+      // silently ignore — server logs the error
+    }
+  }, [selectedPresentation]);
+
   // Drag-and-drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, assetId: string) => {
     setDraggedAssetId(assetId);
@@ -873,7 +887,7 @@ export function Sidebar({
 
                 {isHeaderCopyMenuOpen && (
                   <div
-                    className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[120px]"
+                    className="absolute right-0 top-full mt-1 py-1 rounded shadow-lg z-10 min-w-[200px]"
                     style={{ backgroundColor: '#4a4040' }}
                   >
                     <button
@@ -926,6 +940,41 @@ export function Sidebar({
                       }}
                     >
                       Copy All Relative
+                    </button>
+                    <div className="my-1 mx-2" style={{ borderTop: '1px solid #5a5050' }} />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyFolderPath();
+                        setIsHeaderCopyMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                      style={{ color: '#ffffff' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#5a5050';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Copy Folder Path
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void openInFinder();
+                        setIsHeaderCopyMenuOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-sm transition-colors"
+                      style={{ color: '#ffffff' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#5a5050';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Open in Finder
                     </button>
                   </div>
                 )}
