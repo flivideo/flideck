@@ -35,6 +35,9 @@ Requirements index for FliDeck.
 | 27  | [FR-27: Agent Capability Discovery](prd/fr-27-agent-capability-discovery.md)     | 2025-12-26 | Implemented                    |
 | 28  | [FR-28: Resizable Sidebar Panel](prd/fr-28-resizable-sidebar.md)                 | 2026-01-07 | Pending                        |
 | 29  | [FR-29: Slide Notes in Manifest](prd/fr-29-slide-notes.md)                       | 2026-01-07 | Pending                        |
+| 30  | [FR-30: Image-to-Slide Script](prd/fr-30-image-to-slide-script.md)               | 2026-03-05 | Pending                        |
+| 31  | [FR-31: Image File Auto-Discovery](prd/fr-31-image-file-auto-discovery.md)       | 2026-03-05 | Pending                        |
+| 32  | [FR-32: Image Import API](prd/fr-32-image-import-api.md)                         | 2026-03-05 | Pending                        |
 
 ## Non-Functional Requirements
 
