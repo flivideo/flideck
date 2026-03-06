@@ -152,13 +152,13 @@ localStorage.setItem('flideck:displayMode:bmad-agents', 'flat');
 
 ## Acceptance Criteria
 
-- [ ] Display mode persists across page refreshes
-- [ ] Persists in localStorage per presentation
-- [ ] Optionally: Can save to manifest via API
-- [ ] Clearing override removes from localStorage
-- [ ] Auto mode uses detection (no localStorage entry)
-- [ ] Works for all display modes (flat, grouped, tabbed)
-- [ ] Changing presentation clears previous override
+- [x] Display mode persists across page refreshes
+- [x] Persists in localStorage per presentation
+- [x] Optionally: Can save to manifest via API
+- [x] Clearing override removes from localStorage
+- [x] Auto mode uses detection (no localStorage entry)
+- [x] Works for all display modes (flat, grouped, tabbed)
+- [x] Changing presentation clears previous override
 
 ## Related Code
 

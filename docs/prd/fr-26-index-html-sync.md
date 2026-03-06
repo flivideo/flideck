@@ -140,32 +140,32 @@ bmad-poem/
 
 ### Tab Detection
 
-- [ ] Detects `index-*.html` files as tabs
-- [ ] Creates `tabs[]` entries with correct id, label, file, order
-- [ ] Label derived from filename (e.g., "index-mary.html" → "Mary")
-- [ ] Handles single index.html (no tabs created)
+- [x] Detects `index-*.html` files as tabs
+- [x] Creates `tabs[]` entries with correct id, label, file, order
+- [x] Label derived from filename (e.g., "index-mary.html" → "Mary")
+- [x] Handles single index.html (no tabs created)
 
 ### Card Parsing
 
-- [ ] Detects cards with `href` attribute
-- [ ] Detects cards with `data-slide` attribute
-- [ ] Detects cards with onclick containing .html reference
-- [ ] Extracts card order from DOM position
-- [ ] Extracts title from card text content
+- [x] Detects cards with `href` attribute
+- [x] Detects cards with `data-slide` attribute
+- [x] Detects cards with onclick containing .html reference
+- [x] Extracts card order from DOM position
+- [x] Extracts title from card text content
 
 ### Manifest Update
 
-- [ ] Creates groups per tab with correct `tabId`
-- [ ] Assigns slides to groups based on source index file
-- [ ] Preserves existing slide metadata (doesn't overwrite)
-- [ ] "merge" strategy adds to existing, "replace" starts fresh
+- [x] Creates groups per tab with correct `tabId`
+- [x] Assigns slides to groups based on source index file
+- [x] Preserves existing slide metadata (doesn't overwrite)
+- [x] "merge" strategy adds to existing, "replace" starts fresh
 
 ### Edge Cases
 
-- [ ] Handles cards with no detectable slide reference (skipped with warning)
-- [ ] Handles duplicate slides across tabs (assigns to first found)
-- [ ] Handles slides not in any index (remains ungrouped)
-- [ ] Returns detailed report of what was parsed/created
+- [x] Handles cards with no detectable slide reference (skipped with warning)
+- [x] Handles duplicate slides across tabs (assigns to first found)
+- [x] Handles slides not in any index (remains ungrouped)
+- [x] Returns detailed report of what was parsed/created
 
 ## Technical Notes
 

@@ -118,15 +118,15 @@ const handleNavigate = (direction: 'next' | 'prev' | 'first' | 'last') => {
 
 ## Acceptance Criteria
 
-- [ ] Navigating to asset in collapsed group expands that group
-- [ ] Expansion is smooth and visually clear
-- [ ] Works for Cmd+→ (next), Cmd+← (prev), Cmd+Home, Cmd+End
-- [ ] Works when clicking assets in QuickFilter (Cmd+K)
-- [ ] Doesn't auto-expand when just clicking group header
-- [ ] Doesn't auto-expand when manually selecting collapsed asset
-- [ ] Only auto-expands during keyboard navigation
-- [ ] Collapsed state persists in localStorage after auto-expand
-- [ ] Multiple groups can be expanded during sequential navigation
+- [x] Navigating to asset in collapsed group expands that group
+- [x] Expansion is smooth and visually clear
+- [x] Works for Cmd+→ (next), Cmd+← (prev), Cmd+Home, Cmd+End
+- [x] Works when clicking assets in QuickFilter (Cmd+K)
+- [x] Doesn't auto-expand when just clicking group header
+- [x] Doesn't auto-expand when manually selecting collapsed asset
+- [x] Only auto-expands during keyboard navigation
+- [x] Collapsed state persists in localStorage after auto-expand
+- [x] Multiple groups can be expanded during sequential navigation
 
 ## Related Code
 
@@ -157,10 +157,10 @@ const handleNavigate = (direction: 'next' | 'prev' | 'first' | 'last') => {
 
 ## Edge Cases
 
-- [ ] Navigating through multiple collapsed groups in sequence
-- [ ] Navigating backward (Cmd+←) from last asset in expanded group to last in collapsed group
-- [ ] All groups collapsed → navigate to first asset → should expand first group
-- [ ] Nested groups (if we ever implement that)
+- [x] Navigating through multiple collapsed groups in sequence
+- [x] Navigating backward (Cmd+←) from last asset in expanded group to last in collapsed group
+- [x] All groups collapsed → navigate to first asset → should expand first group
+- [x] Nested groups (if we ever implement that)
 
 ## Workaround
 

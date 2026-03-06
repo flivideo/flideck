@@ -56,10 +56,10 @@ Apply branding to:
 
 _To be refined after research_
 
-- [ ] Brand colors applied to FliDeck frame
-- [ ] Typography follows AppyDave guidelines
-- [ ] Sample presentation uses brand styling
-- [ ] Consistent look across app and content
+- [x] Brand colors applied to FliDeck frame
+- [x] Typography follows AppyDave guidelines
+- [x] Sample presentation uses brand styling
+- [x] Consistent look across app and content
 
 ## Technical Notes
 

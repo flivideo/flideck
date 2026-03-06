@@ -132,11 +132,11 @@ But this is less clean - better to remove the obsolete option entirely.
 
 ## Acceptance Criteria
 
-- [ ] "Tabbed" option never appears in mode switcher dropdown
-- [ ] Mode switcher only shows "Flat" and "Grouped"
-- [ ] Existing presentations with `displayMode: 'tabbed'` in manifest fall back to grouped (already working)
-- [ ] No empty sidebar states possible from mode selection
-- [ ] Auto mode detection continues to work correctly
+- [x] "Tabbed" option never appears in mode switcher dropdown
+- [x] Mode switcher only shows "Flat" and "Grouped"
+- [x] Existing presentations with `displayMode: 'tabbed'` in manifest fall back to grouped (already working)
+- [x] No empty sidebar states possible from mode selection
+- [x] Auto mode detection continues to work correctly
 
 ## Testing
 

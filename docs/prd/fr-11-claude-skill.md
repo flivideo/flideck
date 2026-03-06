@@ -75,12 +75,12 @@ curl -s "http://localhost:5201/api/query/presentations/claude-code-intro" | jq
 
 ## Acceptance Criteria
 
-- [ ] SKILL.md created with proper YAML frontmatter
-- [ ] health-command.md documents health endpoint
-- [ ] routes-command.md documents routes endpoints
-- [ ] presentations-command.md documents presentations endpoint
-- [ ] Skill follows same structure as FliHub skill
-- [ ] Claude Code recognizes and uses the skill
+- [x] SKILL.md created with proper YAML frontmatter
+- [x] health-command.md documents health endpoint
+- [x] routes-command.md documents routes endpoints
+- [x] presentations-command.md documents presentations endpoint
+- [x] Skill follows same structure as FliHub skill
+- [x] Claude Code recognizes and uses the skill
 
 ## References
 

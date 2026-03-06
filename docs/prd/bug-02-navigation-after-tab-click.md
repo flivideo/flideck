@@ -107,13 +107,13 @@ The keyboard navigation handler (`PresentationPage.tsx`) likely:
 
 ## Acceptance Criteria
 
-- [ ] Clicking a container tab loads its index file
-- [ ] Pressing Cmd+arrow after clicking tab navigates to assets (not stuck on index)
-- [ ] Iframe updates correctly when navigating
-- [ ] Sidebar highlight stays in sync with iframe content
-- [ ] Navigation works forward and backward (Cmd+← and Cmd+→)
-- [ ] Navigation works for first/last (Cmd+Home, Cmd+End)
-- [ ] No console errors during navigation
+- [x] Clicking a container tab loads its index file
+- [x] Pressing Cmd+arrow after clicking tab navigates to assets (not stuck on index)
+- [x] Iframe updates correctly when navigating
+- [x] Sidebar highlight stays in sync with iframe content
+- [x] Navigation works forward and backward (Cmd+← and Cmd+→)
+- [x] Navigation works for first/last (Cmd+Home, Cmd+End)
+- [x] No console errors during navigation
 
 ## Related Code
 

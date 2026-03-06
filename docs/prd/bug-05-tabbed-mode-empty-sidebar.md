@@ -125,12 +125,12 @@ if (rawMode === 'tabbed' && !presentation.tabs?.length) {
 
 ## Acceptance Criteria
 
-- [ ] Presentations without container tabs never show empty sidebar
-- [ ] "Tabbed" mode either works correctly or is disabled
-- [ ] If "Tabbed" is selected but not applicable, fallback to "Grouped"
-- [ ] User sees helpful message explaining why mode changed
-- [ ] Auto-detection never selects "Tabbed" when it would break sidebar
-- [ ] Mode switcher UI makes valid modes clear
+- [x] Presentations without container tabs never show empty sidebar
+- [x] "Tabbed" mode either works correctly or is disabled
+- [x] If "Tabbed" is selected but not applicable, fallback to "Grouped"
+- [x] User sees helpful message explaining why mode changed
+- [x] Auto-detection never selects "Tabbed" when it would break sidebar
+- [x] Mode switcher UI makes valid modes clear
 
 ## Related Code
 

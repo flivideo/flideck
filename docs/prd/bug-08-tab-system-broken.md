@@ -193,13 +193,13 @@ Per FR-24 completion notes (line 335-347):
 
 ## Acceptance Criteria
 
-- [ ] Container tabs render in TabBar
-- [ ] Clicking tab loads corresponding index file
-- [ ] Active tab is highlighted
-- [ ] Sidebar filters to show tab's groups
-- [ ] Tab state persists in localStorage
-- [ ] All tabs in bmad-poem work correctly
-- [ ] Works in both normal and presentation mode
+- [x] Container tabs render in TabBar
+- [x] Clicking tab loads corresponding index file
+- [x] Active tab is highlighted
+- [x] Sidebar filters to show tab's groups
+- [x] Tab state persists in localStorage
+- [x] All tabs in bmad-poem work correctly
+- [x] Works in both normal and presentation mode
 
 ## Workaround
 

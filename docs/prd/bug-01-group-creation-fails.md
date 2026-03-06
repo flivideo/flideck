@@ -70,11 +70,11 @@ Creating a new group fails with "Failed to create group" error when the presenta
 
 ## Acceptance Criteria
 
-- [ ] Group creation works in grouped mode
-- [ ] Group creation works after switching from flat → grouped
-- [ ] Appropriate error message shows if creation fails for valid reason
-- [ ] Error is logged to console/server for debugging
-- [ ] Works consistently across browser refreshes
+- [x] Group creation works in grouped mode
+- [x] Group creation works after switching from flat → grouped
+- [x] Appropriate error message shows if creation fails for valid reason
+- [x] Error is logged to console/server for debugging
+- [x] Works consistently across browser refreshes
 
 ## Related Code
 

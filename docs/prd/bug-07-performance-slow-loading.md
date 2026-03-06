@@ -197,14 +197,14 @@
 
 ## Acceptance Criteria
 
-- [ ] Identify root cause of slowdown
-- [ ] Measure current performance with benchmarks
-- [ ] Implement targeted optimizations
-- [ ] Re-measure to verify improvements
-- [ ] "Loading assets" spinner appears < 500ms only on initial load
-- [ ] Asset switching feels instant (< 100ms)
-- [ ] Display mode switching is smooth (< 200ms)
-- [ ] No unnecessary API calls during navigation
+- [x] Identify root cause of slowdown
+- [x] Measure current performance with benchmarks
+- [x] Implement targeted optimizations
+- [x] Re-measure to verify improvements
+- [x] "Loading assets" spinner appears < 500ms only on initial load
+- [x] Asset switching feels instant (< 100ms)
+- [x] Display mode switching is smooth (< 200ms)
+- [x] No unnecessary API calls during navigation
 
 ## Related Code
 

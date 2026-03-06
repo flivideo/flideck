@@ -65,14 +65,14 @@ Create a well-known JavaScript function/library that custom index pages can incl
 
 ## Acceptance Criteria
 
-- [ ] JavaScript library available at `/flideck-index.js`
-- [ ] Standard mode: Simple list rendering with optional section headers
-- [ ] Grouped mode: Section headers from group definitions
-- [ ] Tabbed mode: Tab UI with group-based content switching
-- [ ] Reorder events propagate to custom index.html
-- [ ] Tab state persists across page refreshes
-- [ ] BMAD Poem index.html migrated to use the library
-- [ ] Documentation for custom index page authors
+- [x] JavaScript library available at `/flideck-index.js`
+- [x] Standard mode: Simple list rendering with optional section headers
+- [x] Grouped mode: Section headers from group definitions
+- [x] Tabbed mode: Tab UI with group-based content switching
+- [x] Reorder events propagate to custom index.html
+- [x] Tab state persists across page refreshes
+- [x] BMAD Poem index.html migrated to use the library
+- [x] Documentation for custom index page authors
 
 ## Technical Notes
 

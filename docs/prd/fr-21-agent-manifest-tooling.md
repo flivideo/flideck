@@ -169,33 +169,33 @@ POST /api/presentations/:id/manifest/slides/bulk?dryRun=true
 
 ### Schema Discovery
 
-- [ ] `/api/schema/manifest` returns full JSON Schema (FR-19)
-- [ ] Schema includes descriptions and examples for each field
+- [x] `/api/schema/manifest` returns full JSON Schema (FR-19)
+- [x] Schema includes descriptions and examples for each field
 
 ### Bulk Operations
 
-- [ ] `POST .../slides/bulk` adds multiple slides in one request
-- [ ] `POST .../groups/bulk` adds multiple groups in one request
-- [ ] `PUT .../sync` synchronizes manifest with filesystem
-- [ ] Position control: start, end, after specific slide
+- [x] `POST .../slides/bulk` adds multiple slides in one request
+- [x] `POST .../groups/bulk` adds multiple groups in one request
+- [x] `PUT .../sync` synchronizes manifest with filesystem
+- [x] Position control: start, end, after specific slide
 
 ### Templates
 
-- [ ] `GET /api/templates/manifest` lists available templates
-- [ ] `POST .../template` applies template to presentation
-- [ ] At least 3 built-in templates (simple, tutorial, persona-tabs)
+- [x] `GET /api/templates/manifest` lists available templates
+- [x] `POST .../template` applies template to presentation
+- [x] At least 3 built-in templates (simple, tutorial, persona-tabs)
 
 ### Conflict Resolution
 
-- [ ] Duplicate file handling: skip, replace, rename
-- [ ] Group mismatch handling: keep, update
+- [x] Duplicate file handling: skip, replace, rename
+- [x] Group mismatch handling: keep, update
 
 ### Validation
 
-- [ ] `POST .../validate` validates manifest against schema
-- [ ] File existence checking option
-- [ ] Orphan file detection (files not in manifest)
-- [ ] Dry run mode for bulk operations
+- [x] `POST .../validate` validates manifest against schema
+- [x] File existence checking option
+- [x] Orphan file detection (files not in manifest)
+- [x] Dry run mode for bulk operations
 
 ## Technical Notes
 

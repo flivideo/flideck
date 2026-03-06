@@ -77,15 +77,15 @@ Note: The "Browse" button is removed. User types/pastes path directly.
 
 ## Acceptance Criteria
 
-- [ ] `FolderBrowser.tsx` deleted
-- [ ] `GET /api/config/browse` endpoint removed
-- [ ] `useBrowseDirectory` hook removed
-- [ ] `DirectoryEntry` and `BrowseResponse` types removed from shared/types.ts
-- [ ] `browse` query key removed from constants.ts
-- [ ] ConfigPage no longer has Browse button
-- [ ] Text input + Apply button still works
-- [ ] History list still displays and is clickable
-- [ ] No TypeScript errors after cleanup
+- [x] `FolderBrowser.tsx` deleted
+- [x] `GET /api/config/browse` endpoint removed
+- [x] `useBrowseDirectory` hook removed
+- [x] `DirectoryEntry` and `BrowseResponse` types removed from shared/types.ts
+- [x] `browse` query key removed from constants.ts
+- [x] ConfigPage no longer has Browse button
+- [x] Text input + Apply button still works
+- [x] History list still displays and is clickable
+- [x] No TypeScript errors after cleanup
 
 ## Rationale
 

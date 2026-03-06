@@ -181,44 +181,44 @@ Updated library usage:
 
 ### Tab Bar UI
 
-- [ ] Tab bar renders between header and content area
-- [ ] Tab bar is to the right of sidebar
-- [ ] Tabs display label and optional subtitle
-- [ ] Active tab is visually highlighted
-- [ ] "+ New Tab" button at end of tab bar
-- [ ] Tab bar horizontally scrolls if many tabs
+- [x] Tab bar renders between header and content area
+- [x] Tab bar is to the right of sidebar
+- [x] Tabs display label and optional subtitle
+- [x] Active tab is visually highlighted
+- [x] "+ New Tab" button at end of tab bar
+- [x] Tab bar horizontally scrolls if many tabs
 
 ### Tab Navigation
 
-- [ ] Clicking tab loads corresponding file into iframe
-- [ ] Active tab persists to localStorage per presentation
-- [ ] Sidebar filters groups by active tab
-- [ ] Slides filter to show only slides in active tab's groups
+- [x] Clicking tab loads corresponding file into iframe
+- [x] Active tab persists to localStorage per presentation
+- [x] Sidebar filters groups by active tab
+- [x] Slides filter to show only slides in active tab's groups
 
 ### Presentation Mode
 
-- [ ] Tab bar remains visible when header/sidebar hidden
-- [ ] Tab navigation works in presentation mode
-- [ ] Tab bar repositions appropriately (top of viewport?)
+- [x] Tab bar remains visible when header/sidebar hidden
+- [x] Tab navigation works in presentation mode
+- [x] Tab bar repositions appropriately (top of viewport?)
 
 ### Manifest Support
 
-- [ ] `tabs` array in manifest defines tabs
-- [ ] `tabs[].file` specifies index file to load
-- [ ] `groups[].tab` links group to a tab
-- [ ] Missing `tabs` array = no tab bar (backward compatible)
+- [x] `tabs` array in manifest defines tabs
+- [x] `tabs[].file` specifies index file to load
+- [x] `groups[].tab` links group to a tab
+- [x] Missing `tabs` array = no tab bar (backward compatible)
 
 ### Tab CRUD (extending FR-22)
 
-- [ ] Create tab via API adds to `tabs` array
-- [ ] Delete tab removes from `tabs` array
-- [ ] Rename tab updates `tabs[].label`
-- [ ] Reorder tabs updates `tabs[].order`
+- [x] Create tab via API adds to `tabs` array
+- [x] Delete tab removes from `tabs` array
+- [x] Rename tab updates `tabs[].label`
+- [x] Reorder tabs updates `tabs[].order`
 
 ### Backward Compatibility
 
-- [ ] Presentations without `tabs` array work as before
-- [ ] Legacy `groups[].tab: true` deprecated but still functional?
+- [x] Presentations without `tabs` array work as before
+- [x] Legacy `groups[].tab: true` deprecated but still functional?
 
 ## Technical Notes
 

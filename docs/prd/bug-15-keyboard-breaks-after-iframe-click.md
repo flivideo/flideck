@@ -249,12 +249,12 @@ This ensures:
 
 ## Acceptance Criteria
 
-- [ ] Cmd+Arrow works after clicking a tab in the tab bar
-- [ ] Cmd+Arrow works after clicking a card inside the tab landing page
-- [ ] Cmd+Arrow works after clicking a slide in the sidebar
-- [ ] State (selectedAssetId, currentAssetIndex) updates correctly on ALL navigation paths
-- [ ] Keyboard bridge script is present in ALL iframe content
-- [ ] Works with existing bmad-poem presentation
+- [x] Cmd+Arrow works after clicking a tab in the tab bar
+- [x] Cmd+Arrow works after clicking a card inside the tab landing page
+- [x] Cmd+Arrow works after clicking a slide in the sidebar
+- [x] State (selectedAssetId, currentAssetIndex) updates correctly on ALL navigation paths
+- [x] Keyboard bridge script is present in ALL iframe content
+- [x] Works with existing bmad-poem presentation
 
 ## Files to Investigate
 
@@ -277,10 +277,34 @@ This ensures:
 
 **HIGH** - Touches iframe boundary, state management, multiple loading paths. Requires careful architecture.
 
+## Completion Notes
+
+**What was done:**
+- Added `NAV_BRIDGE_SCRIPT` constant in `AssetViewer.tsx` — a self-contained script that intercepts click events on `<a>` tags with relative `.html` hrefs and sends `postMessage({ type: 'flideck:navigate', slide: 'filename.html' })` to the parent window, preventing internal iframe navigation.
+- Extracted a module-level `injectBridgeScripts(html, baseUrl, cacheBuster)` helper that injects `<base>`, cache-busting meta, `KEYBOARD_FORWARD_SCRIPT`, and `NAV_BRIDGE_SCRIPT` after `<head>` (with prepend fallback). Both regular assets and tab index pages now receive all bridge scripts.
+- Changed the `indexFile` (container tab) loading mode from `iframe.src` to a `fetch()` + `iframe.srcdoc` approach. The HTML is fetched from `/presentations/${presentationId}/${indexFile}`, bridge scripts are injected, and content is set via `srcdoc`. This guarantees the keyboard bridge and nav bridge are always present.
+- Extended the `window.addEventListener('message', ...)` handler in `PresentationPage.tsx` to handle `flideck:navigate` messages. When received, FliDeck looks up the asset by `filename` in `presentation.assets` and calls `setSelectedAssetId(asset.id)`, which triggers `useAsset` to fetch the slide content and render it via srcdoc with both bridge scripts.
+
+**Files changed:**
+- `client/src/components/ui/AssetViewer.tsx` (modified)
+- `client/src/pages/PresentationPage.tsx` (modified)
+
+**Testing notes:**
+- Open a presentation that has container tabs (e.g., `bmad-poem`) at `http://localhost:5200`
+- Click any tab in the tab bar — the landing page (index-*.html) should load via srcdoc now
+- Verify Cmd+Right/Left works immediately after clicking the tab (keyboard bridge present)
+- Click a card/link inside the tab landing page
+- Verify the slide loads in the main iframe (selectedAssetId updates, sidebar highlights the slide)
+- Verify Cmd+Right/Left navigates from the correct position (currentIndex reflects the clicked slide)
+- Verify sidebar click navigation and quick filter (Cmd+K) navigation still work as before
+- Verify the "File Not Found" error UI still shows when an indexFile cannot be fetched
+
+**Status:** Complete
+
 ---
 
 **Added**: 2025-12-28
-**Status**: Open
+**Status**: Complete
 **Type**: Bug
 **Found in**: bmad-poem presentation testing
 **Severity**: Critical

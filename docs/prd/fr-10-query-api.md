@@ -104,12 +104,12 @@ Get details for a specific presentation including its slides/assets.
 
 ## Acceptance Criteria
 
-- [ ] `GET /api/query/routes` returns all configured presentation routes
-- [ ] `GET /api/query/routes/:route` returns presentations for that route
-- [ ] `GET /api/query/presentations/:id` returns assets for that presentation
-- [ ] All endpoints return proper JSON with consistent structure
-- [ ] 404 returned for non-existent routes or presentations
-- [ ] Endpoints are read-only (no side effects)
+- [x] `GET /api/query/routes` returns all configured presentation routes
+- [x] `GET /api/query/routes/:route` returns presentations for that route
+- [x] `GET /api/query/presentations/:id` returns assets for that presentation
+- [x] All endpoints return proper JSON with consistent structure
+- [x] 404 returned for non-existent routes or presentations
+- [x] Endpoints are read-only (no side effects)
 
 ## Technical Notes
 

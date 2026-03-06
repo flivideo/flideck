@@ -52,12 +52,12 @@ Leverage existing Socket.io and Chokidar infrastructure to emit granular events 
 
 ## Acceptance Criteria
 
-- [ ] When a presentation HTML file is modified externally, the iframe updates within 1 second
-- [ ] When a new HTML file is added to a presentation folder, the sidebar updates
-- [ ] When an HTML file is deleted, the sidebar updates
-- [ ] When an HTML file is renamed, the sidebar updates
-- [ ] No manual page refresh required for any of the above
-- [ ] Changes to non-HTML files (e.g., CSS, JS, images) also trigger iframe reload
+- [x] When a presentation HTML file is modified externally, the iframe updates within 1 second
+- [x] When a new HTML file is added to a presentation folder, the sidebar updates
+- [x] When an HTML file is deleted, the sidebar updates
+- [x] When an HTML file is renamed, the sidebar updates
+- [x] No manual page refresh required for any of the above
+- [x] Changes to non-HTML files (e.g., CSS, JS, images) also trigger iframe reload
 
 ## Technical Notes
 

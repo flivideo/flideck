@@ -113,10 +113,10 @@ if (saved === 'tabbed') {
 
 ## Acceptance Criteria
 
-- [ ] Stale "tabbed" values in localStorage don't cause empty sidebar
-- [ ] Mode falls back to auto-detected when invalid value found
-- [ ] No data migration needed - handles on-the-fly
-- [ ] Existing valid modes (flat/grouped) continue to work
+- [x] Stale "tabbed" values in localStorage don't cause empty sidebar
+- [x] Mode falls back to auto-detected when invalid value found
+- [x] No data migration needed - handles on-the-fly
+- [x] Existing valid modes (flat/grouped) continue to work
 
 ## Testing
 

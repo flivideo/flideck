@@ -185,14 +185,14 @@ Returns human-readable, agent-friendly description of FliDeck.
 
 ## Acceptance Criteria
 
-- [ ] `GET /api/capabilities` returns structured capability description
-- [ ] Response includes all concepts (presentation, tab, group, slide, manifest)
-- [ ] Response includes common workflows with examples
-- [ ] Response includes API summary organized by category
-- [ ] Response includes practical tips for agents
-- [ ] Response is human-readable (not just JSON Schema)
-- [ ] Response includes version number for compatibility checking
-- [ ] Response updates automatically when new features are added
+- [x] `GET /api/capabilities` returns structured capability description
+- [x] Response includes all concepts (presentation, tab, group, slide, manifest)
+- [x] Response includes common workflows with examples
+- [x] Response includes API summary organized by category
+- [x] Response includes practical tips for agents
+- [x] Response is human-readable (not just JSON Schema)
+- [x] Response includes version number for compatibility checking
+- [x] Response updates automatically when new features are added
 
 ## Technical Notes
 

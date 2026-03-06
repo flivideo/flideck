@@ -116,14 +116,14 @@ Future schema changes increment version. Reader handles migrations.
 
 ## Acceptance Criteria
 
-- [ ] JSON Schema file created at `shared/schema/manifest.schema.json`
-- [ ] `GET /api/schema/manifest` returns the schema
-- [ ] `GET /api/presentations/:id/manifest` returns raw manifest
-- [ ] `PUT /api/presentations/:id/manifest` replaces manifest with validation
-- [ ] `PATCH /api/presentations/:id/manifest` merges partial updates
-- [ ] Validation errors return structured error response
-- [ ] TypeScript types generated from or synced with JSON Schema
-- [ ] Existing endpoints (reorder, slides, groups) internally use manifest API
+- [x] JSON Schema file created at `shared/schema/manifest.schema.json`
+- [x] `GET /api/schema/manifest` returns the schema
+- [x] `GET /api/presentations/:id/manifest` returns raw manifest
+- [x] `PUT /api/presentations/:id/manifest` replaces manifest with validation
+- [x] `PATCH /api/presentations/:id/manifest` merges partial updates
+- [x] Validation errors return structured error response
+- [x] TypeScript types generated from or synced with JSON Schema
+- [x] Existing endpoints (reorder, slides, groups) internally use manifest API
 
 ## Technical Notes
 

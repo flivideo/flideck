@@ -136,11 +136,11 @@ const sortedGroups = Object.entries(groups).sort(([, a], [, b]) => a.order - b.o
 
 ## Acceptance Criteria
 
-- [ ] Sidebar groups display in order specified by manifest `groups[].order`
-- [ ] Index.html groups display in same order as sidebar
-- [ ] Clicking a group in sidebar scrolls to correct section in index.html
-- [ ] Order persists after page refresh
-- [ ] Reordering groups via API updates both sidebar and index.html
+- [x] Sidebar groups display in order specified by manifest `groups[].order`
+- [x] Index.html groups display in same order as sidebar
+- [x] Clicking a group in sidebar scrolls to correct section in index.html
+- [x] Order persists after page refresh
+- [x] Reordering groups via API updates both sidebar and index.html
 
 ## Related Code
 

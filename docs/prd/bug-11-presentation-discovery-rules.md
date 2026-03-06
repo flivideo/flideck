@@ -62,13 +62,13 @@ A folder is a valid presentation if ANY of these conditions are met:
 
 ## Acceptance Criteria
 
-- [ ] Folders with `presentation.html` are discovered as valid presentations
-- [ ] Folders with only `index.html` are still discovered (backwards compatibility)
-- [ ] Folders with `presentation-tab-*.html` files are discovered even without main entry point
-- [ ] Folders with `index-*.html` files are discovered even without main entry point
-- [ ] Default view for tabbed presentations respects tab order from manifest
-- [ ] If no manifest, default to alphabetically first tab
-- [ ] bmad-poem (with only `index-*.html` files) is discovered and loads correctly
+- [x] Folders with `presentation.html` are discovered as valid presentations
+- [x] Folders with only `index.html` are still discovered (backwards compatibility)
+- [x] Folders with `presentation-tab-*.html` files are discovered even without main entry point
+- [x] Folders with `index-*.html` files are discovered even without main entry point
+- [x] Default view for tabbed presentations respects tab order from manifest
+- [x] If no manifest, default to alphabetically first tab
+- [x] bmad-poem (with only `index-*.html` files) is discovered and loads correctly
 
 ## Test Cases
 

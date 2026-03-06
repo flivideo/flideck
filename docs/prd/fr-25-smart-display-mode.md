@@ -159,30 +159,30 @@ When container tabs are active, show which tab context the sidebar is displaying
 
 ### Filtering Behavior
 
-- [ ] When `tabs[]` exists and a tab is active, sidebar shows ONLY that tab's content
-- [ ] Ungrouped assets filter by tab (via `tabId` on asset or group assignment)
-- [ ] Switching tabs updates sidebar content immediately
-- [ ] Filtering works in both flat and grouped display modes
-- [ ] No assets/groups from other tabs are visible
+- [x] When `tabs[]` exists and a tab is active, sidebar shows ONLY that tab's content
+- [x] Ungrouped assets filter by tab (via `tabId` on asset or group assignment)
+- [x] Switching tabs updates sidebar content immediately
+- [x] Filtering works in both flat and grouped display modes
+- [x] No assets/groups from other tabs are visible
 
 ### Display Mode Switcher
 
-- [ ] When `tabs[]` exists, "Tabbed" option is hidden
-- [ ] Mode switcher shows only "Flat" and "Grouped" options
-- [ ] Mode switching still works (affects HOW filtered content is rendered)
-- [ ] Auto-detection never returns "tabbed" when container tabs exist
+- [x] When `tabs[]` exists, "Tabbed" option is hidden
+- [x] Mode switcher shows only "Flat" and "Grouped" options
+- [x] Mode switching still works (affects HOW filtered content is rendered)
+- [x] Auto-detection never returns "tabbed" when container tabs exist
 
 ### Edge Cases
 
-- [ ] Presentations without `tabs[]` work as before (no regression)
-- [ ] Empty tabs (no groups/assets) show empty state in sidebar
-- [ ] Ungrouped assets in a tab show under "Ungrouped" section
-- [ ] Assets not assigned to any tab (orphans) - show in all tabs? or hidden? (TBD)
+- [x] Presentations without `tabs[]` work as before (no regression)
+- [x] Empty tabs (no groups/assets) show empty state in sidebar
+- [x] Ungrouped assets in a tab show under "Ungrouped" section
+- [x] Assets not assigned to any tab (orphans) - show in all tabs? or hidden? (TBD)
 
 ### Visual Feedback
 
-- [ ] Sidebar header shows active tab context (optional, nice-to-have)
-- [ ] Switching tabs has smooth transition (optional)
+- [x] Sidebar header shows active tab context (optional, nice-to-have)
+- [x] Switching tabs has smooth transition (optional)
 
 ## Technical Notes
 

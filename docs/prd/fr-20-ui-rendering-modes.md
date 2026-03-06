@@ -134,7 +134,7 @@ Optional JavaScript library for custom index pages:
 
 ### Migration
 
-- [ ] BMAD Poem presentation migrated to use tabbed mode (optional)
+- [x] BMAD Poem presentation migrated to use tabbed mode (optional)
 
 ## Technical Notes
 
