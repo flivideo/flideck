@@ -260,7 +260,7 @@ io.on('connection', (socket) => {
 // See initialize() for callback setup
 
 // API Routes
-app.use('/api', createRoutes({ io, watcherManager }));
+app.use('/api', createRoutes({ io, watcherManager, onPresentationChange: handlePresentationChange }));
 
 // Health check
 app.get('/api/health', (_req, res) => {

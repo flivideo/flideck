@@ -7,22 +7,23 @@ import { createQueryRoutes } from './query.js';
 import { createSchemaRoutes } from './schema.js';
 import { createTemplateRoutes } from './templates.js';
 import { createCapabilitiesRoutes } from './capabilities.js';
-import type { WatcherManager } from '../WatcherManager.js';
+import type { WatcherManager, ChangeEventData } from '../WatcherManager.js';
 
 interface RouteConfig {
   io: Server;
   watcherManager: WatcherManager;
+  onPresentationChange: (data: ChangeEventData) => void;
 }
 
 /**
  * Create and aggregate all API routes.
  */
-export function createRoutes({ io, watcherManager }: RouteConfig): Router {
+export function createRoutes({ io, watcherManager, onPresentationChange }: RouteConfig): Router {
   const router = Router();
 
   router.use('/presentations', createPresentationRoutes({ io }));
   router.use('/assets', createAssetRoutes());
-  router.use('/config', createConfigRoutes({ io, watcherManager }));
+  router.use('/config', createConfigRoutes({ io, watcherManager, onPresentationChange }));
   router.use('/query', createQueryRoutes());
   router.use('/schema', createSchemaRoutes({ io }));
   router.use('/templates', createTemplateRoutes({ io }));

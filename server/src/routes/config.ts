@@ -4,17 +4,18 @@ import fs from 'fs/promises';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { loadConfig, saveConfig, expandPath, collapsePath, type Config } from '../config.js';
 import { PresentationService } from '../services/PresentationService.js';
-import { WatcherManager } from '../WatcherManager.js';
+import { WatcherManager, type ChangeEventData } from '../WatcherManager.js';
 
 interface RouteConfig {
   io: Server;
   watcherManager: WatcherManager;
+  onPresentationChange: (data: ChangeEventData) => void;
 }
 
 /**
  * Create config routes with dependency injection.
  */
-export function createConfigRoutes({ io, watcherManager }: RouteConfig): Router {
+export function createConfigRoutes({ io, watcherManager, onPresentationChange }: RouteConfig): Router {
   const router = Router();
   const presentationService = PresentationService.getInstance();
 
@@ -94,10 +95,8 @@ export function createConfigRoutes({ io, watcherManager }: RouteConfig): Router 
           name: 'presentations',
           path: expandedPath,
           event: 'presentations:updated',
-          debounceMs: 500,
-          onChangeCallback: () => {
-            presentationService.invalidateCache();
-          },
+          debounceMs: 200,
+          onChangeCallback: onPresentationChange,
         });
 
         // Invalidate cache
