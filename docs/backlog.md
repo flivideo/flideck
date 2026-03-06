@@ -28,12 +28,12 @@ Requirements index for FliDeck.
 | 20  | [FR-20: UI Rendering Modes](prd/fr-20-ui-rendering-modes.md)                     | 2025-12-24 | Implemented                    |
 | 21  | [FR-21: Agent Manifest Tooling](prd/fr-21-agent-manifest-tooling.md)             | 2025-12-24 | Implemented                    |
 | 22  | [FR-22: Tab Management](prd/fr-22-tab-management.md)                             | 2025-12-24 | Implemented                    |
-| 23  | [FR-23: Group Reorder UI](prd/fr-23-group-reorder-ui.md)                         | 2025-12-24 | Pending (rewritten 2025-12-24) |
+| 23  | [FR-23: Group Reorder UI](prd/fr-23-group-reorder-ui.md)                         | 2025-12-24 | Deferred                       |
 | 24  | [FR-24: Container Tab Navigation](prd/fr-24-container-tab-navigation.md)         | 2025-12-24 | Implemented                    |
 | 25  | [FR-25: Smart Display Mode with Container Tabs](prd/fr-25-smart-display-mode.md) | 2025-12-24 | Implemented                    |
 | 26  | [FR-26: Index HTML Sync (Self-Healing)](prd/fr-26-index-html-sync.md)            | 2025-12-26 | Implemented                    |
 | 27  | [FR-27: Agent Capability Discovery](prd/fr-27-agent-capability-discovery.md)     | 2025-12-26 | Implemented                    |
-| 28  | [FR-28: Resizable Sidebar Panel](prd/fr-28-resizable-sidebar.md)                 | 2026-01-07 | Pending                        |
+| 28  | [FR-28: Resizable Sidebar Panel](prd/fr-28-resizable-sidebar.md)                 | 2026-01-07 | Implemented                    |
 | 29  | [FR-29: Slide Notes in Manifest](prd/fr-29-slide-notes.md)                       | 2026-01-07 | Pending                        |
 | 30  | [FR-30: Image-to-Slide Script](prd/fr-30-image-to-slide-script.md)               | 2026-03-05 | Pending                        |
 | 31  | [FR-31: Image File Auto-Discovery](prd/fr-31-image-file-auto-discovery.md)       | 2026-03-05 | Pending                        |
@@ -51,7 +51,7 @@ Requirements index for FliDeck.
 | --- | --------------------------------------------------------------------------------------------------------- | ---------- | ------------------ | ------------ |
 | 1   | [BUG-1: Group Creation Fails in Grouped Mode](prd/bug-01-group-creation-fails.md)                         | 2025-12-24 | Fixed              | -            |
 | 2   | [BUG-2: Navigation Breaks After Container Tab Click](prd/bug-02-navigation-after-tab-click.md)            | 2025-12-24 | Fixed              | -            |
-| 3   | [BUG-3: Groups Display in Different Order](prd/bug-03-groups-out-of-order.md)                             | 2025-12-24 | Open               | Medium       |
+| 3   | [BUG-3: Groups Display in Different Order](prd/bug-03-groups-out-of-order.md)                             | 2025-12-24 | Closed - Not a Bug | -            |
 | 4   | [BUG-4: Display Mode Doesn't Persist on Refresh](prd/bug-04-display-mode-no-persist.md)                   | 2025-12-24 | Fixed              | -            |
 | 5   | [BUG-5: Tabbed Display Mode Shows Empty Sidebar](prd/bug-05-tabbed-mode-empty-sidebar.md)                 | 2025-12-24 | Fixed              | -            |
 | 6   | [BUG-6: Groups Don't Auto-Expand During Navigation](prd/bug-06-groups-no-auto-expand.md)                  | 2025-12-24 | Fixed              | -            |
