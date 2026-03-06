@@ -16,6 +16,8 @@ import type {
 import type { AnyNode } from 'domhandler';
 import type { Cheerio, CheerioAPI } from 'cheerio';
 import { applyTemplate as applyManifestTemplate } from '../utils/manifestTemplates.js';
+import { AppError } from '../middleware/errorHandler.js';
+import * as manifestValidator from '../utils/manifestValidator.js';
 
 const MANIFEST_FILENAME = 'index.json';
 const LEGACY_MANIFEST_FILENAME = 'flideck.json';
@@ -86,6 +88,29 @@ export class PresentationService extends EventEmitter {
    */
   setClientUrl(url: string): void {
     this.clientUrl = url;
+  }
+
+  /**
+   * Assert that a user-supplied presentation ID does not escape the presentations root.
+   * Throws AppError(400) on path traversal attempts.
+   */
+  private assertSafeId(folderPath: string): void {
+    const resolvedPath = path.resolve(folderPath);
+    const resolvedRoot = path.resolve(this.presentationsRoot);
+    if (!resolvedPath.startsWith(resolvedRoot + path.sep) && resolvedPath !== resolvedRoot) {
+      throw new AppError('Invalid presentation ID', 400);
+    }
+  }
+
+  /**
+   * Type-safe deep merge that returns FlideckManifest.
+   * Avoids unsafe casts at call sites.
+   */
+  private typedDeepMerge(target: Partial<FlideckManifest>, source: Partial<FlideckManifest>): FlideckManifest {
+    return this.deepMerge(
+      target as Record<string, unknown>,
+      source as Record<string, unknown>
+    ) as FlideckManifest;
   }
 
   /**
@@ -197,6 +222,7 @@ export class PresentationService extends EventEmitter {
     }
 
     const folderPath = path.join(this.presentationsRoot, id);
+    this.assertSafeId(folderPath);
 
     // Check if folder exists
     if (!(await fs.pathExists(folderPath))) {
@@ -452,7 +478,17 @@ export class PresentationService extends EventEmitter {
       }
 
       const content = await fs.readFile(manifestPath, 'utf-8');
-      return JSON.parse(content) as FlideckManifest;
+      const parsed = JSON.parse(content);
+      // Validate against schema — log warning but don't crash on bad disk state
+      const validation = manifestValidator.validate(parsed);
+      if (!validation.valid) {
+        console.warn(
+          `[PresentationService] Invalid manifest at ${manifestPath}: ${(validation.errors ?? []).map((e) => e.message).join(', ')}`
+        );
+        // Return parsed anyway — let the app work with best-effort data
+      }
+      const manifest = parsed as FlideckManifest;
+      return manifest;
     } catch (error) {
       // Invalid JSON or read error - fall back to default order
       console.warn(`Failed to read manifest at ${manifestPath}:`, error);
@@ -466,6 +502,7 @@ export class PresentationService extends EventEmitter {
    */
   async saveAssetOrder(presentationId: string, order: string[]): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Read existing manifest or create new one
@@ -501,6 +538,7 @@ export class PresentationService extends EventEmitter {
     orderedSlides: Array<{ file: string; group?: string }>
   ): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Read existing manifest or create new one
@@ -600,6 +638,7 @@ export class PresentationService extends EventEmitter {
     slides?: Array<{ file: string; title?: string; group?: string }>
   ): Promise<string> {
     const folderPath = path.join(this.presentationsRoot, id);
+    this.assertSafeId(folderPath);
 
     // Check if folder already exists
     if (await fs.pathExists(folderPath)) {
@@ -653,6 +692,7 @@ export class PresentationService extends EventEmitter {
     }
   ): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -725,6 +765,7 @@ export class PresentationService extends EventEmitter {
     }
   ): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -786,6 +827,7 @@ export class PresentationService extends EventEmitter {
    */
   async removeSlide(presentationId: string, slideId: string): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -838,6 +880,7 @@ export class PresentationService extends EventEmitter {
    */
   async reorderGroups(presentationId: string, order: string[]): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -885,6 +928,7 @@ export class PresentationService extends EventEmitter {
    */
   async createGroup(presentationId: string, id: string, label: string): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -936,6 +980,7 @@ export class PresentationService extends EventEmitter {
    */
   async updateGroup(presentationId: string, groupId: string, label: string): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -978,6 +1023,7 @@ export class PresentationService extends EventEmitter {
    */
   async deleteGroup(presentationId: string, groupId: string): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1036,6 +1082,7 @@ export class PresentationService extends EventEmitter {
    */
   async createTab(presentationId: string, id: string, label: string): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1090,6 +1137,7 @@ export class PresentationService extends EventEmitter {
     strategy: string = 'orphan'
   ): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1191,6 +1239,7 @@ export class PresentationService extends EventEmitter {
    */
   async updateTab(presentationId: string, tabId: string, label: string): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1233,6 +1282,7 @@ export class PresentationService extends EventEmitter {
    */
   async reorderTabs(presentationId: string, order: string[]): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1297,6 +1347,7 @@ export class PresentationService extends EventEmitter {
     parentTabId: string
   ): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1343,6 +1394,7 @@ export class PresentationService extends EventEmitter {
    */
   async removeGroupParent(presentationId: string, groupId: string): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1389,6 +1441,7 @@ export class PresentationService extends EventEmitter {
    */
   async getManifest(presentationId: string): Promise<FlideckManifest | null> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
 
     // Verify presentation exists
     if (!(await fs.pathExists(folderPath))) {
@@ -1408,6 +1461,7 @@ export class PresentationService extends EventEmitter {
    */
   async setManifest(presentationId: string, manifest: FlideckManifest): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1438,6 +1492,7 @@ export class PresentationService extends EventEmitter {
    */
   async patchManifest(presentationId: string, updates: Partial<FlideckManifest>): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1450,10 +1505,7 @@ export class PresentationService extends EventEmitter {
     const baseManifest = currentManifest || {};
 
     // Deep merge updates
-    const manifest = this.deepMerge(
-      baseManifest as Record<string, unknown>,
-      updates as Record<string, unknown>
-    ) as FlideckManifest;
+    const manifest = this.typedDeepMerge(baseManifest, updates);
 
     // Update timestamp
     if (!manifest.meta) manifest.meta = {};
@@ -1544,6 +1596,7 @@ export class PresentationService extends EventEmitter {
     skippedItems: Array<{ item: string; reason: string }>;
   }> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1689,6 +1742,7 @@ export class PresentationService extends EventEmitter {
     skippedItems: Array<{ item: string; reason: string }>;
   }> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1766,6 +1820,7 @@ export class PresentationService extends EventEmitter {
     } = {}
   ): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -1892,6 +1947,7 @@ export class PresentationService extends EventEmitter {
     const warnings: Array<{ path: string; message: string }> = [];
 
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
 
     // Check if files exist if requested
     if (checkFiles && manifest.slides) {
@@ -1963,6 +2019,7 @@ export class PresentationService extends EventEmitter {
     merge: boolean = true
   ): Promise<void> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
@@ -2009,6 +2066,7 @@ export class PresentationService extends EventEmitter {
     } = {}
   ): Promise<SyncFromIndexResponse> {
     const folderPath = path.join(this.presentationsRoot, presentationId);
+    this.assertSafeId(folderPath);
     const manifestPath = path.join(folderPath, MANIFEST_FILENAME);
 
     // Verify presentation exists
