@@ -121,6 +121,11 @@ const CAPABILITIES = {
       'GET /api/presentations': 'List all presentations',
       'GET /api/presentations/:id': 'Get single presentation with full data',
       'POST /api/presentations': 'Create new presentation',
+      'POST /api/presentations/refresh': 'Force refresh presentation cache',
+      'PUT /api/presentations/:id/order': 'Update asset order',
+    },
+    assets: {
+      'GET /api/assets/:presentationId/:assetId': 'Get asset content',
     },
     manifest: {
       'GET /api/presentations/:id/manifest': 'Get raw manifest JSON',
@@ -139,6 +144,7 @@ const CAPABILITIES = {
       'PUT /api/presentations/:id/tabs/order': 'Reorder tabs',
     },
     groups: {
+      'PUT /api/presentations/:id/groups/order': 'Reorder groups',
       'POST /api/presentations/:id/groups': 'Create group',
       'PUT /api/presentations/:id/groups/:groupId': 'Rename group',
       'DELETE /api/presentations/:id/groups/:groupId': 'Delete group',
@@ -147,6 +153,7 @@ const CAPABILITIES = {
     },
     bulk_operations: {
       'POST /api/presentations/:id/manifest/slides/bulk': 'Add multiple slides',
+      'POST /api/presentations/:id/manifest/groups/bulk': 'Bulk add groups',
       'PUT /api/presentations/:id/manifest/sync': 'Sync manifest with filesystem',
       'PUT /api/presentations/:id/manifest/sync-from-index':
         'Parse index HTML to populate manifest',
