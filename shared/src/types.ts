@@ -121,7 +121,7 @@ export interface FileChangeEvent {
 /**
  * Display mode for rendering presentations
  */
-export type DisplayMode = 'flat' | 'grouped' | 'tabbed';
+export type DisplayMode = 'flat' | 'grouped';
 
 /**
  * Manifest metadata for presentation-level information

@@ -52,7 +52,7 @@ export const MANIFEST_TEMPLATES: ManifestTemplate[] = [
     description: 'Tabbed by persona/audience - ideal for multi-audience content',
     structure: {
       meta: {
-        displayMode: 'tabbed',
+        displayMode: 'grouped',
       },
       groups: {
         developer: {
