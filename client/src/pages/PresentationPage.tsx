@@ -183,9 +183,14 @@ export function PresentationPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Listen for keyboard events forwarded from iframe via postMessage
+  // Listen for postMessages forwarded from iframe content
   useEffect(() => {
     const handleMessage = (e: MessageEvent) => {
+      // srcdoc iframes have event.origin === 'null' in some browsers
+      // Regular same-origin iframes have event.origin === window.location.origin
+      if (e.origin !== window.location.origin && e.origin !== 'null') return;
+
+      // Keyboard events forwarded from iframe keyboard bridge
       if (e.data?.type === 'flideck-keydown') {
         // Create a synthetic keyboard event from the postMessage data
         const syntheticEvent = {
@@ -199,10 +204,26 @@ export function PresentationPage() {
         } as unknown as KeyboardEvent;
         handleKeyDown(syntheticEvent);
       }
+
+      // BUG-15: Navigation bridge — tab index page card/link click
+      // The nav bridge script in srcdoc sends this when a relative .html link is clicked
+      if (e.data?.type === 'flideck:navigate' && typeof e.data.slide === 'string') {
+        const filename = e.data.slide as string;
+        if (!presentation) return;
+
+        // Find asset by filename
+        const asset = presentation.assets.find((a) => a.filename === filename);
+        if (asset) {
+          // Known asset: update selectedAssetId so React loads it via useAsset (srcdoc path)
+          setSelectedAssetId(asset.id);
+        }
+        // If asset not found in manifest it won't be loaded — the nav bridge still
+        // prevents the iframe from navigating internally, which is the correct behaviour.
+      }
     };
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [handleKeyDown]);
+  }, [handleKeyDown, presentation]);
 
   const handleBack = () => {
     navigate('/');

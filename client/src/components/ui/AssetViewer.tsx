@@ -5,7 +5,7 @@ interface AssetViewerProps {
   presentationId: string;
   /** Key that changes when content should be force-reloaded */
   reloadKey?: number;
-  /** File path for container tab navigation (FR-24) - if provided, uses src instead of srcdoc */
+  /** File path for container tab navigation (FR-24) - fetched and injected via srcdoc */
   indexFile?: string;
 }
 
@@ -44,11 +44,70 @@ const KEYBOARD_FORWARD_SCRIPT = `
 </script>
 `;
 
+// Script injected into tab index pages to intercept card/link clicks and notify parent
+// Sends flideck:navigate so FliDeck can update state and load the slide via srcdoc
+const NAV_BRIDGE_SCRIPT = `
+<script>
+(function() {
+  function sendNavigate(filename) {
+    window.parent.postMessage({ type: 'flideck:navigate', slide: filename }, '*');
+  }
+
+  function getRelativeFilename(href) {
+    // Only handle relative hrefs that point to .html files within the presentation
+    if (!href || href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+      return null;
+    }
+    // Strip query string and hash
+    var clean = href.split('?')[0].split('#')[0];
+    // Must end in .html and must not be an absolute path
+    if (!clean.endsWith('.html') || clean.startsWith('/')) {
+      return null;
+    }
+    // Return just the filename (last segment)
+    return clean.split('/').pop() || null;
+  }
+
+  document.addEventListener('click', function(e) {
+    var el = e.target;
+    // Walk up the DOM to find an <a> tag
+    while (el && el.tagName !== 'A') {
+      el = el.parentElement;
+    }
+    if (!el || el.tagName !== 'A') return;
+
+    var href = el.getAttribute('href');
+    var filename = getRelativeFilename(href);
+    if (filename) {
+      e.preventDefault();
+      sendNavigate(filename);
+    }
+  }, true);
+})();
+</script>
+`;
+
+/**
+ * Inject bridge scripts into HTML content.
+ * Inserts base tag, cache buster, keyboard forward script, and nav bridge script after <head>.
+ * Falls back to prepending if no <head> tag is present.
+ */
+function injectBridgeScripts(html: string, baseUrl: string, cacheBuster: string): string {
+  const injection = `<base href="${baseUrl}">${cacheBuster}${KEYBOARD_FORWARD_SCRIPT}${NAV_BRIDGE_SCRIPT}`;
+  const headMatch = html.match(/<head>/i);
+  if (headMatch && headMatch.index !== undefined) {
+    const insertAt = headMatch.index + headMatch[0].length;
+    return html.slice(0, insertAt) + injection + html.slice(insertAt);
+  }
+  // Fallback: prepend to document
+  return injection + html;
+}
+
 /**
  * Renders HTML asset content in an iframe for isolation.
- * Uses srcdoc for regular assets (complete isolation from app styles).
- * Uses src for container tab index files (FR-24).
- * Injects a script to forward keyboard events to parent for FliDeck controls.
+ * Uses srcdoc for ALL content (regular assets and container tab index files).
+ * For tab index files, fetches the HTML then injects bridge scripts into srcdoc.
+ * This ensures keyboard bridge and nav bridge are always present (BUG-15 fix).
  * Reloads automatically when reloadKey changes (triggered by file system changes).
  */
 export function AssetViewer({
@@ -60,17 +119,40 @@ export function AssetViewer({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loadError, setLoadError] = useState(false);
 
-  // Container tab mode: Use src with index file
+  // Container tab mode: Fetch HTML and inject bridge scripts into srcdoc (BUG-15 fix)
   useEffect(() => {
-    if (indexFile && iframeRef.current) {
-      const baseUrl = `/presentations/${presentationId}/`;
-      const src = `${baseUrl}${indexFile}?_reload=${reloadKey}`;
-      // IMPORTANT: Clear srcdoc first - it takes precedence over src per HTML spec
-      iframeRef.current.removeAttribute('srcdoc');
-      iframeRef.current.src = src;
-      setLoadError(false); // Reset error state on new load
-      return;
-    }
+    if (!indexFile) return;
+
+    let cancelled = false;
+
+    const baseUrl = `/presentations/${presentationId}/`;
+    const fetchUrl = `${baseUrl}${indexFile}?_reload=${reloadKey}`;
+
+    setLoadError(false);
+
+    fetch(fetchUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load ${indexFile}: ${res.status}`);
+        return res.text();
+      })
+      .then((html) => {
+        if (cancelled || !iframeRef.current) return;
+        const cacheBuster =
+          reloadKey > 0
+            ? `<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">`
+            : '';
+        const enhanced = injectBridgeScripts(html, baseUrl, cacheBuster);
+        // Clear src before setting srcdoc to avoid confusion
+        iframeRef.current.removeAttribute('src');
+        iframeRef.current.srcdoc = enhanced;
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [indexFile, presentationId, reloadKey]);
 
   // Regular asset mode: Use srcdoc with injected scripts
@@ -85,10 +167,7 @@ export function AssetViewer({
           ? `<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">`
           : '';
 
-      const contentWithBase = content.replace(
-        '<head>',
-        `<head><base href="${baseUrl}">${cacheBuster}${KEYBOARD_FORWARD_SCRIPT}`
-      );
+      const contentWithBase = injectBridgeScripts(content, baseUrl, cacheBuster);
 
       // Clear src before setting srcdoc to avoid confusion
       iframeRef.current.removeAttribute('src');
@@ -97,19 +176,6 @@ export function AssetViewer({
       setLoadError(false); // Reset error state
     }
   }, [content, presentationId, reloadKey, indexFile]);
-
-  // Listen for iframe load errors (FR-24: missing index files)
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe || !indexFile) return;
-
-    const handleError = () => {
-      setLoadError(true);
-    };
-
-    iframe.addEventListener('error', handleError);
-    return () => iframe.removeEventListener('error', handleError);
-  }, [indexFile]);
 
   return (
     <div className="flex-1 bg-white overflow-hidden relative">
