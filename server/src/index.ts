@@ -16,9 +16,19 @@ import { loadConfig, getConfigPath, addToHistory, type Config } from './config.j
 // Load environment variables (for PORT and CLIENT_URL only)
 dotenv.config();
 
-// Configuration (PORT and CLIENT_URL remain as env vars - they're startup-only)
-const PORT = parseInt(process.env.PORT || '5201', 10);
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5200';
+// Validate and resolve environment variables at startup
+const PORT = parseInt(process.env.PORT ?? '5201', 10);
+const CLIENT_URL = process.env.CLIENT_URL ?? 'http://localhost:5200';
+
+if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
+  console.error(`[startup] Invalid PORT: "${process.env.PORT}". Must be a number between 1-65535.`);
+  process.exit(1);
+}
+
+if (!CLIENT_URL.startsWith('http://') && !CLIENT_URL.startsWith('https://')) {
+  console.error(`[startup] Invalid CLIENT_URL: "${CLIENT_URL}". Must start with http:// or https://.`);
+  process.exit(1);
+}
 
 // Mutable state for hot-reloadable config
 let currentConfig: Config;
