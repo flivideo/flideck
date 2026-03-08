@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './harness/harness.css';
 
 /* AppyDave Brand Colors */
 :root {

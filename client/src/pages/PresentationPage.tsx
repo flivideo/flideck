@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePresentations, usePresentation, useAsset } from '../hooks/usePresentations';
 import { usePresentationRoom, usePresentationUpdates, useContentChanges } from '../hooks/useSocket';
@@ -6,7 +6,7 @@ import { useQuickFilter } from '../hooks/useQuickFilter';
 import { useContainerTab } from '../hooks/useContainerTab';
 import { Header } from '../components/layout/Header';
 import { Sidebar } from '../components/layout/Sidebar';
-import { AssetViewer } from '../components/ui/AssetViewer';
+import { HarnessViewer } from '../harness/HarnessViewer';
 import { TabBar } from '../components/ui/TabBar';
 import { QuickFilter, QuickFilterItem } from '../components/ui/QuickFilter';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
@@ -29,6 +29,8 @@ export function PresentationPage() {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [isQuickFilterOpen, , closeQuickFilter] = useQuickFilter();
+  const [containerTabContent, setContainerTabContent] = useState<string | null>(null);
+  const containerTabFetchRef = useRef<AbortController | null>(null);
 
   // BUG-6: Collapsed groups state (lifted from Sidebar for auto-expand on navigation)
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => {
@@ -51,7 +53,7 @@ export function PresentationPage() {
   usePresentationRoom(id || null);
   usePresentationUpdates();
 
-  // Listen for content changes to reload iframe
+  // Listen for content changes to trigger asset refetch
   const reloadKey = useContentChanges(id, selectedAssetId || undefined);
 
   // Determine if we're in container tab mode
@@ -59,6 +61,24 @@ export function PresentationPage() {
   const activeContainerTab = hasContainerTabs
     ? presentation.tabs?.find((t) => t.id === activeContainerTabId)
     : null;
+
+  // Fetch container tab index file content for HarnessViewer
+  useEffect(() => {
+    if (!hasContainerTabs || !activeContainerTab || !id) {
+      setContainerTabContent(null);
+      return;
+    }
+    if (containerTabFetchRef.current) containerTabFetchRef.current.abort();
+    const controller = new AbortController();
+    containerTabFetchRef.current = controller;
+
+    fetch(`/presentations/${id}/${activeContainerTab.file}?_reload=${reloadKey}`, { signal: controller.signal })
+      .then((r) => r.text())
+      .then((html) => { if (!controller.signal.aborted) setContainerTabContent(html); })
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, [hasContainerTabs, activeContainerTab, id, reloadKey]);
 
   // Auto-select index asset when presentation loads
   // BUG-13 FIX: Don't auto-select when we have container tabs (we want to show tab index instead)
@@ -132,7 +152,7 @@ export function PresentationPage() {
     [sidebarOrderedAssets, currentIndex, collapsedGroups]
   );
 
-  // Keyboard handler - uses Ctrl modifier for navigation to avoid conflicts with iframe content
+  // Keyboard handler - uses Ctrl modifier for navigation to avoid conflicts with slide content
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       // Ignore if typing in an input
@@ -183,47 +203,15 @@ export function PresentationPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Listen for postMessages forwarded from iframe content
-  useEffect(() => {
-    const handleMessage = (e: MessageEvent) => {
-      // srcdoc iframes have event.origin === 'null' in some browsers
-      // Regular same-origin iframes have event.origin === window.location.origin
-      if (e.origin !== window.location.origin && e.origin !== 'null') return;
-
-      // Keyboard events forwarded from iframe keyboard bridge
-      if (e.data?.type === 'flideck-keydown') {
-        // Create a synthetic keyboard event from the postMessage data
-        const syntheticEvent = {
-          key: e.data.key,
-          ctrlKey: e.data.ctrlKey,
-          metaKey: e.data.metaKey,
-          shiftKey: e.data.shiftKey,
-          altKey: e.data.altKey,
-          target: document.body,
-          preventDefault: () => {},
-        } as unknown as KeyboardEvent;
-        handleKeyDown(syntheticEvent);
-      }
-
-      // BUG-15: Navigation bridge — tab index page card/link click
-      // The nav bridge script in srcdoc sends this when a relative .html link is clicked
-      if (e.data?.type === 'flideck:navigate' && typeof e.data.slide === 'string') {
-        const filename = e.data.slide as string;
-        if (!presentation) return;
-
-        // Find asset by filename
-        const asset = presentation.assets.find((a) => a.filename === filename);
-        if (asset) {
-          // Known asset: update selectedAssetId so React loads it via useAsset (srcdoc path)
-          setSelectedAssetId(asset.id);
-        }
-        // If asset not found in manifest it won't be loaded — the nav bridge still
-        // prevents the iframe from navigating internally, which is the correct behaviour.
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [handleKeyDown, presentation]);
+  // Tab index navigation: find asset by filename and select it
+  const handleTabNavigate = useCallback(
+    (filename: string) => {
+      if (!presentation) return;
+      const asset = presentation.assets.find((a) => a.filename === filename);
+      if (asset) setSelectedAssetId(asset.id);
+    },
+    [presentation]
+  );
 
   const handleBack = () => {
     navigate('/');
@@ -354,22 +342,33 @@ export function PresentationPage() {
           )}
 
           {/* Content Area */}
-          {/* BUG-13: Show tab index only when tab active AND no asset selected */}
+          {/* Show tab index only when tab active AND no asset selected */}
           {hasContainerTabs && activeContainerTab && !selectedAssetId ? (
-            // Container tab mode: Load index file via src
-            <AssetViewer
-              presentationId={id!}
-              indexFile={activeContainerTab.file}
-              reloadKey={reloadKey}
-            />
+            // Container tab mode: fetch index file and render via harness
+            containerTabContent ? (
+              <HarnessViewer
+                content={containerTabContent}
+                baseUrl={`/presentations/${id}/`}
+                presentationMode={isPresentationMode}
+                onNavigate={handleTabNavigate}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center bg-slate-900">
+                <LoadingSpinner message="Loading tab..." />
+              </div>
+            )
           ) : assetLoading ? (
             // Regular mode: Loading state
             <div className="flex-1 flex items-center justify-center bg-slate-900">
               <LoadingSpinner message="Loading asset..." />
             </div>
           ) : assetData ? (
-            // Regular mode: Asset content via srcdoc
-            <AssetViewer content={assetData.content} presentationId={id!} reloadKey={reloadKey} />
+            // Regular mode: Asset content via harness
+            <HarnessViewer
+              content={assetData.content}
+              baseUrl={`/presentations/${id}/`}
+              presentationMode={isPresentationMode}
+            />
           ) : (
             // No asset selected
             <div className="flex-1 flex items-center justify-center bg-slate-900">

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FliDeck Harness Shell</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+    :root {
+      --brand-brown:    #342d2d;
+      --brand-gold:     #ccba9d;
+      --brand-yellow:   #ffde59;
+      --white:          #ffffff;
+      --brand-gray:     #595959;
+      --doc-blue:       #3b82f6;
+      --runtime-purple: #8b5cf6;
+      --success-green:  #22c55e;
+      --issue-amber:    #f59e0b;
+      --pain-red:       #ef4444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 1280px;
+      min-height: 800px;
+      overflow: auto;
+    }
+
+    .harness-slide {
+      position: relative;
+      isolation: isolate;
+      width: 100%;
+      min-height: 100vh;
+    }
+  </style>
+</head>
+<body>
+  <div class="harness-slide" id="slide-container">
+    <p style="color: #999; padding: 20px; font-family: sans-serif;">Loading fragment...</p>
+  </div>
+
+  <script>
+    (async function () {
+      const params = new URLSearchParams(window.location.search);
+      const src = params.get('src');
+      if (!src) {
+        document.getElementById('slide-container').textContent = 'Error: ?src= param required';
+        return;
+      }
+
+      // Set base URL so relative paths in the fragment resolve correctly
+      const base = document.createElement('base');
+      base.href = src.substring(0, src.lastIndexOf('/') + 1);
+      document.head.appendChild(base);
+
+      let html;
+      try {
+        const resp = await fetch(src);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' fetching ' + src);
+        html = await resp.text();
+      } catch (err) {
+        document.getElementById('slide-container').textContent = 'Error loading fragment: ' + err.message;
+        return;
+      }
+
+      // Parse the fragment (may or may not have full HTML structure)
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      // Extract <style> blocks
+      const styles = Array.from(doc.querySelectorAll('style'))
+        .map(function (s) { return s.textContent; })
+        .join('\n');
+
+      // Extract <link rel="stylesheet"> tags and clone into host head
+      Array.from(doc.querySelectorAll('link[rel="stylesheet"]')).forEach(function (link) {
+        const clone = document.createElement('link');
+        clone.rel = 'stylesheet';
+        clone.href = link.href;
+        document.head.appendChild(clone);
+      });
+
+      // Inject styles into head
+      if (styles) {
+        const styleEl = document.createElement('style');
+        styleEl.textContent = styles;
+        document.head.appendChild(styleEl);
+      }
+
+      // Inject body content
+      const body = doc.body ? doc.body.innerHTML : html;
+      const container = document.getElementById('slide-container');
+      container.innerHTML = body;
+
+      // Re-execute inline scripts (innerHTML does not run scripts)
+      const scripts = Array.from(container.querySelectorAll('script'));
+      for (const oldScript of scripts) {
+        if (oldScript.src) continue; // skip external scripts
+        const newScript = document.createElement('script');
+        newScript.textContent = oldScript.textContent;
+        oldScript.replaceWith(newScript);
+      }
+
+      // Expose common harness utilities that fragments may call
+      window.copyCommand = function (el) {
+        const code = (el.closest('[data-copy]') || el.parentElement || {}).querySelector('code');
+        if (code) navigator.clipboard.writeText(code.textContent).catch(function () {});
+      };
+      window.copyInline = window.copyCommand;
+    })();
+  </script>
+</body>
+</html>

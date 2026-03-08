@@ -1,0 +1,13 @@
+{
+  "name": "flideck-visual-verification",
+  "private": true,
+  "scripts": {
+    "verify": "node pipeline.js",
+    "verify:poc": "node pipeline.js --poc"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "pixelmatch": "^5.3.0",
+    "pngjs": "^7.0.0"
+  }
+}

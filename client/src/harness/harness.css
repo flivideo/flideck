@@ -1,0 +1,86 @@
+/* =============================================================================
+   FliDeck Harness — Global Styles
+   Loaded once at app startup via main entry point import.
+   Provides: fonts, CSS token palette, slide container scoping.
+   ============================================================================= */
+
+/* 1. Font loading — loaded once for the entire session.
+      All four families used across the 519-slide corpus are declared here.
+      Individual slides no longer need their own Google Fonts <link> tags.      */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+/* 2. Baseline CSS token palette — injected at :root.
+      10 semantic tokens that mirror the colour vocabulary used across the corpus.
+      Slides may reference these via var(--token-name) after migration.           */
+:root {
+  --brand-brown:    #342d2d;
+  --brand-gold:     #ccba9d;
+  --brand-yellow:   #ffde59;
+  --white:          #ffffff;
+  --brand-gray:     #595959;
+  --doc-blue:       #3b82f6;
+  --runtime-purple: #8b5cf6;
+  --success-green:  #22c55e;
+  --issue-amber:    #f59e0b;
+  --pain-red:       #ef4444;
+}
+
+/* 3. Chrome zone offset variables — updated dynamically by HarnessViewer.
+      Slides that have position:fixed elements can reference these to avoid
+      overlapping the FliDeck header and sidebar.                                  */
+:root {
+  --flideck-top:           52px;   /* header height (approx) */
+  --flideck-left:          380px;  /* sidebar width (default M preset) */
+  --flideck-tab-bar:       0px;    /* 48px when container tabs present, else 0 */
+  --flideck-presentation:  0;      /* 1 when presentation mode active */
+}
+
+/* 4. Slide container — wraps each embedded slide fragment.
+      CSS scoping approach: selector prefix (.harness-slide descendant combinator).
+      Chosen over Shadow DOM (requires JS wrapping of every element) and @layer
+      (layers only control cascade order, not selector scope). The .harness-slide
+      class is added to the wrapper div; HarnessViewer prepends this selector to
+      all style blocks extracted from the slide before injecting them.
+
+      containment strategy:
+      - position: relative  → establishes containing block so slide absolute/fixed
+                               children can be intercepted by the wrapper
+      - isolation: isolate  → creates a new stacking context; prevents slide
+                               z-index values from escaping into the host page
+                               and colliding with FliDeck chrome (header z-50,
+                               QuickFilter z-50 per chrome-layout-zones.md)
+      - overflow: hidden    → clips slide content to its allocated area           */
+.harness-slide {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* Viewport-lock variant: used for slides that use scroll-snap, 100vh sections,
+   or overflow:hidden on <body> to control their own internal scrolling.
+
+   Key differences from the base .harness-slide:
+   - overflow: auto  — allows the slide's own scroll behaviour to work; do NOT
+                       set overflow: hidden here (that is what breaks these slides)
+   - No isolation override — inherits isolation: isolate from .harness-slide via
+     the DOM (this class is added alongside .harness-slide, not instead of it)
+
+   Note: scroll-snap-type on <html> in an inline fragment has no effect because
+   the slide's <html> element is not the scroll container in the embedded model.
+   Slides that rely on root-level scroll-snap will need migration to apply
+   scroll-snap-type on an internal scroll container div instead.                  */
+.harness-slide--viewport-lock {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+/* When presentation mode is active, the harness adds this class to the wrapper.
+   Slides can query it via CSS: .harness-slide--presentation-mode .my-element {}  */
+.harness-slide--presentation-mode {
+  /* No visual overrides needed at the harness level — slides own their layout.
+     This class exists as a CSS hook for slide-specific adaptations.              */
+}

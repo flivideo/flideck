@@ -46,6 +46,7 @@ npm start
 - **TanStack Query** - Server state with Socket.io invalidation
 - **Socket.io Hooks** - Connection status, room management
 - **React Router** - URL-based navigation
+- **HarnessViewer** - Embedded slide renderer (`client/src/harness/`). Strips `<html>/<head>/<body>` wrapper from slide HTML and injects the fragment directly into a scoped div. Replaces the previous srcdoc iframe model.
 
 ## API Endpoints
 
@@ -111,6 +112,26 @@ npm start
 **Note:** Modifier keys (`Cmd` on Mac, `Ctrl` on Windows/Linux) are required for navigation to avoid conflicts with presentation's internal controls.
 
 **Copy Path:** Click the ⋮ menu on any asset row to copy its URL, absolute path, or relative path. The "Assets" header also has a ⋮ menu to copy all paths at once.
+
+## Harness Model
+
+Slides are rendered via the embedded harness (`HarnessViewer`), not iframes. Each slide is a **harness fragment** — an HTML file with the `<html>/<head>/<body>` wrapper stripped, leaving only `<style>` blocks and body content.
+
+**Fragment format** (produced by `tools/migrate-type-a.js` / `tools/migrate-type-b.js`):
+```html
+<!-- harness-fragment: type-a -->
+<style>/* original styles verbatim */</style>
+<div class="slide-content"><!-- original body content --></div>
+```
+
+**Harness files** (`client/src/harness/`):
+- `HarnessViewer.tsx` — mounts fragment into `.harness-slide` div, re-executes scripts, manages `<base>` tag and scoped styles
+- `harness.css` — canonical font stack (Bebas Neue, Oswald, Roboto, Roboto Mono) + 10 CSS token vars
+- `harness-utils.ts` — `copyCommand`, `copyInline` globals injected into `window`
+- `stripSlideWrapper.ts` — DOMParser-based wrapper stripping, viewport-lock auto-detection
+- `useKeyboardBridge.ts` — capture-phase guard protecting Cmd+Arrow nav shortcuts
+
+**Migrated presentations** live in `[presentationsRoot]/[name]-v2/` alongside originals. Migration toolchain: `tools/migrate-type-a.js` (pure CSS) and `tools/migrate-type-b.js` (CSS + safe JS patterns).
 
 ## File Discovery Rules
 
