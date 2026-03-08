@@ -20,7 +20,7 @@ import { getSidebarOrder } from '../utils/sidebarOrder';
  * Keyboard shortcuts:
  * - F: Toggle presentation mode
  * - Escape: Exit presentation mode
- * - Ctrl+Left/Right: Navigate between assets (modifier keys avoid conflicts with iframe content)
+ * - Ctrl+Left/Right: Navigate between assets (modifier keys reserve FliDeck shortcuts, leaving arrow keys free for slide content)
  * - Ctrl+Home/End: Jump to first/last asset
  */
 export function PresentationPage() {
@@ -172,7 +172,7 @@ export function PresentationPage() {
         return;
       }
 
-      // Navigation requires Ctrl modifier (to avoid conflicts with iframe content)
+      // Navigation requires Ctrl modifier (reserves FliDeck shortcuts; slide content gets free arrow keys)
       if (!e.ctrlKey && !e.metaKey) return;
 
       switch (e.key) {
