@@ -99,24 +99,25 @@ export function HarnessViewer({ content, baseUrl, presentationMode = false, view
     }
 
     if (styles.trim()) {
-      // Prefix every rule block with .harness-slide so slide CSS is scoped.
-      // Strategy: wrap in a @scope rule when supported, else use a simple
-      // selector prefix injection via CSS nesting (@layer + :scope).
-      // PoC approach: inject styles wrapped in a CSS layer scoped to the
-      // container element using the :is() ancestor technique.
+      // Scope slide CSS to .harness-slide so it cannot bleed into FliDeck chrome.
       //
-      // Simplest reliable PoC approach: prepend ":where(.harness-slide)" to
-      // each rule using a <style> tag with the :scope trick isn't available,
-      // so we inject directly and accept that strict scoping requires a
-      // post-processing pass in the migration toolchain.
+      // @scope (.harness-slide) { } limits all enclosed rules to descendants of
+      // the container div. This prevents slide resets like `* { margin: 0 }` or
+      // broad rules like `button { all: unset }` from hitting the TabBar, Sidebar,
+      // or any other FliDeck UI element.
       //
-      // For the PoC, styles are injected into a <style> tag appended to
-      // <head>. The .harness-slide wrapper class + isolation: isolate on the
-      // container (from harness.css) prevents stacking context leakage.
-      // Full selector prefixing is a toolchain concern, not a PoC blocker.
+      // :root / html / body selectors are remapped to :scope so slide-level
+      // properties (backgrounds, fonts, CSS custom properties) are applied to
+      // the .harness-slide container itself rather than the document root.
+      const scoped = styles
+        .replace(/:root\b/g, ':scope')
+        .replace(/\b(html\s*,\s*body|body\s*,\s*html)\b/g, ':scope')
+        .replace(/\bhtml\b/g, ':scope')
+        .replace(/\bbody\b/g, ':scope');
+
       const styleEl = document.createElement('style');
       styleEl.setAttribute('data-harness-slide', 'true');
-      styleEl.textContent = styles;
+      styleEl.textContent = `@scope (.harness-slide) {\n${scoped}\n}`;
       document.head.appendChild(styleEl);
       styleTagRef.current = styleEl;
     }
@@ -196,7 +197,7 @@ export function HarnessViewer({ content, baseUrl, presentationMode = false, view
     .join(' ');
 
   return (
-    <div className="flex-1 bg-white overflow-hidden relative">
+    <div className="flex-1 overflow-hidden relative bg-slate-900">
       <div
         ref={containerRef}
         className={wrapperClasses}
