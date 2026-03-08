@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-09
-**Total**: 25 | Pending: 8 | In Progress: 0 | Done: 16 | Deferred: 0 | Rejected: 0
+**Total**: 26 | Pending: 7 | In Progress: 0 | Done: 18 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -16,7 +16,6 @@
 
 ### From flideck-harness-migration
 
-- [x] B021 — Viewport-lock manifest flag (`viewport-lock: true`) for arcade slides: claudemas-12-days (3 slides), zero-to-app (3 slides), arcade-deck-chiang-mai (22 slides) | Completed: flideck-harness-migration
 - [ ] B022 — consultants-plugin pipeline false positives: token injection overrides deviant palette on original screenshots causing 1–33% diffs; need per-presentation token injection opt-out or dedicated comparison mode | Priority: medium
 - [ ] B023 — bmad-poem deferred slides: story-2-5-sat-cheatsheet.html + story-2-6-sat-cheatsheet.html fetch from localhost:4321; decide server-reachability strategy before production harness switch | Priority: low
 - [ ] B024 — Type C slides deferred: agent-inventory/slides.html (webcam + keyboard nav), dam-overview/slides.html (scroll-snap teleprompter), claude-code-system-prompt/index.html (fetch pattern), claude-code-system-prompt-v1/index.html (same), consultants-plugin/architecture-slides.html — each needs explicit migration decision | Priority: medium
@@ -48,6 +47,8 @@
 - [x] B018 — Security: path traversal guard, AJV manifest validation, deepMerge type safety | Completed: flideck-cleanup-2026
 - [x] B019 — Security: fix iframe postMessage origin validation + case-sensitive head injection | Completed: flideck-cleanup-2026
 - [x] B020 — Zero npm vulnerabilities (cleared 4: 2 HIGH rollup + minimatch, 1 moderate, 1 low) | Completed: flideck-cleanup-2026
+- [x] B021 — Viewport-lock manifest flag (`viewport-lock: true`) for arcade slides: claudemas-12-days (3 slides), zero-to-app (3 slides), arcade-deck-chiang-mai (22 slides) | Completed: flideck-harness-migration
+- [x] B026 — Production cleanup: delete original pre-migration folders, rename -v2 folders to canonical names, restore manifests from git after accidental deletion | Completed: flideck-harness-migration
 
 ---
 
