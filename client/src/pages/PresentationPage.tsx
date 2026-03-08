@@ -368,6 +368,7 @@ export function PresentationPage() {
               content={assetData.content}
               baseUrl={`/presentations/${id}/`}
               presentationMode={isPresentationMode}
+              viewportLock={presentation.assets.find((a) => a.id === selectedAssetId)?.viewportLock}
             />
           ) : (
             // No asset selected

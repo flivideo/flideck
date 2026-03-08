@@ -412,6 +412,9 @@ export class PresentationService extends EventEmitter {
         if (slide.recommended !== undefined) {
           asset.recommended = slide.recommended;
         }
+        if (slide.viewportLock) {
+          asset.viewportLock = slide.viewportLock;
+        }
 
         orderedAssets.push(asset);
         includedFilenames.add(slide.file);

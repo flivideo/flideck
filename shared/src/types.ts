@@ -52,6 +52,8 @@ export interface Asset {
   description?: string;
   /** Whether this slide is recommended (from manifest) */
   recommended?: boolean;
+  /** Whether this slide uses viewport-lock layout (scroll-snap, 100vh, overflow:hidden on body) */
+  viewportLock?: boolean;
 }
 
 /**
@@ -209,6 +211,8 @@ export interface ManifestSlide {
   tags?: string[];
   /** Whether this slide is recommended */
   recommended?: boolean;
+  /** Whether this slide uses viewport-lock layout (scroll-snap, 100vh, overflow:hidden on body) */
+  viewportLock?: boolean;
   /** Additional notes */
   notes?: string | null;
 }

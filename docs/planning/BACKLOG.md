@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
-**Last updated**: 2026-03-08
-**Total**: 24 | Pending: 9 | In Progress: 0 | Done: 15 | Deferred: 0 | Rejected: 0
+**Last updated**: 2026-03-09
+**Total**: 25 | Pending: 8 | In Progress: 0 | Done: 16 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -16,7 +16,7 @@
 
 ### From flideck-harness-migration
 
-- [ ] B021 — Viewport-lock manifest flag (`viewport-lock: true`) for arcade slides: claudemas-12-days (5 slides), zero-to-app (3 slides), arcade-deck-chiang-mai (21 slides) — without flag, harness renders with body-height mismatch (5–27% visual diff) | Priority: high
+- [x] B021 — Viewport-lock manifest flag (`viewport-lock: true`) for arcade slides: claudemas-12-days (3 slides), zero-to-app (3 slides), arcade-deck-chiang-mai (22 slides) | Completed: flideck-harness-migration
 - [ ] B022 — consultants-plugin pipeline false positives: token injection overrides deviant palette on original screenshots causing 1–33% diffs; need per-presentation token injection opt-out or dedicated comparison mode | Priority: medium
 - [ ] B023 — bmad-poem deferred slides: story-2-5-sat-cheatsheet.html + story-2-6-sat-cheatsheet.html fetch from localhost:4321; decide server-reachability strategy before production harness switch | Priority: low
 - [ ] B024 — Type C slides deferred: agent-inventory/slides.html (webcam + keyboard nav), dam-overview/slides.html (scroll-snap teleprompter), claude-code-system-prompt/index.html (fetch pattern), claude-code-system-prompt-v1/index.html (same), consultants-plugin/architecture-slides.html — each needs explicit migration decision | Priority: medium
