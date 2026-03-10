@@ -1,5 +1,6 @@
 import express from 'express';
 import { createServer } from 'http';
+import { execSync } from 'child_process';
 import { Server } from 'socket.io';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -323,10 +324,25 @@ function gracefulShutdown(signal: string): void {
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
+function cleanupPort(port: number | string): void {
+  try {
+    const result = execSync(`lsof -ti:${port} 2>/dev/null || true`, { encoding: 'utf-8' });
+    const pids = result.trim().split('\n').filter(Boolean);
+    if (pids.length > 0) {
+      console.log(`[startup] Cleaning up port ${port}: killing PIDs ${pids.join(', ')}`);
+      for (const pid of pids) {
+        try { execSync(`kill -9 ${pid} 2>/dev/null || true`); } catch { /* already gone */ }
+      }
+      execSync('sleep 0.5');
+    }
+  } catch { /* lsof unavailable, continue */ }
+}
+
 // Start server
 async function start(): Promise<void> {
   try {
     await initialize();
+    cleanupPort(PORT);
 
     httpServer.listen(PORT, () => {
       console.log(`
