@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Server } from 'socket.io';
 import { getSchema } from '../utils/manifestValidator.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { createApiResponse } from '../utils/responseHelper.js';
 
 interface RouteConfig {
   io?: Server;
@@ -21,7 +22,7 @@ export function createSchemaRoutes(_config?: RouteConfig): Router {
     '/manifest',
     asyncHandler(async (_req, res) => {
       const schema = getSchema();
-      res.json(schema);
+      res.json(createApiResponse(schema));
     })
   );
 

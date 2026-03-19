@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createApiResponse } from '../utils/responseHelper.js';
 
 /**
  * FliDeck capabilities description for agent discovery.
@@ -194,7 +195,7 @@ export function createCapabilitiesRoutes(): Router {
   const router = Router();
 
   router.get('/', (_req, res) => {
-    res.json(CAPABILITIES);
+    res.json(createApiResponse(CAPABILITIES));
   });
 
   return router;

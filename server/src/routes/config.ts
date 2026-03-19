@@ -5,6 +5,7 @@ import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { loadConfig, saveConfig, expandPath, collapsePath, type Config } from '../config.js';
 import { PresentationService } from '../services/PresentationService.js';
 import { WatcherManager, type ChangeEventData } from '../WatcherManager.js';
+import { createApiResponse } from '../utils/responseHelper.js';
 
 interface RouteConfig {
   io: Server;
@@ -29,13 +30,10 @@ export function createConfigRoutes({ io, watcherManager, onPresentationChange }:
       const config = await loadConfig();
 
       // Return with collapsed paths for display
-      res.json({
-        success: true,
-        data: {
-          presentationsRoot: collapsePath(config.presentationsRoot),
-          history: config.history.map(collapsePath),
-        },
-      });
+      res.json(createApiResponse({
+        presentationsRoot: collapsePath(config.presentationsRoot),
+        history: config.history.map(collapsePath),
+      }));
     })
   );
 
@@ -110,12 +108,9 @@ export function createConfigRoutes({ io, watcherManager, onPresentationChange }:
         console.log(`Config updated: presentationsRoot = ${expandedPath}`);
       }
 
-      res.json({
-        success: true,
-        data: {
-          presentationsRoot: collapsePath(expandedPath),
-        },
-      });
+      res.json(createApiResponse({
+        presentationsRoot: collapsePath(expandedPath),
+      }));
     })
   );
 

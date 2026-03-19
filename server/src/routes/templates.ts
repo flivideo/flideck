@@ -3,6 +3,7 @@ import type { Server } from 'socket.io';
 import { getTemplates, getTemplateById } from '../utils/manifestTemplates.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { queryString } from '../utils/queryString.js';
+import { createApiResponse } from '../utils/responseHelper.js';
 
 interface RouteConfig {
   io: Server;
@@ -22,7 +23,7 @@ export function createTemplateRoutes(_config: RouteConfig): Router {
     '/manifest',
     asyncHandler(async (_req, res) => {
       const templates = getTemplates();
-      res.json(templates);
+      res.json(createApiResponse(templates));
     })
   );
 
@@ -40,7 +41,7 @@ export function createTemplateRoutes(_config: RouteConfig): Router {
         throw new AppError(`Template not found: ${id}`, 404);
       }
 
-      res.json(template);
+      res.json(createApiResponse(template));
     })
   );
 

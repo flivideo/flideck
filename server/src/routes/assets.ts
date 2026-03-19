@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { PresentationService } from '../services/PresentationService.js';
 import { queryString } from '../utils/queryString.js';
+import { createApiResponse } from '../utils/responseHelper.js';
 
 /**
  * Create asset routes for serving HTML content.
@@ -39,7 +40,7 @@ export function createAssetRoutes(): Router {
       }
 
       const content = await fs.readFile(assetPath, 'utf-8');
-      res.json({ success: true, data: { content, asset } });
+      res.json(createApiResponse({ content, asset }));
     })
   );
 

@@ -5,6 +5,7 @@ import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { PresentationService } from '../services/PresentationService.js';
 import { loadConfig, collapsePath } from '../config.js';
 import { queryString } from '../utils/queryString.js';
+import { createApiResponse } from '../utils/responseHelper.js';
 
 /**
  * Count presentations in a directory (folders containing index.html)
@@ -77,10 +78,7 @@ export function createQueryRoutes(): Router {
         }
       }
 
-      res.json({
-        routes,
-        currentRoute: currentRouteName,
-      });
+      res.json(createApiResponse({ routes, currentRoute: currentRouteName }));
     })
   );
 
@@ -102,7 +100,7 @@ export function createQueryRoutes(): Router {
 
       const presentations = await presentationService.discoverAll();
 
-      res.json({
+      res.json(createApiResponse({
         name: routeName,
         path: root,
         presentations: presentations.map((p) => ({
@@ -111,7 +109,7 @@ export function createQueryRoutes(): Router {
           assetCount: p.assets.length,
           lastModified: new Date(p.lastModified).toISOString(),
         })),
-      });
+      }));
     })
   );
 
@@ -154,13 +152,13 @@ export function createQueryRoutes(): Router {
         })
       );
 
-      res.json({
+      res.json(createApiResponse({
         id: presentation.id,
         name: presentation.name,
         route: routeName,
         assets: assetsWithSize,
         totalAssets: presentation.assets.length,
-      });
+      }));
     })
   );
 
