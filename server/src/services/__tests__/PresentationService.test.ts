@@ -504,4 +504,31 @@ describe('PresentationService', () => {
       expect(slide1?.group).toBe('section-a');
     });
   });
+
+  // ============================================================
+  // write lock — concurrent addSlide calls
+  // ============================================================
+
+  describe('concurrent addSlide calls serialize (write lock)', () => {
+    it('both slides survive when two addSlide calls race', async () => {
+      const deckPath = join(tempDir, 'concurrent-write-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>test</h1>');
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
+
+      // Fire both simultaneously
+      await Promise.all([
+        service.addSlide('concurrent-write-deck', { file: 'slide-a.html' }),
+        service.addSlide('concurrent-write-deck', { file: 'slide-b.html' }),
+      ]);
+
+      // Both must survive
+      const manifest = JSON.parse(
+        await readFile(join(deckPath, 'index.json'), 'utf-8')
+      );
+      const files = manifest.slides.map((s: { file: string }) => s.file);
+      expect(files).toContain('slide-a.html');
+      expect(files).toContain('slide-b.html');
+    });
+  });
 });

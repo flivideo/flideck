@@ -1,18 +1,20 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 51 | Pending: 11 | In Progress: 0 | Done: 38 | Deferred: 0 | Rejected: 0
+**Total**: 54 | Pending: 10 | In Progress: 0 | Done: 42 | Deferred: 0 | Rejected: 0
 
 ---
 
 ## Pending
 
+### From flideck-write-locks quality audit (2026-03-19)
+
+- [ ] B052 — Write locks for ManifestService delegated write methods: setManifest, bulkAddSlides, bulkAddGroups, syncManifest, applyTemplate, syncFromIndex — currently unprotected and in a separate lock namespace from PresentationService | Priority: high
+- [ ] B053 — Concurrent write tests for createGroup (additive race), deleteTab cascade concurrent with addSlide, updateSlide concurrent field updates | Priority: high
+- [ ] B054 — Reset writeLocks Map in beforeEach or expose _resetForTest() — latent timeout risk if a future test leaves a stuck lock | Priority: medium
+
 ### From flideck-docs-cleanup quality audit (2026-03-19)
 
-- [ ] B045 — Fix route collision: `PUT /:id/tabs/order` unreachable — move before `PUT /:id/tabs/:tabId` in presentations.ts (2-line fix) | Priority: critical
-- [ ] B046 — Fix proto-pollution test (4th attempt): `({} as any).polluted` assertion proves guard; B040 fix still vacuous due to V8 prototype semantics | Priority: high
-- [ ] B047 — Write lock for PresentationService: 16 unguarded fs.writeJson calls need serialisation (same pattern as ManifestService.patchManifest) | Priority: high
-- [ ] B048 — Delete sample.test.ts (F-grade scaffolding: `1+1===2`) | Priority: low
 - [ ] B049 — Test applySlideMetadata field propagation: title/group/description/viewportLock on returned Asset objects | Priority: medium
 - [ ] B050 — Tests for syncFromIndex (~200 lines of cheerio parsing, completely untested) | Priority: medium
 - [ ] B051 — Tests for removeSlide, updateSlide, deleteGroup cascade + renumbering | Priority: medium
@@ -84,6 +86,10 @@
 - [x] B039 — Add empty-root guard to getById: guard added, AppError(400) thrown when root is empty, consistent with discoverAll | Completed: flideck-test-quality-fixes
 - [x] B014 — API response envelope standardisation: createApiResponse adopted across all 7 route files (43 responses); 0 inline envelopes remain; _context preserved on 4 presentation GET endpoints | Completed: flideck-api-envelope
 - [x] B041 — Route integration tests: 40 new supertest HTTP tests across 7 route files + responseHelper unit tests; 139 total tests (was 101) | Completed: flideck-route-integration-tests
+- [x] B047 — Write lock for PresentationService: 16 `fs.writeJson` sites wrapped in `withWriteLock`; concurrent addSlide test added; 104 server tests | Completed: flideck-write-locks
+- [x] B045 — Fix route collision: `PUT /:id/tabs/order` moved before `PUT /:id/tabs/:tabId`; NOTE comment added | Completed: fix(B045,B046,B048) 93d6c75
+- [x] B046 — Fix proto-pollution test: `({} as any).polluted` assertion now proves guard correctly | Completed: fix(B045,B046,B048) 93d6c75
+- [x] B048 — Delete sample.test.ts (F-grade scaffolding removed; 103 server tests) | Completed: fix(B045,B046,B048) 93d6c75
 
 ---
 
