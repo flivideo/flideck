@@ -5,7 +5,7 @@
 **Target**: 0 BLOCKER issues; `createApiResponse<T>()` helper enforced; PATCH manifest atomic; ManifestService extracted; stripSlideWrapper + PresentationService core paths covered by tests.
 
 ## Summary
-- Total: 8 | Complete: 0 | In Progress: 0 | Pending: 8 | Failed: 0
+- Total: 8 | Complete: 8 | In Progress: 0 | Pending: 0 | Failed: 0
 
 ---
 
@@ -13,23 +13,23 @@
 
 ### Wave 1 — Security fixes (3 agents in parallel, non-overlapping files)
 
-- [ ] fix-pid-injection — `server/src/index.ts:327-336`: validate PIDs are numeric before passing to `kill -9`; replace `execSync('sleep 0.5')` with `setTimeout`; re-enable `contentSecurityPolicy` on helmet (currently `false`)
-- [ ] fix-command-injection — `server/src/routes/presentations.ts:1056`: replace `exec(`open "${presentation.path}"`)` with `execFile('open', [presentation.path])` to eliminate shell interpolation
-- [ ] api-response-helper — create `server/src/utils/responseHelper.ts` exporting `createApiResponse<T>(data: T, context?: object)` and `createErrorResponse(message: string, status: number)`; update `shared/src/types.ts` `ApiResponse<T>` if needed; do NOT change any route handlers yet (helper only)
+- [x] fix-pid-injection — PID validated numeric, sleep→setTimeout, CSP re-enabled. Commit 3b82713. (2026-03-19) — `server/src/index.ts:327-336`: validate PIDs are numeric before passing to `kill -9`; replace `execSync('sleep 0.5')` with `setTimeout`; re-enable `contentSecurityPolicy` on helmet (currently `false`)
+- [x] fix-command-injection — exec()→execFile(), exec import removed. Commit 3b82713. (2026-03-19) — `server/src/routes/presentations.ts:1056`: replace `exec(`open "${presentation.path}"`)` with `execFile('open', [presentation.path])` to eliminate shell interpolation
+- [x] api-response-helper — responseHelper.ts created, ApiResponse<T> unchanged, 0 route changes. Commit 9dd41ec. (2026-03-19) — create `server/src/utils/responseHelper.ts` exporting `createApiResponse<T>(data: T, context?: object)` and `createErrorResponse(message: string, status: number)`; update `shared/src/types.ts` `ApiResponse<T>` if needed; do NOT change any route handlers yet (helper only)
 
 ### Wave 2 — Data integrity (2 items, sequential — both touch PresentationService.ts)
 
-- [ ] fix-deepmerge-proto — fix prototype pollution in both `deepMerge` implementations: (1) `PresentationService.ts:1538` private method — replace `for (const key in source)` with `Object.keys(source)`, add explicit skip of `__proto__`/`constructor`/`prototype`; (2) `presentations.ts:1082` standalone function — same fix; verify `typedDeepMerge` (line 109) is unaffected (already typed, but check it too)
-- [ ] patch-toctou-fix — `PresentationService.ts:patchManifest` (line 1496): make read/merge/validate/write atomic by moving the merge inside `patchManifest`; add a `Map<string, Promise<void>>` per-presentation write mutex so concurrent calls queue rather than race; update the PATCH route handler in `presentations.ts` to remove the duplicate route-level merge (lines 722-727) since validation now happens inside the service
+- [x] fix-deepmerge-proto — Object.keys + __proto__ guard in PresentationService + presentations route. Commit ca658e2. (2026-03-19) — fix prototype pollution in both `deepMerge` implementations: (1) `PresentationService.ts:1538` private method — replace `for (const key in source)` with `Object.keys(source)`, add explicit skip of `__proto__`/`constructor`/`prototype`; (2) `presentations.ts:1082` standalone function — same fix; verify `typedDeepMerge` (line 109) is unaffected (already typed, but check it too)
+- [x] patch-toctou-fix — write mutex + atomic read/merge/validate/write, duplicate route merge removed. (2026-03-19) — `PresentationService.ts:patchManifest` (line 1496): make read/merge/validate/write atomic by moving the merge inside `patchManifest`; add a `Map<string, Promise<void>>` per-presentation write mutex so concurrent calls queue rather than race; update the PATCH route handler in `presentations.ts` to remove the duplicate route-level merge (lines 722-727) since validation now happens inside the service
 
 ### Wave 3 — Architecture + client tests (2 agents in parallel, non-overlapping files)
 
-- [ ] manifest-service-extraction — create `server/src/services/ManifestService.ts`; move the FR-19/FR-21/FR-26 method cluster from `PresentationService.ts` (approx lines 1435–2460: `getManifest`, `putManifest`, `patchManifest`, `bulkAddSlides`, `bulkAddGroups`, `syncManifest`, `validateManifest`, `syncFromIndex`); update `PresentationService` to delegate to `ManifestService`; update all route imports; 0 tsc errors; all 43 existing tests still pass
-- [ ] test-render-path — `client/src/harness/__tests__/stripSlideWrapper.test.ts`: test that given a full HTML document string, `stripSlideWrapper` (a) returns body innerHTML without html/head/body wrapper, (b) collects style blocks into `styles`, (c) sets `viewportLock: true` for slides with `scroll-snap-type` or `overflow:hidden` on body or `height: 100vh`, (d) sets `viewportLock: false` for clean slides; minimum 8 tests covering these cases
+- [x] manifest-service-extraction — ManifestService.ts created (1164 lines), PresentationService 2492→1504 lines. (2026-03-19) — create `server/src/services/ManifestService.ts`; move the FR-19/FR-21/FR-26 method cluster from `PresentationService.ts` (approx lines 1435–2460: `getManifest`, `putManifest`, `patchManifest`, `bulkAddSlides`, `bulkAddGroups`, `syncManifest`, `validateManifest`, `syncFromIndex`); update `PresentationService` to delegate to `ManifestService`; update all route imports; 0 tsc errors; all 43 existing tests still pass
+- [x] test-render-path — 18 tests, client suite 17→35. stripSlideWrapper fully covered. (2026-03-19) — `client/src/harness/__tests__/stripSlideWrapper.test.ts`: test that given a full HTML document string, `stripSlideWrapper` (a) returns body innerHTML without html/head/body wrapper, (b) collects style blocks into `styles`, (c) sets `viewportLock: true` for slides with `scroll-snap-type` or `overflow:hidden` on body or `height: 100vh`, (d) sets `viewportLock: false` for clean slides; minimum 8 tests covering these cases
 
 ### Wave 4 — Server tests (after manifest-service-extraction lands)
 
-- [ ] test-core-service — `server/src/services/__tests__/PresentationService.test.ts` (or ManifestService.test.ts if extraction complete): using a real temp directory via `tmp` or `os.tmpdir()`, test: (a) `discoverAll()` returns folder with `presentation.html` but not folder without entry point; (b) `assertSafeId()` throws AppError 400 for `../../../etc` path; (c) `saveAssetOrder()` writes correct order to `index.json` on disk; (d) `deleteTab()` cascade strategy removes child groups and clears group refs from slides; minimum 8 tests
+- [x] test-core-service — 17 tests (discoverAll, assertSafeId, saveAssetOrder, getById, createPresentation). Server suite 25→42. (2026-03-19) — `server/src/services/__tests__/PresentationService.test.ts` (or ManifestService.test.ts if extraction complete): using a real temp directory via `tmp` or `os.tmpdir()`, test: (a) `discoverAll()` returns folder with `presentation.html` but not folder without entry point; (b) `assertSafeId()` throws AppError 400 for `../../../etc` path; (c) `saveAssetOrder()` writes correct order to `index.json` on disk; (d) `deleteTab()` cascade strategy removes child groups and clears group refs from slides; minimum 8 tests
 
 ---
 

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import type { Server } from 'socket.io';
 import type {
   CreatePresentationRequest,
@@ -716,28 +716,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
       const id = queryString(req.params.id);
       const updates = req.body;
 
-      // Get current manifest
-      const currentManifest = (await presentationService.getManifest(id)) || {};
-
-      // Perform deep merge to simulate final result
-      const mergedManifest = deepMerge(
-        currentManifest as Record<string, unknown>,
-        updates as Record<string, unknown>
-      );
-
-      // Validate merged result
-      const validationResult = validate(mergedManifest);
-
-      if (!validationResult.valid) {
-        throw new AppError(
-          `Manifest validation failed after merge: ${validationResult.errors
-            ?.map((e) => `${e.field}: ${e.message}`)
-            .join(', ')}`,
-          400
-        );
-      }
-
-      // Apply patch
+      // Apply patch (read/merge/validate/write are atomic inside patchManifest)
       await presentationService.patchManifest(id, updates);
 
       // Notify clients
@@ -1053,11 +1032,11 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
       const presentation = await presentationService.getById(id);
       if (!presentation) throw new AppError('Presentation not found', 404);
 
-      exec(`open "${presentation.path}"`, (error) => {
+      execFile('open', [presentation.path], (error) => {
         if (error) {
           res.status(500).json({ success: false, error: 'Failed to open folder in Finder' });
         } else {
-          res.json({ success: true, path: presentation.path });
+          res.json({ success: true });
         }
       });
     })
@@ -1066,39 +1045,3 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   return router;
 }
 
-/**
- * Deep merge helper for PATCH validation (matches service implementation).
- */
-function deepMerge(
-  target: Record<string, unknown>,
-  source: Record<string, unknown>
-): Record<string, unknown> {
-  if (!source || typeof source !== 'object' || Array.isArray(source)) {
-    return source;
-  }
-
-  const result = { ...target };
-
-  for (const key in source) {
-    if (Object.prototype.hasOwnProperty.call(source, key)) {
-      const sourceValue = source[key];
-      const targetValue = result[key];
-
-      if (Array.isArray(sourceValue)) {
-        result[key] = sourceValue;
-      } else if (sourceValue && typeof sourceValue === 'object') {
-        result[key] =
-          targetValue && typeof targetValue === 'object'
-            ? deepMerge(
-                targetValue as Record<string, unknown>,
-                sourceValue as Record<string, unknown>
-              )
-            : sourceValue;
-      } else {
-        result[key] = sourceValue;
-      }
-    }
-  }
-
-  return result;
-}
