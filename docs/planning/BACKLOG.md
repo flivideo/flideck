@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 36 | Pending: 8 | In Progress: 3 | Done: 25 | Deferred: 0 | Rejected: 0
+**Total**: 39 | Pending: 11 | In Progress: 0 | Done: 28 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -14,11 +14,11 @@
 - [ ] B015 — Review and sign off 292 unchecked acceptance criteria across 34 PRD files | Priority: medium
 - [ ] B016 — Write 13 missing changelog entries (FR-16 through FR-28 from late-Dec build burst) | Priority: low
 
-### From flideck-security-foundations audit (2026-03-19)
+### From flideck-write-path-integrity audit (2026-03-19)
 
-- [~] B034 — Fix `assertSafeId` called only on cache miss in `getById` — must run unconditionally before cache lookup | Priority: medium | Campaign: flideck-write-path-integrity
-- [~] B035 — ManifestService test coverage: `patchManifest` (deep merge + write mutex), `bulkAddSlides` (all 3 conflict strategies), `deepMerge` prototype-pollution guard — minimum 12 tests | Priority: high | Campaign: flideck-write-path-integrity
-- [~] B036 — PresentationService write-path tests: `addSlide` (duplicate detection + legacy manifest migration), `deleteTab` (cascade strategy), `saveAssetOrder` (slides-format manifest branch) — minimum 8 tests | Priority: high | Campaign: flideck-write-path-integrity
+- [ ] B037 — Fix proto-pollution guard test: current test passes even without the guard (V8 prevents __proto__ assignment natively); replace with written-output inspection — assert the dangerous key does NOT appear in the manifest JSON after patch | Priority: medium
+- [ ] B038 — Fix concurrent write-lock test: current test uses mutually exclusive overwrites which don't prove serialization; replace with additive/cumulative patches (e.g. push to a tags array) so the only correct outcome is both items present | Priority: medium
+- [ ] B039 — Add empty-root guard to `getById`: `discoverAll` throws when `presentationsRoot` is empty; `getById` does not — assertSafeId vacuously passes (resolves to process.cwd()); add consistent `if (!this.presentationsRoot) throw new AppError(400, ...)` guard | Priority: medium
 
 ### From flideck-harness-migration
 
@@ -62,6 +62,9 @@
 - [x] B031 — Test coverage: `stripSlideWrapper()` — styles extracted, body unwrapped, viewportLock detection (style blocks + inline body style), multi-style collection — 18 tests | Completed: flideck-security-foundations
 - [x] B032 — Fix PATCH manifest TOCTOU: read/merge/validate/write atomic inside `patchManifest`; per-presentation write mutex serialises concurrent mutations | Completed: flideck-security-foundations
 - [x] B033 — Fix `deepMerge` third copy in `presentations.ts` — found to be already resolved on main after security-foundations merge; standalone deepMerge in presentations.ts was removed by patch-toctou-fix; ManifestService has the only remaining copy (correct Object.keys impl) | Completed: flideck-security-foundations (implicit)
+- [x] B034 — Fix `assertSafeId` called only on cache miss in `getById` — moved before cache check; warm-cache traversal test added | Completed: flideck-write-path-integrity
+- [x] B035 — ManifestService test coverage: 12 tests (getManifest, patchManifest, bulkAddSlides ×3 strategies, proto-pollution, write-lock) | Completed: flideck-write-path-integrity
+- [x] B036 — PresentationService write-path tests: 8 tests (addSlide, dedup, legacy migration, saveAssetOrder slides-format, deleteTab cascade + orphan) | Completed: flideck-write-path-integrity
 
 ---
 
