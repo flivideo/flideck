@@ -53,6 +53,7 @@ export class PresentationService extends EventEmitter {
   private cache = new Map<string, Presentation>();
   private presentationsRoot: string = '';
   private clientUrl: string = 'http://localhost:5200';
+  private writeLocks = new Map<string, Promise<void>>();
 
   private constructor() {
     super();
@@ -1503,22 +1504,55 @@ export class PresentationService extends EventEmitter {
       throw new Error(`Presentation not found: ${presentationId}`);
     }
 
-    // Read existing manifest or create new one
-    const currentManifest = await this.readManifest(folderPath);
-    const baseManifest = currentManifest || {};
+    await this.withWriteLock(presentationId, async () => {
+      // Read existing manifest or create new one (inside lock to avoid TOCTOU)
+      const currentManifest = await this.readManifest(folderPath);
+      const baseManifest = currentManifest || {};
 
-    // Deep merge updates
-    const manifest = this.typedDeepMerge(baseManifest, updates);
+      // Deep merge updates
+      const manifest = this.typedDeepMerge(baseManifest, updates);
 
-    // Update timestamp
-    if (!manifest.meta) manifest.meta = {};
-    manifest.meta.updated = new Date().toISOString().split('T')[0];
+      // Update timestamp
+      if (!manifest.meta) manifest.meta = {};
+      manifest.meta.updated = new Date().toISOString().split('T')[0];
 
-    // Write manifest
-    await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+      // Validate merged result before writing
+      const validationResult = manifestValidator.validate(manifest);
+      if (!validationResult.valid) {
+        throw new AppError(
+          `Manifest validation failed after merge: ${validationResult.errors
+            ?.map((e) => `${e.field}: ${e.message}`)
+            .join(', ')}`,
+          400
+        );
+      }
 
-    // Invalidate cache
-    this.invalidateCache(presentationId);
+      // Write manifest
+      await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+      // Invalidate cache
+      this.invalidateCache(presentationId);
+    });
+  }
+
+  /**
+   * Serialises concurrent writes to the same presentation via a per-id mutex.
+   * Each caller waits for the previous promise to settle before proceeding.
+   */
+  private async withWriteLock<T>(id: string, fn: () => Promise<T>): Promise<T> {
+    const current = this.writeLocks.get(id) ?? Promise.resolve();
+    let release!: () => void;
+    const next = new Promise<void>((resolve) => { release = resolve; });
+    this.writeLocks.set(id, next);
+    try {
+      await current;
+      return await fn();
+    } finally {
+      release();
+      if (this.writeLocks.get(id) === next) {
+        this.writeLocks.delete(id);
+      }
+    }
   }
 
   /**
