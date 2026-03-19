@@ -77,6 +77,11 @@ describe('ManifestService', () => {
   // ============================================================
 
   describe('patchManifest()', () => {
+    afterEach(() => {
+      // Clean up any accidental prototype pollution from this describe block
+      delete (Object.prototype as Record<string, unknown>)['polluted'];
+    });
+
     it('merges a new top-level field while preserving existing fields', async () => {
       const deckPath = join(tempDir, 'patch-deck');
       await mkdir(deckPath);
@@ -147,11 +152,13 @@ describe('ManifestService', () => {
 
       await service.patchManifest('proto-guard-deck', maliciousPayload);
 
-      // Read the written JSON and confirm __proto__ is NOT a key in the object
-      const raw = await readFile(join(deckPath, 'index.json'), 'utf-8');
-      const written = JSON.parse(raw) as Record<string, unknown>;
-      // The guard must have skipped the __proto__ key — it must not appear in the output
-      expect(Object.prototype.hasOwnProperty.call(written, '__proto__')).toBe(false);
+      // The real test: if the guard didn't exist, deepMerge would execute
+      // `result['__proto__'] = {polluted: true}`, which JavaScript interprets as
+      // `Object.prototype.polluted = true`, polluting ALL objects in the process.
+      // Checking the written JSON for a '__proto__' key is vacuous — JSON.parse in V8
+      // never produces __proto__ as an own key regardless of the guard.
+      // The correct assertion is that Object.prototype was NOT mutated.
+      expect((Object.prototype as Record<string, unknown>)['polluted']).toBeUndefined();
     });
 
     it('concurrent calls serialize (write lock): both additive meta patches land without data loss', async () => {

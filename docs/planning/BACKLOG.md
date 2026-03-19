@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 43 | Pending: 6 | In Progress: 0 | Done: 36 | Deferred: 0 | Rejected: 0
+**Total**: 44 | Pending: 4 | In Progress: 0 | Done: 38 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -14,14 +14,15 @@
 
 - [x] B042 — Fix PresentationService singleton isolation: afterAll reset added to 3 route test files + pool: 'forks' added to server/vitest.config.ts; no timing regression (~2.6s) | Completed: flideck-singleton-isolation
 - [x] B043 — Strengthen weak assertions: schema (3 concrete value checks), assets (content match + correct error-path URL), capabilities (api_summary keys + tips[0] type) | Completed: flideck-assertion-strengthening
+- [x] B044 — Rewrite stale FR-28 drag-to-resize ACs with S/M/L preset ACs (8 removed, 5 new [x]); PRD now matches actual implementation | Completed: flideck-docs-cleanup
 
 ### From flideck-api-envelope audit (2026-03-19)
 - [x] B015 — Review and sign off 292 unchecked acceptance criteria across 34 PRD files | Completed: flideck-ac-signoff
-- [ ] B016 — Write 13 missing changelog entries (FR-16 through FR-28 from late-Dec build burst) | Priority: low
+- [x] B016 — Write 13 missing changelog entries (FR-16 through FR-28 from late-Dec build burst) | Completed: flideck-docs-cleanup
 
 ### From flideck-test-quality-fixes audit (2026-03-19)
 
-- [ ] B040 — Fix proto-pollution guard test (third attempt): written-output inspection still doesn't prove the guard (V8 intercepts `obj['__proto__'] = value` as prototype assignment, so JSON.stringify never serializes it regardless); fix via null-prototype base object in deepMerge OR document as untestable by normal means | Priority: low
+- [x] B040 — Fix proto-pollution guard test: changed vacuous file-content assertion to Object.prototype pollution check; afterEach cleanup added; 104 tests pass | Completed: flideck-docs-cleanup
 
 ### From flideck-harness-migration
 

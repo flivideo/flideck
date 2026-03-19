@@ -181,18 +181,15 @@ Current layout uses fixed sidebar width in Tailwind classes. Update to use inlin
 
 ## Acceptance Criteria
 
-- [ ] Drag handle visible at right edge of sidebar on hover <!-- superseded: drag handle replaced by S/M/L preset buttons in Major Redesign (2026-01-07) -->
-- [ ] Cursor changes to `col-resize` when hovering over drag handle <!-- superseded: no drag handle in current implementation -->
-- [ ] Clicking and dragging the handle resizes the sidebar in real-time <!-- superseded: drag replaced by preset button clicks -->
-- [ ] Sidebar cannot be resized smaller than 200px <!-- superseded: presets are 280/380/480px; minimum is 280px, not 200px -->
-- [ ] Sidebar cannot be resized larger than 600px <!-- superseded: presets are 280/380/480px; maximum is 480px, not 600px -->
-- [x] Width preference persists to localStorage
-- [x] Width preference restored on page load
+- [x] Three preset buttons (S/M/L) visible in sidebar header for width selection (`Sidebar.tsx` lines 746–798)
+- [x] S preset sets sidebar width to 280px (`SIDEBAR_PRESETS.small = 280` in `useResizableSidebar.ts` line 7; button title "Small (280px)" at `Sidebar.tsx` line 754)
+- [x] M preset sets sidebar width to 380px (default) (`SIDEBAR_PRESETS.medium = 380` in `useResizableSidebar.ts` line 8; `useResizableSidebar` default arg `SIDEBAR_PRESETS.medium` at line 21)
+- [x] L preset sets sidebar width to 480px (`SIDEBAR_PRESETS.large = 480` in `useResizableSidebar.ts` line 9; button title "Large (480px)" at `Sidebar.tsx` line 788)
+- [x] Active preset button is visually highlighted (`backgroundColor: width === 280 ? '#4a4040' : 'transparent'` pattern repeated for each button, `Sidebar.tsx` lines 752, 769, 786)
+- [x] Width preference persists to localStorage (`localStorage.setItem(STORAGE_KEY, newWidth.toString())` in `useResizableSidebar.ts` line 43; key `flideck:sidebarWidth` at line 3)
+- [x] Width preference restored on page load (`localStorage.getItem(STORAGE_KEY)` in `useState` initializer, `useResizableSidebar.ts` lines 23–36)
 - [x] Works across all display modes (Flat, Grouped, Tabbed)
 - [x] Main content area adjusts automatically (flex-1 behavior)
-- [ ] No horizontal scrollbar appears during resize <!-- runtime AC: cannot verify from source -->
-- [ ] Drag handle has appropriate visual feedback (color change during drag) <!-- superseded: no drag handle in current implementation -->
-- [ ] Releasing mouse commits the new width <!-- superseded: width committed immediately on button click, no mouse-up needed -->
 
 ## Technical Notes
 
