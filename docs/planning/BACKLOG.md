@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 26 | Pending: 8 | In Progress: 0 | Done: 18 | Deferred: 0 | Rejected: 0
+**Total**: 32 | Pending: 14 | In Progress: 0 | Done: 18 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -13,6 +13,15 @@
 - [ ] B014 — API response envelope standardisation: adopt canonical `{ success: true, data: T }` shape across all 5 endpoint patterns | Priority: medium
 - [ ] B015 — Review and sign off 292 unchecked acceptance criteria across 34 PRD files | Priority: medium
 - [ ] B016 — Write 13 missing changelog entries (FR-16 through FR-28 from late-Dec build burst) | Priority: low
+
+### From three-lens audit (2026-03-19)
+
+- [ ] B027 — Security: fix `cleanupPort` PID injection (validate numeric before `kill -9`) + fix `POST /:id/open` command injection (use `execFile` not `exec`) + fix `deepMerge` prototype pollution (`Object.keys` not `for...in`) | Priority: high
+- [ ] B028 — Pre-condition for B014: add `createApiResponse<T>()` helper used by all route handlers; enforce `ApiResponse<T>` return type at compile time so envelope standardisation stays consistent after the campaign | Priority: high
+- [ ] B029 — Architecture: extract `ManifestService` from `PresentationService` (FR-19/FR-21/FR-26 methods, lines ~1435–2460) — God class is 2,460 lines with 7 responsibility clusters; extraction unblocks B014 and B024 safely | Priority: medium
+- [ ] B030 — Test coverage: `PresentationService` core behaviours — `discoverAll()` entry-point priority, `getById()` cache, `assertSafeId()` security boundary, `saveAssetOrder()` disk persistence, `deleteTab()` three strategies | Priority: high
+- [ ] B031 — Test coverage: `stripSlideWrapper()` render-path unit tests (styles extracted, body unwrapped, viewportLock detection, viewport-lock false negatives) + smoke test for `HarnessViewer` mount | Priority: medium
+- [ ] B032 — Fix PATCH manifest TOCTOU: move merge+validate inside `patchManifest` so read/merge/validate/write are atomic; add per-presentation write mutex to serialise concurrent manifest mutations | Priority: medium
 
 ### From flideck-harness-migration
 
