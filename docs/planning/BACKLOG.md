@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
-**Last updated**: 2026-03-09
-**Total**: 26 | Pending: 7 | In Progress: 0 | Done: 18 | Deferred: 0 | Rejected: 0
+**Last updated**: 2026-03-19
+**Total**: 26 | Pending: 8 | In Progress: 0 | Done: 18 | Deferred: 0 | Rejected: 0
 
 ---
 

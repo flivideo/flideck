@@ -1,14 +1,17 @@
-# AGENTS.md — FliDeck Harness Migration
+# AGENTS.md — FliDeck (inherited from flideck-harness-migration)
 
 ## Project Overview
 
 **Project**: FliDeck — local-first presentation harness for viewing folder-based HTML artifacts
-**Campaign**: flideck-harness-migration — replace iframe/srcdoc rendering with embedded harness model
-**Stack**: React 19 + Vite 6 (client, port 5200) / Express 5 + Socket.io (server, port 5201) / TypeScript / Vitest / TanStack Query / Playwright
+**Stack**: React 19 + Vite 6 (client, port 5200) / Express 5 + Socket.io (server, port 5201) / TypeScript / Vitest / TanStack Query
 
-**What this campaign does**: Slides are currently rendered inside iframes using srcdoc. We are migrating to an embedded model where FliDeck owns navigation, keyboard handling, live reload, and shared utilities. Slides become content fragments rendered directly in the host page, not isolated documents.
-
-**Migration rule**: Always produce a `[presentation-name]-v2/` folder alongside the original. Never modify original folders.
+**Current state (2026-03-08):**
+- Harness migration complete — iframe/srcdoc rendering removed; HarnessViewer is the only rendering path
+- 0 TypeScript errors in both workspaces
+- 0 npm vulnerabilities
+- 43 tests passing (17 client, 26 server)
+- All 519 HTML files across 17 presentations migrated to v2 harness-fragment format
+- 5 Type C slides remain deferred (B024) — see Known Problematic Slides below
 
 **Presentations root**: Determined by `config.json` → `presentationsRoot`. Read this file to get the actual path.
 
@@ -24,7 +27,7 @@ npm install
 # Dev (both client and server)
 npm run dev
 
-# Run all tests
+# Run all tests  (currently: 17 client + 26 server = 43 total)
 npm test
 
 # Run server tests only
@@ -33,23 +36,20 @@ cd server && npm test
 # Run client tests only
 cd client && npm test
 
-# TypeScript type check
+# TypeScript type check (must pass with 0 errors)
 npm run typecheck
 # or: cd client && npx tsc --noEmit && cd ../server && npx tsc --noEmit
 
 # Lint
 npm run lint
 
-# Build
+# Build (produces CSS warning about @import order in harness.css — known, not a blocker)
 npm run build
-
-# Playwright (once pipeline is set up)
-cd playwright && npx playwright test
 ```
 
-**Worktree ports (UAT):**
-- Main branch: client `localhost:5200`, server `localhost:5201` → original presentations, iframe rendering
-- Worktree: client `localhost:5202`, server `localhost:5203` → v2 presentations, embedded harness rendering
+**Dev ports:**
+- Client: `localhost:5200`
+- Server: `localhost:5201`
 
 ---
 
@@ -60,272 +60,287 @@ flideck/
 ├── client/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── layout/          # Sidebar, Header, layout components
-│   │   │   └── ui/              # AssetViewer.tsx ← iframe renderer (to be replaced)
-│   │   ├── hooks/               # Custom React hooks
-│   │   ├── pages/               # PresentationPage.tsx
-│   │   └── utils/               # displayMode.ts, etc.
+│   │   │   ├── layout/          # Header.tsx, Sidebar.tsx, SidebarFlat.tsx, SidebarGrouped.tsx
+│   │   │   └── ui/              # EmptyState.tsx, LoadingSpinner.tsx, QuickFilter.tsx, TabBar.tsx
+│   │   ├── harness/             # HarnessViewer.tsx, harness.css, harness-utils.ts,
+│   │   │                        #   stripSlideWrapper.ts, useKeyboardBridge.ts
+│   │   ├── hooks/               # useConfig.ts, useContainerTab.ts, useDisplayMode.ts,
+│   │   │                        #   usePresentations.ts, useQuickFilter.ts, useResizableSidebar.ts,
+│   │   │                        #   useSocket.ts
+│   │   ├── pages/               # PresentationPage.tsx, ConfigPage.tsx, etc.
+│   │   ├── utils/               # displayMode.ts, sidebarOrder.ts, etc.
+│   │   └── test/                # App.test.tsx (1 test), vitest setup
 ├── server/
 │   ├── src/
-│   │   ├── routes/              # API routes
-│   │   ├── services/            # PresentationService.ts (discovery, manifest, caching)
-│   │   └── WatcherManager.ts
+│   │   ├── middleware/          # asyncHandler.ts, AppError, errorHandler.ts
+│   │   ├── routes/              # presentations.ts, config.ts, assets.ts, etc.
+│   │   ├── services/            # PresentationService.ts (core, ~1500 lines), __tests__/manifest.test.ts
+│   │   ├── utils/               # manifestTemplates.ts, manifestValidator.ts, queryString.ts, deepMerge.ts
+│   │   ├── config.ts            # loadConfig(), addToHistory(), hot-reload
+│   │   ├── WatcherManager.ts    # Chokidar file watching with debounce
+│   │   └── index.ts             # Express app entry — does NOT export createApp
 ├── shared/
 │   └── src/
-│       └── types.ts
+│       └── types.ts             # Shared TypeScript types (FlideckManifest, etc.)
+├── tools/
+│   ├── migrate-type-a.js        # Wrapper-strip toolchain (Type A slides)
+│   └── migrate-type-b.js        # JS-hoist toolchain (Type B slides)
+├── playwright/
+│   ├── pipeline.js              # Visual diff pipeline (--compare, --compare-all flags)
+│   └── harness-shell.html       # Standalone wrapper for testing harness fragments
 ├── docs/
 │   └── planning/
+│       ├── BACKLOG.md           # Master feature register (B### IDs)
+│       ├── flideck-cleanup-2026/
 │       └── flideck-harness-migration/
-│           ├── IMPLEMENTATION_PLAN.md   ← this campaign's work tracker
-│           ├── AGENTS.md                ← this file
-│           ├── decisions/               ← architectural decisions
-│           ├── research/                ← corpus analysis (complete)
-│           └── learnings/               ← coordinator captures after each wave
-└── config.json                          ← gitignored; contains presentationsRoot path
-```
-
-**Presentations folder** (from config.json → presentationsRoot):
-- Original presentations: `[presentationsRoot]/[name]/`
-- Migrated v2 presentations: `[presentationsRoot]/[name]-v2/`
-
----
-
-## Slide Classification Rules
-
-Every agent must classify slides before migrating. Read the file — do not guess.
-
-| Type | Criteria | Migration method |
-|------|----------|-----------------|
-| **A** | No `<script>` tag at all | Mechanical wrapper strip — no LLM needed |
-| **B** | `<script>` with ONLY these patterns: `copyCommand`, `copyInline`, CSS class toggle (`classList.add/remove/toggle`), simple `innerHTML` show/hide | Pattern match + hoist to harness utility |
-| **C** | Any other script: fetch() calls, DOM manipulation beyond toggle, keyboard listeners, scroll-snap nav, webcam, external API calls | LLM review required — do NOT auto-migrate |
-
-**Type C handling**: Flag the file, add it to the `[campaign]/decisions/` folder with a recommendation, and skip it in the current wave. Never silently drop Type C content.
-
----
-
-## Type A Migration: Wrapper Strip
-
-Remove the isolation layer — keep only the content that belongs in the page.
-
-**Strip these:**
-- `<!DOCTYPE html>`, `<html>`, `<html lang="...">`, `</html>`
-- Entire `<head>` block including: `<meta>` tags, `<title>`, Google Fonts `<link>` tags, viewport meta
-- `<body>`, `<body class="...">`, `</body>`
-
-**Keep these:**
-- All `<style>` blocks (verbatim — do not modify CSS)
-- All content elements (divs, sections, etc.)
-- Internal `<link>` tags that reference local assets (not Google Fonts)
-
-**Do NOT strip fonts until the harness confirms it loads them.** Until `harness-shell-prototype` is complete, keep a comment in v2 files noting the font strip is pending harness confirmation.
-
-**Output format for a stripped Type A file:**
-```html
-<!-- harness-fragment: type-a -->
-<!-- fonts: stripped (loaded by harness) -->
-<style>
-  /* original styles verbatim */
-</style>
-
-<div class="slide-content">
-  <!-- original body content verbatim -->
-</div>
+└── config.json                  # gitignored; contains presentationsRoot path
 ```
 
 ---
 
-## Type B Migration: Hoist JS Utilities
+## Reference Patterns
 
-After stripping the wrapper (same as Type A), handle scripts:
+### Vitest test file structure (server)
 
-**copyCommand / copyInline pattern:**
-```javascript
-// ORIGINAL (in slide)
-function copyCommand(el) {
-  const text = el.parentElement.querySelector('code').textContent;
-  navigator.clipboard.writeText(text).then(() => { /* ... */ });
+```typescript
+// server/src/services/__tests__/manifest.test.ts  ← real example
+import { describe, it, expect } from 'vitest';
+import { getTemplates, applyTemplate } from '../../utils/manifestTemplates.js';
+import { validate } from '../../utils/manifestValidator.js';
+import type { FlideckManifest } from '@flideck/shared';
+
+describe('manifestTemplates', () => {
+  it('returns a non-empty array of templates', () => {
+    const templates = getTemplates();
+    expect(Array.isArray(templates)).toBe(true);
+    expect(templates.length).toBeGreaterThan(0);
+  });
+});
+```
+
+### Vitest test file structure (client)
+
+```typescript
+// client/src/utils/__tests__/displayMode.test.ts  ← real example
+import { describe, it, expect } from 'vitest';
+import { detectDisplayMode } from '../displayMode';
+
+describe('detectDisplayMode', () => {
+  it('returns flat when no groups in manifest', () => {
+    expect(detectDisplayMode({})).toBe('flat');
+  });
+});
+```
+
+**Note**: `server/src/index.ts` does NOT export a `createApp` function. Server tests should import directly from service/util modules, not from the app entry point.
+
+### Path traversal guard (active in PresentationService.ts)
+
+```typescript
+const resolvedPath = path.resolve(presentationPath);
+const resolvedRoot = path.resolve(this.presentationsRoot);
+if (!resolvedPath.startsWith(resolvedRoot + path.sep)) {
+  throw new AppError(400, 'Invalid presentation ID');
 }
 ```
-```javascript
-// MIGRATED (harness provides window.copyCommand)
-// Remove the function definition entirely.
-// Rewrite call sites:
-// onclick="copyCommand(this)"  →  onclick="window.copyCommand(this)"
-// Or leave as-is if harness injects copyCommand into window scope.
+
+### asyncHandler pattern (routes)
+
+```typescript
+// asyncHandler AND AppError are co-located in errorHandler.ts — not separate files
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
+
+router.get('/presentations/:id', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  // ... logic
+  res.json({ success: true, data: presentation, _context: { presentationsRoot } });
+}));
 ```
 
-**CSS class toggle pattern:**
-```javascript
-// ORIGINAL
-function toggleDetails(id) {
-  document.getElementById(id).classList.toggle('hidden');
-}
-```
-```javascript
-// MIGRATED — harness provides window.toggleClass, or keep as-is
-// Simple DOM toggles are safe to leave inline if they don't conflict with harness
-```
+### HarnessViewer usage (PresentationPage.tsx)
 
-**Decision tree patterns**: Each is hand-written and different. Treat as Type C unless the implementation is a simple if/else show/hide. Do NOT attempt to replace with a shared implementation.
+```tsx
+import { HarnessViewer } from '../harness/HarnessViewer';
 
----
-
-## The Canonical Font Stack (Harness-Provided)
-
-Once `harness-shell-prototype` is complete, the harness loads these once per session:
-- **Bebas Neue** — display headings, logo wordmark
-- **Oswald** — section labels, subtitles, uppercase tags
-- **Roboto** — body text
-- **Roboto Mono** — code blocks, commands, technical strings
-
-**Non-standard fonts** (per-slide dependency — NOT harness-provided):
-- Press Start 2P — claudemas-12-days, zero-to-app arcade slides
-- JetBrains Mono — dam-overview only
-- Space Grotesk — dam-overview only
-- Noto Sans Thai — zero-to-app, one slide only
-
-Slides using non-standard fonts must declare them explicitly per the authoring standard.
-
----
-
-## CSS Token Baseline (Harness-Injected)
-
-The harness injects these 10 tokens as `:root` vars in the host page. Slides that re-declare them will override the baseline (correct behaviour). Deviant slides (consultants-plugin, n8n-story-gen) will silently override with their own values — this is intended.
-
-```css
-/* Core brand */
---brand-brown:  #342d2d;
---brand-gold:   #ccba9d;
---brand-yellow: #ffde59;
---white:        #ffffff;
---brand-gray:   #595959;
-
-/* Semantic traffic-light */
---doc-blue:       #3b82f6;
---runtime-purple: #8b5cf6;
---success-green:  #22c55e;
---issue-amber:    #f59e0b;
---pain-red:       #ef4444;
+// Full prop signature: content, baseUrl, presentationMode?, viewportLock?, onNavigate?
+<HarnessViewer
+  content={assetContent}
+  baseUrl={assetBaseUrl}
+  presentationMode={isPresentationMode}   // optional, default false
+  viewportLock={slide.viewportLock}       // optional, default false
+  onNavigate={handleNavigate}             // optional
+/>
 ```
 
 ---
 
-## Known Problematic Slides (Type C Reference)
+## Mock Patterns
 
-| File | Problem | Decision status |
-|------|---------|----------------|
-| `agent-inventory/slides.html` | Full keyboard nav + webcam overlay — competing with harness nav | PENDING decision |
-| `bmad-agents/pipeline.html` | scroll-snap + keyboard nav — scroll strategy must be applied | PENDING scroll-strategy work unit |
-| `dam-overview/slides.html` | scroll-snap teleprompter | PENDING scroll-strategy work unit |
-| `claude-code-system-prompt/index.html` | `fetch('index.json')` relative URL — base URL strategy must be confirmed | PENDING harness-shell-prototype |
-| `claude-code-system-prompt-v1/index.html` | Same fetch pattern | PENDING harness-shell-prototype |
-| `claude-code-system-prompt-v1/ref-decision-tree.html` | Complex JS decision tree | PENDING LLM review |
-| `consultants-plugin/decision-tree.html` | Viewport-centered, fixed-position nav | PENDING LLM review |
-| `consultants-plugin/[interactive].html` | Fullscreen interactive | PENDING LLM review |
-| `bmad-poem/story-2-5-sat-cheatsheet.html` | `fetch('http://localhost:4321/...')` — live API | DEFERRED until server strategy decided |
-| `bmad-poem/story-2-6-sat-cheatsheet.html` | Same localhost:4321 pattern | DEFERRED |
+**Current test approach: no mocking.** All server tests (`manifest.test.ts`) test pure utility functions (manifestTemplates, manifestValidator, queryString) directly — no HTTP, no filesystem, no mocks needed. Client tests (`displayMode.test.ts`) test pure transform functions.
 
----
-
-## Playwright Visual Verification
-
-**Goal**: Pixel-diff each migrated slide against its iframe-rendered original. Pass = migration complete.
-
-**Settings:**
-- Viewport: 1280x800 (match current FliDeck default)
-- Wait: `waitForLoadState('networkidle')` before each screenshot (fonts + async content)
-- Diff threshold: TBD during PoC (start at 1% pixel difference tolerance)
-- Exclusions: Type C slides with dynamic content or animations — flagged as manual review only
-
-**Output format:**
+If a future campaign adds route-level tests, pattern for supertest:
+```typescript
+// Do NOT import createApp — it doesn't exist.
+// Instead, test service/util functions directly, or build a minimal test app:
+import express from 'express';
+import { createRoutes } from '../../routes/index.js';
+// ... construct a test app manually
 ```
-playwright-output/
-├── report.md              ← per-slide pass/fail table
-├── pass/                  ← side-by-side images of passing slides
-└── flagged/               ← side-by-side images of failing or manual-review slides
+
+If a future campaign needs to mock PresentationService in route tests:
+```typescript
+vi.mock('../../services/PresentationService.js', () => ({
+  PresentationService: {
+    getInstance: vi.fn().mockReturnValue({
+      getAll: vi.fn().mockResolvedValue([]),
+    }),
+  },
+}));
 ```
 
 ---
 
 ## Success Criteria
 
-**For each migration work unit:**
-- [ ] v2 folder exists with same number of files as original (minus excluded Type C files)
-- [ ] All Type A files: no `<html>`, `<head>`, `<body>` tags remain
-- [ ] All Type B files: JS utility functions hoisted or referenced via window scope
-- [ ] All Type C files: documented in decisions/ with migration recommendation, NOT auto-migrated
-- [ ] Playwright pixel-diff passes for all migrated slides (within threshold)
-- [ ] FliDeck TypeScript compiles without errors after any server-side changes
-- [ ] No original presentation folders modified
+Before marking any work unit complete:
 
-**For harness shell work units:**
-- [ ] `npm run dev` starts without errors on worktree ports 5202/5203
-- [ ] Font load verified via browser Network tab (1 request for the 4-family stack, not per-slide)
-- [ ] CSS tokens verified via browser DevTools computed styles
-- [ ] Keyboard nav works (Cmd+arrow, F, Escape)
+- [ ] `npm run typecheck` passes with 0 errors in affected workspace
+- [ ] `npm test` passes — all 43 tests still green (no regressions)
+- [ ] No new lint errors introduced
+- [ ] For any new functionality: at least one test covers it
+- [ ] For server changes: server starts without errors (`npm run dev`)
+- [ ] For client changes: client builds without errors (`npm run build`)
+- [ ] For dead code removal: `grep -r "SymbolName" src/` returns no hits before deleting
 
 ---
 
 ## Anti-Patterns to Avoid
 
-- **Do NOT modify original presentation folders** — always work in v2 copies
-- **Do NOT strip fonts until harness confirms it loads them** — broken fonts are invisible bugs
-- **Do NOT auto-migrate Type C files** — flag and document, then skip
-- **Do NOT normalise deviant palettes** — consultants-plugin and n8n-story-gen deviations are preserved
-- **Do NOT build the migration toolchain before the PoC passes** — toolchain design depends on PoC learnings
-- **Do NOT remove iframe rendering from FliDeck until all presentations are in v2 folders** — this is the remove-iframe-rendering work unit, last in Phase 7
+- **Do NOT use `any` types** in TypeScript — both workspaces are clean; keep them that way
 - **Do NOT amend commits** — always create new commits
-- **Do NOT use `any` types** in TypeScript changes
+- **Do NOT delete files without first verifying no imports** — grep before delete
+- **Do NOT change API response shapes** without updating API docs in CLAUDE.md — response envelope is inconsistent (B014 pending); don't make it worse
+- **Do NOT modify original presentation folders** — all content lives in canonical (non-v2) folders after production cleanup; originals are gone
+- **Do NOT add console.log** — use console.error for errors; no debug logging in production paths
+- **Do NOT modify test setup files** — vitest config is in `*/src/test/setup.ts`
+- **Do NOT add Google Fonts via @import inside harness.css** — there is already a known CSS warning from this; fonts load correctly, don't add more @imports at non-first position
+- **Do NOT touch Type C slides without explicit decisions** — `agent-inventory/slides.html`, `dam-overview/slides.html`, `claude-code-system-prompt*/index.html`, `consultants-plugin/architecture-slides.html` are deferred (B024); webcam + keyboard-nav conflicts must be resolved first
 
 ---
 
 ## Quality Gates
 
-Non-negotiable before marking any work unit complete:
+Non-negotiable before marking complete:
 
-1. Playwright pixel-diff passes (or manual verification documented with screenshot)
-2. TypeScript compiles without errors in affected workspace
-3. No original files modified (verify with `git diff` against original folder)
-4. For Phase 0 tasks: FliDeck discovers the corrected/fixed presentation correctly
+1. `npm run typecheck` — 0 errors (currently 0; must stay 0)
+2. `npm test` — 43/43 passing (currently 43; must not regress)
+3. `npm run build` — succeeds (1 known CSS warning is acceptable; new warnings are not)
+4. For security-sensitive changes: describe the attack vector that is now closed
+
+---
+
+## Known Deferred Items (from BACKLOG.md)
+
+| B### | Item | Priority |
+|------|------|----------|
+| B013 | Vite 7 upgrade: 2-line change in client/package.json (vite 6→7, plugin-react v4→v5) | low |
+| B014 | API envelope standardisation: adopt `{ success: true, data: T }` across all 5 shapes | medium |
+| B015 | Review 292 unchecked acceptance criteria across 34 PRD files | medium |
+| B016 | Write 13 missing changelog entries (FR-16 through FR-28) | low |
+| B022 | Playwright pipeline: deviant palette token injection overrides cause false-positive diffs | medium |
+| B023 | bmad-poem: 2 slides fetch from localhost:4321 — server reachability strategy needed | low |
+| B024 | Type C slides deferred: 5 files need explicit migration decisions | medium |
+| B025 | Playwright CI integration: wire --compare-all into CI pipeline | low |
+
+---
+
+## Known Problematic Slides (Type C — still deferred)
+
+| File | Problem | Status |
+|------|---------|--------|
+| `agent-inventory/slides.html` | Full keyboard nav + webcam overlay — competing with harness nav | DEFERRED (B024) |
+| `dam-overview/slides.html` | scroll-snap teleprompter — competing nav | DEFERRED (B024) |
+| `claude-code-system-prompt/index.html` | `fetch('index.json')` relative URL — base URL not resolved | DEFERRED (B024) |
+| `claude-code-system-prompt-v1/index.html` | Same fetch pattern | DEFERRED (B024) |
+| `consultants-plugin/architecture-slides.html` | Complex interactive — warning comment added, content intact | DEFERRED (B024) |
+| `bmad-poem/story-2-5-sat-cheatsheet.html` | `fetch('http://localhost:4321/...')` — live API | DEFERRED (B023) |
+| `bmad-poem/story-2-6-sat-cheatsheet.html` | Same localhost:4321 pattern | DEFERRED (B023) |
+
+---
+
+## Harness Architecture (Reference)
+
+Slides are rendered via `HarnessViewer` — iframe rendering was removed in Phase 7.
+
+**Fragment format** (produced by `tools/migrate-type-a.js` / `tools/migrate-type-b.js`):
+```html
+<!-- harness-fragment: type-a -->
+<style>/* original styles verbatim */</style>
+<div class="slide-content"><!-- original body content --></div>
+```
+
+**Harness files** (`client/src/harness/`):
+- `HarnessViewer.tsx` — mounts fragment into `.harness-slide` div, re-executes scripts, manages `<base>` tag and scoped styles
+- `harness.css` — canonical font stack (Bebas Neue, Oswald, Roboto, Roboto Mono) + 10 CSS token vars
+- `harness-utils.ts` — `copyCommand`, `copyInline` globals injected into `window`
+- `stripSlideWrapper.ts` — DOMParser-based wrapper stripping, viewport-lock auto-detection
+- `useKeyboardBridge.ts` — capture-phase guard protecting Cmd+Arrow nav shortcuts
+
+**CSS token baseline (harness-injected):**
+```css
+--brand-brown: #342d2d;  --brand-gold: #ccba9d;   --brand-yellow: #ffde59;
+--white: #ffffff;        --brand-gray: #595959;
+--doc-blue: #3b82f6;     --runtime-purple: #8b5cf6; --success-green: #22c55e;
+--issue-amber: #f59e0b;  --pain-red: #ef4444;
+```
+
+**Viewport-lock**: Slides with `height: 100vh; overflow: hidden` get `.harness-slide--viewport-lock` CSS class. Auto-detected via heuristic (scroll-snap-type, overflow:hidden, height 100/95vh). `height: 100%` (no vh unit) is NOT auto-detected — requires `viewport-lock: true` in manifest.
 
 ---
 
 ## Learnings
 
-_(Updated by coordinator as waves complete. Inherited from flideck-cleanup-2026.)_
+_(Accumulated across flideck-cleanup-2026 and flideck-harness-migration)_
 
-**From flideck-cleanup-2026 (inherited):**
-- iframe isolation was intentional architecture — the harness migration is a deliberate replacement, not a workaround
-- tsc is now clean (0 errors) in both client and server — maintain this
-- 0 known security vulnerabilities — maintain this
-- Config watcher callback bug was subtle — watcher restart must pass all callbacks
-- postMessage origin validation: srcdoc iframes have `origin === 'null'` in some browsers
-
-**From corpus analysis (2026-03-06):**
-- 91% of slides are Type A — the mechanical toolchain handles the vast majority
-- bmad-poem (64% of corpus) is 95% pure HTML/CSS — high-volume but low-complexity
-- The 4-family font stack is stable across 17 of 19 presentations
-- Deviant palettes correlate with different agent generation sessions — not intentional brand decisions
-- Two problem folders (deck-systems, dent-kpi-system) have 0 discoverable HTML — fixed in Phase 0
-- JSON files are already excluded from asset discovery by the HTML-only allowlist at PresentationService.ts:301 — Blocker 8 was a false alarm
-
-**From harness shell build (2026-03-06):**
-- Harness files live at `client/src/harness/`: harness.css, harness-utils.ts, HarnessViewer.tsx, stripSlideWrapper.ts, useKeyboardBridge.ts
-- CSS scoping: `.harness-slide` + `isolation: isolate` (selector prefixing deferred to toolchain)
-- Script injection: DOM mutation (`container.innerHTML = body`), NOT `dangerouslySetInnerHTML` — required for post-injection script re-execution via `HTMLScriptElement` nodes
+### Architecture
+- Harness migration is complete — `HarnessViewer` is the only rendering path. `AssetViewer.tsx` was deleted.
+- iframe isolation was intentional architecture; the harness is a deliberate replacement, not a workaround
+- FliDeck keyboard shortcuts require Cmd/Ctrl modifier — no conflict with slide keyboard handlers using plain arrow keys. `useKeyboardBridge` is a capture-phase safety net only.
+- Script injection uses DOM mutation (`container.innerHTML = body`), NOT `dangerouslySetInnerHTML` — required for post-injection script re-execution
 - Base URL: `<base>` tag inserted into `document.head` on each content change; cleaned up on unmount
-- Font loading: `@import` in harness.css, loaded once at app startup via index.css
-- Viewport-lock detection heuristic: scroll-snap-type, overflow:hidden, height 100/95vh — BUT `height: 100%` (no vh unit) is NOT detected. claudemas-12-days arcade slides need explicit `viewport-lock: true` in manifest.
-- FliDeck keyboard shortcuts already require Cmd/Ctrl modifier — no conflict with slide keyboard handlers using plain arrow keys. Keyboard bridge is a capture-phase safety net only.
-- `useKeyboardBridge` is called inside HarnessViewer — active only when harness rendering path is mounted
+- Font loading: `@import` in harness.css, loaded once at app startup via index.css (causes known @import-order CSS warning in build — not a blocker)
 
-**From Playwright pipeline debugging (2026-03-08):**
-- **Critical**: Many original slides use CSS tokens (`--pain-red`, `--doc-blue`, etc.) that are NOT defined in their own `:root`. They relied on being rendered in a context where these tokens exist. The standalone pages silently render with transparent/missing colors. The harness provides the tokens, making v2 look different from the original standalone page.
-- **Fix**: Pipeline injects harness tokens into original screenshots via `page.addStyleTag(HARNESS_TOKEN_CSS)` before diffing (see `screenshotWithTokens()` in `playwright/pipeline.js`). Both sides get identical token context.
-- **CORS blocker**: harness-shell.html cannot fetch from `localhost:5201` (different port = different origin). Cross-origin fetch fails in Playwright browser context. Don't route original files through harness-shell.
-- **Residual diffs (1-2%)**: Long text-heavy slides with many colored elements show ~1.87% diff after token fix. Caused by font anti-aliasing differences (original loads fonts via `<link>`, harness loads via `@import`). Not a migration issue — classify as "review" quality and manually approve.
-- **Slides that passed perfectly (0.00-0.53%)**: Confirmed that 6/8 claude-plugin-marketplace slides are pixel-perfect after token fix.
-- **Pipeline command**: `node pipeline.js --compare [presentation-name]` compares `[name]` vs `[name]-v2`
-- **Asset copy required**: Toolchain (both migrate-type-a.js and migrate-type-b.js) now copies non-HTML assets (PNG, JPG, SVG, fonts etc.) from source to v2 folder. Without this, presentations with `<img src="...">` references fail at 80-87% diff because the images don't exist in the v2 folder. Run migration again on any previously migrated presentations that have image assets.
-- **Viewport-lock pixel diffs (5-11%) are expected**: Slides with `body { height: 100vh; overflow: hidden }` or `html, body { height: 100% }` (arcade, fullscreen) show 5-11% diffs in the pipeline. Root cause: `height: 100%` on `#slide-container` gets `auto` because harness-shell body has `min-height: 800px` not explicit `height: 800px`. Content is visually correct — just slightly different centering/sizing. Accept as manual-review for viewport-lock slides; they need `viewport-lock: true` manifest flag for production.
+### Config & Watcher
+- Config watcher callback bug (fixed): watcher restart must pass `onPresentationChange` callback — omitting it silently breaks live reload after any API config change
+- `config.ts` exports: `loadConfig()`, `addToHistory()`, `getConfigPath()` — config hot-reload is built in
+- `server/src/config/` directory no longer exists (env.ts, logger.ts were dead code, deleted)
+
+### Security
+- Path traversal guard active at 26 call sites in PresentationService.ts via `assertSafeId()`
+- AJV validation active in `tryReadManifestFile` — invalid disk manifests log warning and degrade gracefully
+- postMessage origin validation: srcdoc iframes have `origin === 'null'` in some browsers; accept both `window.location.origin` and `'null'`
+- 0 npm vulnerabilities (was 4: 2 HIGH rollup/minimatch, 1 moderate, 1 low — all cleared)
+
+### Type System
+- `displayMode: 'tabbed'` was fully removed — type union, 4 dead exports, `useActiveTab` hook, template emission all deleted
+- `@flideck/shared` path alias requires `paths` mapping in both client and server tsconfigs — without it, `tsc --noEmit` fails in workspace context despite runtime resolution working
+- Triple cast (`as any as T`) was replaced with `typedDeepMerge()` private method
+
+### Tests & Quality
+- 43 total tests: 17 client (App.test.tsx: 1, displayMode.test.ts: 16), 26 server (sample ×2, manifest.test.ts: 24)
+- Server tests (manifest.test.ts) cover: manifestTemplates, queryString, manifestValidator — all pure functions, no mocking needed
+- `server/src/index.ts` does NOT export `createApp` or any testable function — route tests must import service/util modules directly
+
+### Migration Toolchain (for B024 / future Type C work)
+- 91% of slides were Type A — mechanical toolchain handles the vast majority
+- Asset copy is required in both migrate-type-a.js and migrate-type-b.js — without copying PNGs/SVGs, image-heavy slides fail at 80-87% pixel diff
+- **Pipeline false positives**: Many slides use CSS tokens (--pain-red, --doc-blue etc.) not defined in their own :root — they relied on rendering context. `screenshotWithTokens()` in pipeline.js injects harness tokens into original screenshots before diffing; without this, 16-25% false-positive diffs appear
+- Residual diffs (1-2%): long text-heavy slides show ~1.87% after token fix — font anti-aliasing from @import vs `<link>` difference. Not a migration issue — classify as "review" quality.
+- Viewport-lock pixel diffs (5-11%) are expected for arcade/fullscreen slides with fixed dimensions — content is correct; accept as manual-review; they need `viewport-lock: true` manifest flag
+- Deviant palettes (consultants-plugin: --brand-brown/#3E2723, --brand-gold/#B8860B; n8n-story-gen) are intentional — do NOT normalise them
+- `height: 100%` (no vh unit) is NOT auto-detected by viewport-lock heuristic — claudemas-12-days and deck-systems-arcade slides needed explicit manifest flag
+- bmad-poem (64% of corpus) is 95% pure HTML/CSS — high volume, low complexity
+- Playwright pipeline: `node pipeline.js --compare [name]` compares `[name]` vs `[name]-v2`; `--compare-all` runs all 540 slides
+
+### Known Vite Warning (not a blocker)
+- Build emits: `@import rules must precede all rules aside from @charset and @layer` in harness.css — caused by Google Fonts @import position relative to :root CSS vars. Build succeeds; fonts load correctly. Fix is B013 (Vite 7 upgrade) or a future harness.css restructure.
