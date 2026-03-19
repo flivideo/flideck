@@ -1,54 +1,57 @@
-# Next Round Brief — FliDeck Docs Cleanup
+# Next Round Brief — B047: PresentationService Write Locks
 
-**Goal**: Three small documentation cleanup items surfaced by the B015 AC sign-off campaign.
+**Goal**: Serialise all 16 unguarded `fs.writeJson` calls in `PresentationService.ts` so concurrent API requests can't silently corrupt a manifest.
 
-**Background**: B015 audit found stale ACs (FR-28), missing changelog entries (B016), and a known-broken test (B040). All three are low-risk, docs-or-test only — no feature work.
+**Background**: `ManifestService.patchManifest` already has a correct per-presentation write lock (`withWriteLock`, `_locks: Map<string, Promise<void>>`). `PresentationService` has 16 raw `fs.writeJson` calls with no locking. Any two concurrent requests (e.g. an agent calling `POST /slides/bulk` while the UI drags to reorder) will race: read-old → modify → write-old, silently discarding the other write.
 
----
+## The 16 unguarded write sites (all in PresentationService.ts)
 
-## Item 1 — B016: Missing Changelog Entries
+Lines: 488, 539, 630, 705, 776, 826, 877, 929, 972, 1031, 1083, 1193, 1235, 1297, 1348, 1386
 
-Write 13 missing changelog entries for FR-16 through FR-28 (late-Dec build burst that never got documented).
+Each corresponds to a mutation method:
+`saveAssetOrder`, `saveAssetOrderWithGroups`, `addSlide`, `updateSlide`, `removeSlide`,
+`createGroup`, `updateGroup`, `deleteGroup`, `createTab`, `updateTab`, `deleteTab`,
+`reorderTabs`, `setGroupParent`, `removeGroupParent`, `reorderGroups`, `createPresentation`
 
-**Source**: git log + PRD files in `docs/prd/`. Each FR/BUG PRD has a Summary and completion notes — changelog entries derive from those.
+## Suggested approach
 
-**Format**: Check existing `CHANGELOG.md` at repo root for the entry format in use.
+The lock pattern already exists in `ManifestService` — copy it into `PresentationService`:
 
-**Suggested wave structure**: 2–3 agents, each covering 4–5 FRs:
-- Agent 1: FR-16, FR-17, FR-18 (archived), FR-19, FR-20
-- Agent 2: FR-21, FR-22, FR-23 (deferred), FR-24, FR-25
-- Agent 3: FR-26, FR-27, FR-28, BUG fixes from the same period
+```typescript
+private writeLocks = new Map<string, Promise<void>>();
 
----
+private async withWriteLock<T>(id: string, fn: () => Promise<T>): Promise<T> {
+  const prev = this.writeLocks.get(id) ?? Promise.resolve();
+  let resolve!: () => void;
+  const next = new Promise<void>((r) => { resolve = r; });
+  this.writeLocks.set(id, next);
+  try {
+    await prev;
+    return await fn();
+  } finally {
+    resolve();
+    if (this.writeLocks.get(id) === next) this.writeLocks.delete(id);
+  }
+}
+```
 
-## Item 2 — FR-28 AC Rewrite
+Then wrap each method's read-modify-write block in `withWriteLock(id, async () => { ... })`.
 
-Replace 8 stale drag-to-resize ACs in `docs/prd/fr-28-resizable-sidebar.md` with ACs that describe the actual S/M/L preset button implementation.
+## What NOT to do
 
-**Context**: FR-28 was originally designed as drag-to-resize. A 2026-01-07 redesign replaced it with S/M/L preset buttons (280/380/480px). The old drag ACs are permanently open because the feature doesn't exist. The new implementation is in `client/src/hooks/useResizableSidebar.ts` and `client/src/components/layout/Sidebar.tsx` (lines 746-798).
+- Do NOT merge the two lock maps (ManifestService and PresentationService each manage their own writes)
+- Do NOT lock at a higher level (e.g. locking the whole service) — per-presentation locks are the right granularity
+- Do NOT change the public method signatures
 
-**What to do**: One agent reads the current implementation, then rewrites the 8 open drag ACs to describe what's actually built (S button = 280px, M = 380px, L = 480px, active state highlighted, localStorage persistence, etc.).
+## Success criteria
 
-**Verified ACs to keep**: 4 ACs are already correctly ticked — localStorage, restore on load, all display modes, flex-1. Don't touch those.
+- All 16 `fs.writeJson` calls are inside a `withWriteLock` block
+- Existing concurrent write-lock test in ManifestService still passes
+- Add at least 1 new concurrent write test in PresentationService (e.g. two simultaneous `addSlide` calls — both slides must survive)
+- `npm test` passes: 103 server tests + any new ones
 
----
+## Session state (as of 2026-03-19)
 
-## Item 3 — B040: Proto-Pollution Guard Test (Third Attempt)
-
-Fix the broken proto-pollution guard test in `server/src/services/__tests__/ManifestService.test.ts`.
-
-**Context**: Two prior attempts failed:
-1. `Object.prototype` assertion — V8 intercepts `obj['__proto__'] = value` as prototype assignment silently
-2. Written-output inspection via `JSON.parse` — JSON.stringify never serializes `__proto__` regardless of guard
-
-**Suggested fix** (from BACKLOG.md): Change `deepMerge` to use a null-prototype base object (`Object.create(null)`) so `__proto__` key assignment has nowhere to attach. OR document the behaviour as untestable via normal Node.js means and skip/comment the test with an explanation.
-
-**Decision needed**: Implement the null-prototype fix (changes `deepMerge` in `ManifestService.ts`) OR accept untestable and document it. The null-prototype approach is safe but changes production code behaviour slightly (merged objects won't inherit from Object.prototype — check if any callers rely on `.hasOwnProperty()` etc.).
-
----
-
-## Session State (as of 2026-03-19)
-
-- 139 tests passing (35 client + 104 server)
-- Main branch clean, no open worktrees
-- B015 complete — all 34 PRD files reviewed
+- 103 server tests passing, 35 client tests — total 138
+- Main branch clean, pushed
+- `ManifestService.ts` is the reference implementation for the lock pattern
