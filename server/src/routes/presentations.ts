@@ -25,6 +25,7 @@ import { loadConfig, collapsePath } from '../config.js';
 import { validate } from '../utils/manifestValidator.js';
 import { getTemplateById } from '../utils/manifestTemplates.js';
 import { queryString } from '../utils/queryString.js';
+import { createApiResponse, createErrorResponse } from '../utils/responseHelper.js';
 
 interface RouteConfig {
   io: Server;
@@ -46,13 +47,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
     asyncHandler(async (_req, res) => {
       const config = await loadConfig();
       const presentations = await presentationService.discoverAll();
-      res.json({
-        _context: {
-          presentationsRoot: collapsePath(config.presentationsRoot),
-        },
-        success: true,
-        data: presentations,
-      });
+      res.json(createApiResponse(presentations, { presentationsRoot: collapsePath(config.presentationsRoot) }));
     })
   );
 
@@ -71,13 +66,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         throw new AppError('Presentation not found', 404);
       }
 
-      res.json({
-        _context: {
-          presentationsRoot: collapsePath(config.presentationsRoot),
-        },
-        success: true,
-        data: presentation,
-      });
+      res.json(createApiResponse(presentation, { presentationsRoot: collapsePath(config.presentationsRoot) }));
     })
   );
 
@@ -94,7 +83,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
       // Notify all clients
       io.emit('presentations:updated', { reason: 'manual-refresh' });
 
-      res.json({ success: true, data: presentations });
+      res.json(createApiResponse(presentations));
     })
   );
 
@@ -125,7 +114,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
       // Notify clients about the change
       io.emit('presentations:updated', { reason: 'order-changed', presentationId: id });
 
-      res.json({ success: true });
+      res.json(createApiResponse(null));
     })
   );
 
@@ -168,7 +157,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
           presentationId: body.id,
         });
 
-        res.status(201).json({ success: true, path: folderPath });
+        res.status(201).json(createApiResponse({ path: folderPath }));
       } catch (error) {
         if (error instanceof Error && error.message.includes('already exists')) {
           throw new AppError(error.message, 409);
@@ -210,7 +199,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'slide-added', presentationId: id });
 
-        res.status(201).json({ success: true });
+        res.status(201).json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
@@ -247,7 +236,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'slide-updated', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -273,7 +262,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'slide-removed', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -308,7 +297,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'groups-reordered', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -347,7 +336,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'group-created', presentationId: id });
 
-        res.status(201).json({ success: true });
+        res.status(201).json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
@@ -384,7 +373,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'group-updated', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -410,7 +399,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'group-deleted', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -453,7 +442,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'tab-created', presentationId: id });
 
-        res.status(201).json({ success: true });
+        res.status(201).json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
@@ -490,7 +479,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'tab-updated', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
@@ -526,7 +515,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'tab-deleted', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
@@ -562,7 +551,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'tabs-reordered', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
@@ -599,7 +588,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'group-parent-set', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
@@ -630,7 +619,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'group-parent-removed', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -657,20 +646,11 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
 
       if (!manifest) {
         // Presentation exists but has no manifest - return empty object with context
-        res.json({
-          _context: {
-            presentationsRoot: collapsePath(config.presentationsRoot),
-          },
-        });
+        res.json(createApiResponse(null, { presentationsRoot: collapsePath(config.presentationsRoot) }));
         return;
       }
 
-      res.json({
-        _context: {
-          presentationsRoot: collapsePath(config.presentationsRoot),
-        },
-        ...manifest,
-      });
+      res.json(createApiResponse(manifest, { presentationsRoot: collapsePath(config.presentationsRoot) }));
     })
   );
 
@@ -702,7 +682,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
       // Notify clients
       io.emit('presentations:updated', { reason: 'manifest-replaced', presentationId: id });
 
-      res.json({ success: true });
+      res.json(createApiResponse(null));
     })
   );
 
@@ -722,7 +702,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
       // Notify clients
       io.emit('presentations:updated', { reason: 'manifest-patched', presentationId: id });
 
-      res.json({ success: true });
+      res.json(createApiResponse(null));
     })
   );
 
@@ -760,12 +740,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
       if (dryRun) {
         // Dry run - return what would happen without persisting
         // For simplicity, we'll just validate and return success
-        res.json({
-          success: true,
-          dryRun: true,
-          message: 'Dry run successful - no changes made',
-          slides: body.slides.length,
-        });
+        res.json(createApiResponse({ dryRun: true, message: 'Dry run successful - no changes made', slides: body.slides.length }));
         return;
       }
 
@@ -779,13 +754,12 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'slides-bulk-added', presentationId: id });
 
-        res.status(201).json({
-          success: true,
+        res.status(201).json(createApiResponse({
           added: result.added,
           skipped: result.skipped,
           updated: result.updated,
           skippedItems: result.skippedItems,
-        });
+        }));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -831,12 +805,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
 
       if (dryRun) {
         // Dry run - return what would happen without persisting
-        res.json({
-          success: true,
-          dryRun: true,
-          message: 'Dry run successful - no changes made',
-          groups: body.groups.length,
-        });
+        res.json(createApiResponse({ dryRun: true, message: 'Dry run successful - no changes made', groups: body.groups.length }));
         return;
       }
 
@@ -846,12 +815,11 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'groups-bulk-added', presentationId: id });
 
-        res.status(201).json({
-          success: true,
+        res.status(201).json(createApiResponse({
           added: result.added,
           skipped: result.skipped,
           skippedItems: result.skippedItems,
-        });
+        }));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -881,7 +849,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
         // Notify clients
         io.emit('presentations:updated', { reason: 'manifest-synced', presentationId: id });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -916,11 +884,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
             message: e.message,
           })) || [];
 
-        res.json({
-          valid: false,
-          errors,
-          warnings: [],
-        });
+        res.json(createApiResponse({ valid: false, errors, warnings: [] }));
         return;
       }
 
@@ -932,7 +896,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
           body.checkFiles
         );
 
-        res.json(result);
+        res.json(createApiResponse(result));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -976,7 +940,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
           presentationId: id,
         });
 
-        res.json({ success: true });
+        res.json(createApiResponse(null));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -1014,7 +978,7 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
           presentationId: id,
         });
 
-        res.json(result);
+        res.json(createApiResponse(result));
       } catch (error) {
         if (error instanceof Error && error.message.includes('not found')) {
           throw new AppError(error.message, 404);
@@ -1034,9 +998,9 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
 
       execFile('open', [presentation.path], (error) => {
         if (error) {
-          res.status(500).json({ success: false, error: 'Failed to open folder in Finder' });
+          res.status(500).json(createErrorResponse('Failed to open folder in Finder'));
         } else {
-          res.json({ success: true });
+          res.json(createApiResponse(null));
         }
       });
     })
@@ -1044,4 +1008,3 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
 
   return router;
 }
-
