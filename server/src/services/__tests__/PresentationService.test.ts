@@ -247,4 +247,251 @@ describe('PresentationService', () => {
       );
     });
   });
+
+  // ============================================================
+  // assertSafeId — cache-warm traversal prevention
+  // ============================================================
+
+  describe('assertSafeId — cache-warm traversal prevention', () => {
+    it('getById blocks traversal even when cache is warm', async () => {
+      // Warm the cache with a valid presentation
+      const folderPath = join(tempDir, 'valid-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>test</h1>');
+      await service.getById('valid-deck'); // populates cache
+
+      // Path traversal attempt must still throw AppError 400 even with a warm cache
+      await expect(service.getById('../etc/passwd')).rejects.toMatchObject({ statusCode: 400 });
+    });
+  });
+
+  // ============================================================
+  // addSlide() — Group 1: append, dedup, legacy migration
+  // ============================================================
+
+  describe('addSlide()', () => {
+    it('appends a new slide to an empty manifest (creates slides array)', async () => {
+      const folderPath = join(tempDir, 'new-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>main</h1>');
+
+      await service.addSlide('new-deck', { file: 'slide-a.html', title: 'Slide A' });
+
+      const manifestContent = await readFile(join(folderPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(manifestContent) as { slides: Array<{ file: string; title?: string }> };
+
+      expect(Array.isArray(manifest.slides)).toBe(true);
+      expect(manifest.slides).toHaveLength(1);
+      expect(manifest.slides[0].file).toBe('slide-a.html');
+      expect(manifest.slides[0].title).toBe('Slide A');
+    });
+
+    it('throws when slide with same file already exists in manifest (deduplication)', async () => {
+      const folderPath = join(tempDir, 'dedup-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>main</h1>');
+
+      // Add the slide once
+      await service.addSlide('dedup-deck', { file: 'slide-a.html' });
+
+      // Attempt to add the same file again — must throw
+      await expect(
+        service.addSlide('dedup-deck', { file: 'slide-a.html' })
+      ).rejects.toThrow(/already exists/i);
+    });
+
+    it('migrates legacy assets.order manifest to slides array format when adding a slide', async () => {
+      const folderPath = join(tempDir, 'legacy-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>main</h1>');
+      await writeFile(join(folderPath, 'slide-a.html'), '<h1>a</h1>');
+      // Write a legacy manifest (assets.order format)
+      await writeFile(
+        join(folderPath, 'index.json'),
+        JSON.stringify({ assets: { order: ['presentation.html', 'slide-a.html'] } })
+      );
+
+      await service.addSlide('legacy-deck', { file: 'slide-b.html', title: 'B' });
+
+      const manifestContent = await readFile(join(folderPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(manifestContent) as {
+        slides: Array<{ file: string }>;
+        assets?: unknown;
+      };
+
+      // After addSlide, should use slides array format
+      expect(Array.isArray(manifest.slides)).toBe(true);
+      // Legacy entries should be migrated
+      expect(manifest.slides.some((s) => s.file === 'presentation.html')).toBe(true);
+      expect(manifest.slides.some((s) => s.file === 'slide-a.html')).toBe(true);
+      // New slide should be appended
+      expect(manifest.slides.some((s) => s.file === 'slide-b.html')).toBe(true);
+      // Legacy assets key should be gone
+      expect(manifest.assets).toBeUndefined();
+    });
+
+    it('adds slide with correct group field when group name is specified', async () => {
+      const folderPath = join(tempDir, 'grouped-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>main</h1>');
+
+      await service.addSlide('grouped-deck', { file: 'intro.html', title: 'Intro', group: 'chapter-1' });
+
+      const manifestContent = await readFile(join(folderPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(manifestContent) as {
+        slides: Array<{ file: string; group?: string }>;
+      };
+
+      expect(manifest.slides[0].group).toBe('chapter-1');
+    });
+  });
+
+  // ============================================================
+  // saveAssetOrder() slides-format branch — Group 2
+  // ============================================================
+
+  describe('saveAssetOrder() — slides-format branch', () => {
+    it('reorders slides by given array when manifest already has slides array', async () => {
+      const folderPath = join(tempDir, 'slides-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>main</h1>');
+      await writeFile(join(folderPath, 'a.html'), '<h1>a</h1>');
+      await writeFile(join(folderPath, 'b.html'), '<h1>b</h1>');
+      // Pre-populate a slides-format manifest
+      await writeFile(
+        join(folderPath, 'index.json'),
+        JSON.stringify({
+          slides: [
+            { file: 'a.html', title: 'A' },
+            { file: 'b.html', title: 'B' },
+            { file: 'presentation.html', title: 'Main' },
+          ],
+        })
+      );
+
+      // Reorder: b first, then a, then presentation.html
+      await service.saveAssetOrder('slides-deck', ['b.html', 'a.html', 'presentation.html']);
+
+      const manifestContent = await readFile(join(folderPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(manifestContent) as { slides: Array<{ file: string }> };
+
+      expect(Array.isArray(manifest.slides)).toBe(true);
+      expect(manifest.slides.map((s) => s.file)).toEqual(['b.html', 'a.html', 'presentation.html']);
+    });
+
+    it('preserves slide metadata (title, group) after slides-format reorder', async () => {
+      const folderPath = join(tempDir, 'metadata-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>main</h1>');
+      await writeFile(join(folderPath, 'a.html'), '<h1>a</h1>');
+      await writeFile(join(folderPath, 'b.html'), '<h1>b</h1>');
+      await writeFile(
+        join(folderPath, 'index.json'),
+        JSON.stringify({
+          slides: [
+            { file: 'a.html', title: 'Alpha', group: 'intro' },
+            { file: 'b.html', title: 'Beta', group: 'main' },
+          ],
+        })
+      );
+
+      // Flip the order
+      await service.saveAssetOrder('metadata-deck', ['b.html', 'a.html']);
+
+      const manifestContent = await readFile(join(folderPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(manifestContent) as {
+        slides: Array<{ file: string; title?: string; group?: string }>;
+      };
+
+      const aSlide = manifest.slides.find((s) => s.file === 'a.html');
+      const bSlide = manifest.slides.find((s) => s.file === 'b.html');
+
+      // Metadata must survive the reorder
+      expect(aSlide?.title).toBe('Alpha');
+      expect(aSlide?.group).toBe('intro');
+      expect(bSlide?.title).toBe('Beta');
+      expect(bSlide?.group).toBe('main');
+      // Order must be reversed
+      expect(manifest.slides[0].file).toBe('b.html');
+      expect(manifest.slides[1].file).toBe('a.html');
+    });
+  });
+
+  // ============================================================
+  // deleteTab() cascade strategy — Group 3
+  // ============================================================
+
+  describe('deleteTab()', () => {
+    /** Helper: write a manifest with a tab, a child group, and slides assigned to that group. */
+    async function writeTabManifest(folderPath: string): Promise<void> {
+      await writeFile(
+        join(folderPath, 'index.json'),
+        JSON.stringify({
+          slides: [
+            { file: 'slide-1.html', group: 'section-a' },
+            { file: 'slide-2.html', group: 'section-a' },
+            { file: 'slide-3.html' },
+          ],
+          groups: {
+            'tab-main': { label: 'Main Tab', tab: true, order: 1 },
+            'section-a': { label: 'Section A', order: 2, parent: 'tab-main' },
+          },
+        })
+      );
+    }
+
+    it('cascade strategy deletes tab, child groups, and clears group field from affected slides', async () => {
+      const folderPath = join(tempDir, 'cascade-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>main</h1>');
+      await writeTabManifest(folderPath);
+
+      await service.deleteTab('cascade-deck', 'tab-main', 'cascade');
+
+      const manifestContent = await readFile(join(folderPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(manifestContent) as {
+        groups?: Record<string, unknown>;
+        slides: Array<{ file: string; group?: string }>;
+      };
+
+      // Tab must be removed
+      expect(manifest.groups?.['tab-main']).toBeUndefined();
+      // Child group must be removed
+      expect(manifest.groups?.['section-a']).toBeUndefined();
+      // Slides that belonged to the deleted group must have group field cleared
+      const slide1 = manifest.slides.find((s) => s.file === 'slide-1.html');
+      const slide2 = manifest.slides.find((s) => s.file === 'slide-2.html');
+      expect(slide1?.group).toBeUndefined();
+      expect(slide2?.group).toBeUndefined();
+      // Unrelated slide must be unaffected
+      const slide3 = manifest.slides.find((s) => s.file === 'slide-3.html');
+      expect(slide3?.group).toBeUndefined(); // was already unset — just confirm no corruption
+    });
+
+    it('orphan strategy removes tab but leaves child groups parentless (not deleted)', async () => {
+      const folderPath = join(tempDir, 'orphan-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>main</h1>');
+      await writeTabManifest(folderPath);
+
+      // 'orphan' is the default strategy
+      await service.deleteTab('orphan-deck', 'tab-main', 'orphan');
+
+      const manifestContent = await readFile(join(folderPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(manifestContent) as {
+        groups?: Record<string, { label: string; parent?: string }>;
+        slides: Array<{ file: string; group?: string }>;
+      };
+
+      // Tab must be removed
+      expect(manifest.groups?.['tab-main']).toBeUndefined();
+      // Child group must STILL EXIST (orphaned, not deleted)
+      expect(manifest.groups?.['section-a']).toBeDefined();
+      // Child group must have no parent
+      expect(manifest.groups?.['section-a']?.parent).toBeUndefined();
+      // Slides keep their group assignment (group itself still exists)
+      const slide1 = manifest.slides.find((s) => s.file === 'slide-1.html');
+      expect(slide1?.group).toBe('section-a');
+    });
+  });
 });
