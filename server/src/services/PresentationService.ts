@@ -208,6 +208,9 @@ export class PresentationService extends EventEmitter {
    * Get a single presentation by ID (folder name).
    */
   async getById(id: string): Promise<Presentation | null> {
+    if (!this.presentationsRoot) {
+      throw new AppError('Root not configured', 400);
+    }
     const folderPath = path.join(this.presentationsRoot, id);
     this.assertSafeId(folderPath);
 

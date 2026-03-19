@@ -217,6 +217,16 @@ describe('PresentationService', () => {
       const result = await service.getById('empty-folder');
       expect(result).toBeNull();
     });
+
+    it('getById throws AppError(400) when presentationsRoot is not set', async () => {
+      // Temporarily clear the root — empty string = unset
+      service.setRoot('');
+
+      await expect(service.getById('any-deck')).rejects.toMatchObject({ statusCode: 400 });
+
+      // Restore root for subsequent tests
+      service.setRoot(tempDir);
+    });
   });
 
   // ============================================================
