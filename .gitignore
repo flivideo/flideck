@@ -47,3 +47,6 @@ coverage/
 # Sample presentations (for development only)
 presentations/
 .worktrees/
+
+# Screenshots (root-level PNGs are dev/preview captures, not source)
+/*.png
