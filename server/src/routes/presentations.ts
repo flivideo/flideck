@@ -458,6 +458,44 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
   );
 
   /**
+   * PUT /api/presentations/:id/tabs/order
+   * Reorder tabs only (groups where tab: true).
+   * NOTE: must be registered before PUT /:id/tabs/:tabId to prevent Express
+   * matching "order" as a :tabId parameter value.
+   */
+  router.put(
+    '/:id/tabs/order',
+    asyncHandler(async (req, res) => {
+      const id = queryString(req.params.id);
+      const body = req.body as ReorderTabsRequest;
+
+      // Validate request body
+      if (!body.order || !Array.isArray(body.order)) {
+        throw new AppError('Invalid request: order must be an array of tab IDs', 400);
+      }
+
+      try {
+        await presentationService.reorderTabs(id, body.order);
+
+        // Notify clients
+        io.emit('presentations:updated', { reason: 'tabs-reordered', presentationId: id });
+
+        res.json(createApiResponse(null));
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('not found')) {
+            throw new AppError(error.message, 404);
+          }
+          if (error.message.includes('not a tab')) {
+            throw new AppError(error.message, 400);
+          }
+        }
+        throw error;
+      }
+    })
+  );
+
+  /**
    * PUT /api/presentations/:id/tabs/:tabId
    * Update a tab's label.
    */
@@ -514,42 +552,6 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
 
         // Notify clients
         io.emit('presentations:updated', { reason: 'tab-deleted', presentationId: id });
-
-        res.json(createApiResponse(null));
-      } catch (error) {
-        if (error instanceof Error) {
-          if (error.message.includes('not found')) {
-            throw new AppError(error.message, 404);
-          }
-          if (error.message.includes('not a tab')) {
-            throw new AppError(error.message, 400);
-          }
-        }
-        throw error;
-      }
-    })
-  );
-
-  /**
-   * PUT /api/presentations/:id/tabs/order
-   * Reorder tabs only (groups where tab: true).
-   */
-  router.put(
-    '/:id/tabs/order',
-    asyncHandler(async (req, res) => {
-      const id = queryString(req.params.id);
-      const body = req.body as ReorderTabsRequest;
-
-      // Validate request body
-      if (!body.order || !Array.isArray(body.order)) {
-        throw new AppError('Invalid request: order must be an array of tab IDs', 400);
-      }
-
-      try {
-        await presentationService.reorderTabs(id, body.order);
-
-        // Notify clients
-        io.emit('presentations:updated', { reason: 'tabs-reordered', presentationId: id });
 
         res.json(createApiResponse(null));
       } catch (error) {

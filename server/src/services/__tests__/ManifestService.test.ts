@@ -152,13 +152,15 @@ describe('ManifestService', () => {
 
       await service.patchManifest('proto-guard-deck', maliciousPayload);
 
-      // The real test: if the guard didn't exist, deepMerge would execute
-      // `result['__proto__'] = {polluted: true}`, which JavaScript interprets as
-      // `Object.prototype.polluted = true`, polluting ALL objects in the process.
-      // Checking the written JSON for a '__proto__' key is vacuous — JSON.parse in V8
-      // never produces __proto__ as an own key regardless of the guard.
-      // The correct assertion is that Object.prototype was NOT mutated.
-      expect((Object.prototype as Record<string, unknown>)['polluted']).toBeUndefined();
+      // Without the guard, deepMerge executes `result['__proto__'] = {polluted: true}`,
+      // which V8 interprets as setting result's prototype — this propagates 'polluted'
+      // onto Object.prototype, so every subsequent `{}` object inherits it.
+      // Checking Object.prototype directly is vacuous because V8's assignment semantics
+      // mean deepMerge sets the *result object's* prototype, not Object.prototype itself.
+      // The correct proof: a newly created plain object inherits from whatever
+      // Object.prototype now looks like — if polluted, `{}.polluted` would be truthy.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(({} as any).polluted).toBeUndefined();
     });
 
     it('concurrent calls serialize (write lock): both additive meta patches land without data loss', async () => {
