@@ -14,6 +14,7 @@ describe('PresentationService', () => {
     tempDir = await mkdtemp(join(tmpdir(), 'flideck-test-'));
     service = PresentationService.getInstance();
     service.setRoot(tempDir);
+    service._resetWriteLocks();
   });
 
   afterEach(async () => {
@@ -529,6 +530,97 @@ describe('PresentationService', () => {
       const files = manifest.slides.map((s: { file: string }) => s.file);
       expect(files).toContain('slide-a.html');
       expect(files).toContain('slide-b.html');
+    });
+  });
+
+  // ============================================================
+  // write lock — concurrent additional method calls
+  // ============================================================
+
+  describe('concurrent write lock — additional methods', () => {
+    it('both groups survive when two createGroup calls race', async () => {
+      const deckPath = join(tempDir, 'concurrent-group-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>test</h1>');
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
+
+      await Promise.all([
+        service.createGroup('concurrent-group-deck', 'group-a', 'Group A'),
+        service.createGroup('concurrent-group-deck', 'group-b', 'Group B'),
+      ]);
+
+      const manifest = JSON.parse(
+        await readFile(join(deckPath, 'index.json'), 'utf-8')
+      );
+      expect(manifest.groups).toHaveProperty('group-a');
+      expect(manifest.groups).toHaveProperty('group-b');
+    });
+
+    it('both field updates survive when two updateSlide calls race on the same slide', async () => {
+      const deckPath = join(tempDir, 'concurrent-update-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>test</h1>');
+      // Manifest with one existing slide
+      await writeFile(
+        join(deckPath, 'index.json'),
+        JSON.stringify({ slides: [{ file: 'slide-a.html' }] }, null, 2)
+      );
+
+      // Two concurrent updates to DIFFERENT fields on the same slide
+      await Promise.all([
+        service.updateSlide('concurrent-update-deck', 'slide-a.html', { title: 'My Title' }),
+        service.updateSlide('concurrent-update-deck', 'slide-a.html', { description: 'My Description' }),
+      ]);
+
+      const manifest = JSON.parse(
+        await readFile(join(deckPath, 'index.json'), 'utf-8')
+      );
+      const slide = manifest.slides[0];
+      expect(slide.title).toBe('My Title');
+      expect(slide.description).toBe('My Description');
+    });
+
+    it('deleteTab cascade and addSlide complete without error or corruption', async () => {
+      const deckPath = join(tempDir, 'concurrent-deletetab-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>test</h1>');
+
+      // Set up a manifest with a tab, a group under it, a slide in that group,
+      // and a separate "safe" group not under the tab
+      const initialManifest = {
+        groups: {
+          'tab-a': { label: 'Tab A', order: 1, tab: true },
+          'group-under-tab': { label: 'Under Tab', order: 2, parent: 'tab-a' },
+          'safe-group': { label: 'Safe', order: 3 },
+        },
+        slides: [
+          { file: 'slide-in-group.html', group: 'group-under-tab' },
+        ],
+      };
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify(initialManifest, null, 2));
+
+      // deleteTab (cascade) races with addSlide (adding to safe-group, not the deleted group)
+      await Promise.all([
+        service.deleteTab('concurrent-deletetab-deck', 'tab-a', 'cascade'),
+        service.addSlide('concurrent-deletetab-deck', { file: 'new-slide.html', group: 'safe-group' }),
+      ]);
+
+      const manifest = JSON.parse(
+        await readFile(join(deckPath, 'index.json'), 'utf-8')
+      );
+      // Without the lock: addSlide reads the pre-cascade manifest and writes it back
+      // after deleteTab, restoring tab-a and group-under-tab. These assertions would fail.
+      expect(manifest.groups).not.toHaveProperty('tab-a');
+      expect(manifest.groups).not.toHaveProperty('group-under-tab');
+      // Cascade clears group membership on affected slides (does not delete the slide)
+      const inGroupSlide = manifest.slides.find(
+        (s: { file: string; group?: string }) => s.file === 'slide-in-group.html'
+      );
+      expect(inGroupSlide).toBeDefined();
+      expect(inGroupSlide?.group).toBeUndefined();
+      // The new slide from addSlide must also survive
+      const files = manifest.slides.map((s: { file: string }) => s.file);
+      expect(files).toContain('new-slide.html');
     });
   });
 });

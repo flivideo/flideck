@@ -1555,4 +1555,12 @@ export class PresentationService extends EventEmitter {
   ): Promise<SyncFromIndexResponse> {
     return this.manifestService.syncFromIndex(presentationId, options);
   }
+
+  /**
+   * Clears all pending write locks. For use in tests only.
+   * Prevents stale lock state from leaking between test cases.
+   */
+  _resetWriteLocks(): void {
+    this.writeLocks.clear();
+  }
 }

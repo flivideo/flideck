@@ -18,6 +18,7 @@ describe('ManifestService', () => {
     tempDir = await mkdtemp(join(tmpdir(), 'flideck-manifest-test-'));
     service = PresentationService.getInstance();
     service.setRoot(tempDir);
+    service._resetWriteLocks();
   });
 
   afterEach(async () => {

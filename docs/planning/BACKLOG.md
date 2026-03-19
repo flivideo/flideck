@@ -1,17 +1,16 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 54 | Pending: 10 | In Progress: 0 | Done: 42 | Deferred: 0 | Rejected: 0
+**Total**: 56 | Pending: 9 | In Progress: 0 | Done: 45 | Deferred: 0 | Rejected: 0
 
 ---
 
 ## Pending
 
-### From flideck-write-locks quality audit (2026-03-19)
+### From flideck-manifest-locks quality audit (2026-03-19)
 
-- [ ] B052 — Write locks for ManifestService delegated write methods: setManifest, bulkAddSlides, bulkAddGroups, syncManifest, applyTemplate, syncFromIndex — currently unprotected and in a separate lock namespace from PresentationService | Priority: high
-- [ ] B053 — Concurrent write tests for createGroup (additive race), deleteTab cascade concurrent with addSlide, updateSlide concurrent field updates | Priority: high
-- [ ] B054 — Reset writeLocks Map in beforeEach or expose _resetForTest() — latent timeout risk if a future test leaves a stuck lock | Priority: medium
+- [ ] B055 — bulkAddSlides rename strategy mutates caller input array in place; fix by operating on a copy ({ ...slide }) | Priority: medium
+- [ ] B056 — createGroup order collision: two concurrent calls both compute order:1 from empty groups; low impact in practice | Priority: low
 
 ### From flideck-docs-cleanup quality audit (2026-03-19)
 
@@ -86,6 +85,9 @@
 - [x] B039 — Add empty-root guard to getById: guard added, AppError(400) thrown when root is empty, consistent with discoverAll | Completed: flideck-test-quality-fixes
 - [x] B014 — API response envelope standardisation: createApiResponse adopted across all 7 route files (43 responses); 0 inline envelopes remain; _context preserved on 4 presentation GET endpoints | Completed: flideck-api-envelope
 - [x] B041 — Route integration tests: 40 new supertest HTTP tests across 7 route files + responseHelper unit tests; 139 total tests (was 101) | Completed: flideck-route-integration-tests
+- [x] B052 — Write locks for ManifestService: setManifest, bulkAddSlides, bulkAddGroups, syncManifest, applyTemplate, syncFromIndex wrapped; 8 withWriteLock usages total | Completed: flideck-manifest-locks
+- [x] B053 — Concurrent write tests: createGroup race, updateSlide field race, deleteTab+addSlide cascade; 107 server tests | Completed: flideck-manifest-locks
+- [x] B054 — _resetWriteLocks() added to both services; called in beforeEach of both test files | Completed: flideck-manifest-locks
 - [x] B047 — Write lock for PresentationService: 16 `fs.writeJson` sites wrapped in `withWriteLock`; concurrent addSlide test added; 104 server tests | Completed: flideck-write-locks
 - [x] B045 — Fix route collision: `PUT /:id/tabs/order` moved before `PUT /:id/tabs/:tabId`; NOTE comment added | Completed: fix(B045,B046,B048) 93d6c75
 - [x] B046 — Fix proto-pollution test: `({} as any).polluted` assertion now proves guard correctly | Completed: fix(B045,B046,B048) 93d6c75

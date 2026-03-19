@@ -170,6 +170,18 @@ export class ManifestService {
   }
 
   // ============================================================
+  // Test helpers
+  // ============================================================
+
+  /**
+   * Clears all pending write locks. For use in tests only.
+   * Prevents stale lock state from leaking between test cases.
+   */
+  _resetWriteLocks(): void {
+    this.writeLocks.clear();
+  }
+
+  // ============================================================
   // FR-19: Manifest Schema & Data API Methods
   // ============================================================
 
@@ -216,11 +228,13 @@ export class ManifestService {
     if (!manifest.meta) manifest.meta = {};
     manifest.meta.updated = new Date().toISOString().split('T')[0];
 
-    // Write manifest
-    await this.writeManifest(folderPath, manifest);
+    await this.withWriteLock(presentationId, async () => {
+      // Write manifest
+      await this.writeManifest(folderPath, manifest);
 
-    // Invalidate cache
-    this.invalidateCache(presentationId);
+      // Invalidate cache
+      this.invalidateCache(presentationId);
+    });
   }
 
   /**
@@ -315,122 +329,124 @@ export class ManifestService {
       throw new Error(`Presentation not found: ${presentationId}`);
     }
 
-    // Read existing manifest or create new one
-    let manifest = await this.readManifest(folderPath);
-    if (!manifest) {
-      manifest = { slides: [] };
-    }
+    return await this.withWriteLock(presentationId, async () => {
+      // Read existing manifest or create new one
+      let manifest = await this.readManifest(folderPath);
+      if (!manifest) {
+        manifest = { slides: [] };
+      }
 
-    // Ensure slides array exists
-    if (!manifest.slides) {
-      manifest.slides = [];
-    }
+      // Ensure slides array exists
+      if (!manifest.slides) {
+        manifest.slides = [];
+      }
 
-    // Ensure groups object exists if we'll be auto-creating
-    if (options.createGroups && !manifest.groups) {
-      manifest.groups = {};
-    }
+      // Ensure groups object exists if we'll be auto-creating
+      if (options.createGroups && !manifest.groups) {
+        manifest.groups = {};
+      }
 
-    const result = {
-      added: 0,
-      skipped: 0,
-      updated: 0,
-      skippedItems: [] as Array<{ item: string; reason: string }>,
-    };
+      const result = {
+        added: 0,
+        skipped: 0,
+        updated: 0,
+        skippedItems: [] as Array<{ item: string; reason: string }>,
+      };
 
-    const slidesToAdd: ManifestSlide[] = [];
+      const slidesToAdd: ManifestSlide[] = [];
 
-    // Process each slide
-    for (const slide of slides) {
-      const existingIndex = manifest.slides.findIndex((s) => s.file === slide.file);
-      const conflictStrategy = options.onConflict?.duplicateFile || 'skip';
+      // Process each slide
+      for (const slide of slides) {
+        const existingIndex = manifest.slides.findIndex((s) => s.file === slide.file);
+        const conflictStrategy = options.onConflict?.duplicateFile || 'skip';
 
-      // Handle duplicates
-      if (existingIndex !== -1) {
-        if (conflictStrategy === 'skip') {
+        // Handle duplicates
+        if (existingIndex !== -1) {
+          if (conflictStrategy === 'skip') {
+            result.skipped++;
+            result.skippedItems.push({
+              item: slide.file,
+              reason: 'File already exists in manifest',
+            });
+            continue;
+          } else if (conflictStrategy === 'replace') {
+            // Remove existing and add as new
+            manifest.slides.splice(existingIndex, 1);
+            result.updated++;
+          } else if (conflictStrategy === 'rename') {
+            // Generate unique filename
+            const baseName = path.basename(slide.file, '.html');
+            let counter = 1;
+            let newFile = slide.file;
+            while (manifest.slides.some((s) => s.file === newFile)) {
+              newFile = `${baseName}-${counter}.html`;
+              counter++;
+            }
+            slide.file = newFile;
+            result.added++;
+          }
+        } else {
+          result.added++;
+        }
+
+        // Auto-create group if needed
+        if (slide.group && options.createGroups && manifest.groups) {
+          if (!manifest.groups[slide.group]) {
+            const existingOrders = Object.values(manifest.groups).map((g) => g.order);
+            const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
+            manifest.groups[slide.group] = {
+              label: this.formatName(slide.group),
+              order: nextOrder,
+            };
+          }
+        }
+
+        // Validate group exists if specified
+        if (slide.group && manifest.groups && !manifest.groups[slide.group]) {
           result.skipped++;
           result.skippedItems.push({
             item: slide.file,
-            reason: 'File already exists in manifest',
+            reason: `Group '${slide.group}' does not exist`,
           });
           continue;
-        } else if (conflictStrategy === 'replace') {
-          // Remove existing and add as new
-          manifest.slides.splice(existingIndex, 1);
-          result.updated++;
-        } else if (conflictStrategy === 'rename') {
-          // Generate unique filename
-          const baseName = path.basename(slide.file, '.html');
-          let counter = 1;
-          let newFile = slide.file;
-          while (manifest.slides.some((s) => s.file === newFile)) {
-            newFile = `${baseName}-${counter}.html`;
-            counter++;
-          }
-          slide.file = newFile;
-          result.added++;
         }
-      } else {
-        result.added++;
+
+        // Build slide entry
+        const newSlide: ManifestSlide = { file: slide.file };
+        if (slide.title) newSlide.title = slide.title;
+        if (slide.group) newSlide.group = slide.group;
+        if (slide.description) newSlide.description = slide.description;
+        if (slide.recommended !== undefined) newSlide.recommended = slide.recommended;
+
+        slidesToAdd.push(newSlide);
       }
 
-      // Auto-create group if needed
-      if (slide.group && options.createGroups && manifest.groups) {
-        if (!manifest.groups[slide.group]) {
-          const existingOrders = Object.values(manifest.groups).map((g) => g.order);
-          const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
-          manifest.groups[slide.group] = {
-            label: this.formatName(slide.group),
-            order: nextOrder,
-          };
+      // Apply position
+      const position = options.position || 'end';
+      if (position === 'start') {
+        manifest.slides = [...slidesToAdd, ...manifest.slides];
+      } else if (position === 'end') {
+        manifest.slides = [...manifest.slides, ...slidesToAdd];
+      } else if (typeof position === 'object' && 'after' in position) {
+        const afterIndex = manifest.slides.findIndex((s) => s.file === position.after);
+        if (afterIndex === -1) {
+          throw new Error(`Slide not found for 'after' position: ${position.after}`);
         }
+        manifest.slides.splice(afterIndex + 1, 0, ...slidesToAdd);
       }
 
-      // Validate group exists if specified
-      if (slide.group && manifest.groups && !manifest.groups[slide.group]) {
-        result.skipped++;
-        result.skippedItems.push({
-          item: slide.file,
-          reason: `Group '${slide.group}' does not exist`,
-        });
-        continue;
-      }
+      // Update timestamp
+      if (!manifest.meta) manifest.meta = {};
+      manifest.meta.updated = new Date().toISOString().split('T')[0];
 
-      // Build slide entry
-      const newSlide: ManifestSlide = { file: slide.file };
-      if (slide.title) newSlide.title = slide.title;
-      if (slide.group) newSlide.group = slide.group;
-      if (slide.description) newSlide.description = slide.description;
-      if (slide.recommended !== undefined) newSlide.recommended = slide.recommended;
+      // Write manifest
+      await this.writeManifest(folderPath, manifest);
 
-      slidesToAdd.push(newSlide);
-    }
+      // Invalidate cache
+      this.invalidateCache(presentationId);
 
-    // Apply position
-    const position = options.position || 'end';
-    if (position === 'start') {
-      manifest.slides = [...slidesToAdd, ...manifest.slides];
-    } else if (position === 'end') {
-      manifest.slides = [...manifest.slides, ...slidesToAdd];
-    } else if (typeof position === 'object' && 'after' in position) {
-      const afterIndex = manifest.slides.findIndex((s) => s.file === position.after);
-      if (afterIndex === -1) {
-        throw new Error(`Slide not found for 'after' position: ${position.after}`);
-      }
-      manifest.slides.splice(afterIndex + 1, 0, ...slidesToAdd);
-    }
-
-    // Update timestamp
-    if (!manifest.meta) manifest.meta = {};
-    manifest.meta.updated = new Date().toISOString().split('T')[0];
-
-    // Write manifest
-    await this.writeManifest(folderPath, manifest);
-
-    // Invalidate cache
-    this.invalidateCache(presentationId);
-
-    return result;
+      return result;
+    });
   }
 
   /**
@@ -460,58 +476,60 @@ export class ManifestService {
       throw new Error(`Presentation not found: ${presentationId}`);
     }
 
-    // Read existing manifest or create new one
-    let manifest = await this.readManifest(folderPath);
-    if (!manifest) {
-      manifest = { groups: {}, slides: [] };
-    }
-
-    // Ensure groups object exists
-    if (!manifest.groups) {
-      manifest.groups = {};
-    }
-
-    const result = {
-      added: 0,
-      skipped: 0,
-      skippedItems: [] as Array<{ item: string; reason: string }>,
-    };
-
-    // Find next order value if not explicitly set
-    const existingOrders = Object.values(manifest.groups).map((g) => g.order);
-    let nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
-
-    // Process each group
-    for (const group of groups) {
-      // Check if group already exists
-      if (manifest.groups[group.id]) {
-        result.skipped++;
-        result.skippedItems.push({
-          item: group.id,
-          reason: 'Group already exists',
-        });
-        continue;
+    return await this.withWriteLock(presentationId, async () => {
+      // Read existing manifest or create new one
+      let manifest = await this.readManifest(folderPath);
+      if (!manifest) {
+        manifest = { groups: {}, slides: [] };
       }
 
-      // Add group
-      manifest.groups[group.id] = {
-        label: group.label,
-        order: group.order !== undefined ? group.order : nextOrder++,
+      // Ensure groups object exists
+      if (!manifest.groups) {
+        manifest.groups = {};
+      }
+
+      const result = {
+        added: 0,
+        skipped: 0,
+        skippedItems: [] as Array<{ item: string; reason: string }>,
       };
-      result.added++;
-    }
 
-    // Update timestamp
-    if (!manifest.meta) manifest.meta = {};
-    manifest.meta.updated = new Date().toISOString().split('T')[0];
+      // Find next order value if not explicitly set
+      const existingOrders = Object.values(manifest.groups).map((g) => g.order);
+      let nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
 
-    // Write manifest
-    await this.writeManifest(folderPath, manifest);
+      // Process each group
+      for (const group of groups) {
+        // Check if group already exists
+        if (manifest.groups[group.id]) {
+          result.skipped++;
+          result.skippedItems.push({
+            item: group.id,
+            reason: 'Group already exists',
+          });
+          continue;
+        }
 
-    // Invalidate cache
-    this.invalidateCache(presentationId);
+        // Add group
+        manifest.groups[group.id] = {
+          label: group.label,
+          order: group.order !== undefined ? group.order : nextOrder++,
+        };
+        result.added++;
+      }
 
-    return result;
+      // Update timestamp
+      if (!manifest.meta) manifest.meta = {};
+      manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+      // Write manifest
+      await this.writeManifest(folderPath, manifest);
+
+      // Invalidate cache
+      this.invalidateCache(presentationId);
+
+      return result;
+    });
   }
 
   /**
@@ -537,102 +555,105 @@ export class ManifestService {
       throw new Error(`Presentation not found: ${presentationId}`);
     }
 
-    // Discover all HTML files in folder
+    // Discover all HTML files in folder (outside lock — read-only scan)
     const entries = await fs.readdir(folderPath, { withFileTypes: true });
     const htmlFiles = entries
       .filter((e) => e.isFile() && e.name.endsWith('.html'))
       .map((e) => e.name);
 
     const strategy = options.strategy || 'merge';
-    let manifest = await this.readManifest(folderPath);
 
-    if (strategy === 'replace' || !manifest) {
-      // Start fresh
-      manifest = {
-        slides: [],
-        groups: {},
-      };
-    } else {
-      // Ensure slides array exists for merge/addOnly
-      if (!manifest.slides) {
-        manifest.slides = [];
-      }
-    }
+    await this.withWriteLock(presentationId, async () => {
+      let manifest = await this.readManifest(folderPath);
 
-    // Build map of existing slides
-    const existingSlides = new Map(manifest.slides?.map((s) => [s.file, s]) || []);
-
-    // Process each HTML file
-    const newSlides: ManifestSlide[] = [];
-
-    for (const filename of htmlFiles) {
-      const existing = existingSlides.get(filename);
-
-      if (strategy === 'addOnly' && existing) {
-        // Keep existing slide as-is
-        newSlides.push(existing);
-        continue;
-      }
-
-      const slide: ManifestSlide = { file: filename };
-
-      // Infer title from HTML if requested
-      if (options.inferTitles) {
-        try {
-          const htmlPath = path.join(folderPath, filename);
-          const htmlContent = await fs.readFile(htmlPath, 'utf-8');
-          const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/i);
-          if (titleMatch && titleMatch[1]) {
-            slide.title = titleMatch[1].trim();
-          }
-        } catch (_error) {
-          // Ignore errors reading HTML
-        }
-      }
-
-      // Infer group from filename prefix (e.g., api-reference.html -> api group)
-      if (options.inferGroups) {
-        const parts = filename.split('-');
-        if (parts.length > 1) {
-          const prefix = parts[0];
-          slide.group = prefix;
-
-          // Auto-create group if it doesn't exist
-          if (manifest.groups && !manifest.groups[prefix]) {
-            const existingOrders = Object.values(manifest.groups).map((g) => g.order);
-            const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
-            manifest.groups[prefix] = {
-              label: this.formatName(prefix),
-              order: nextOrder,
-            };
-          }
-        }
-      }
-
-      // Merge with existing metadata if strategy is merge
-      if (strategy === 'merge' && existing) {
-        // Keep existing metadata, only update what's not set
-        newSlides.push({
-          ...existing,
-          title: existing.title || slide.title,
-          group: existing.group || slide.group,
-        });
+      if (strategy === 'replace' || !manifest) {
+        // Start fresh
+        manifest = {
+          slides: [],
+          groups: {},
+        };
       } else {
-        newSlides.push(slide);
+        // Ensure slides array exists for merge/addOnly
+        if (!manifest.slides) {
+          manifest.slides = [];
+        }
       }
-    }
 
-    manifest.slides = newSlides;
+      // Build map of existing slides
+      const existingSlides = new Map(manifest.slides?.map((s) => [s.file, s]) || []);
 
-    // Update timestamp
-    if (!manifest.meta) manifest.meta = {};
-    manifest.meta.updated = new Date().toISOString().split('T')[0];
+      // Process each HTML file
+      const newSlides: ManifestSlide[] = [];
 
-    // Write manifest
-    await this.writeManifest(folderPath, manifest);
+      for (const filename of htmlFiles) {
+        const existing = existingSlides.get(filename);
 
-    // Invalidate cache
-    this.invalidateCache(presentationId);
+        if (strategy === 'addOnly' && existing) {
+          // Keep existing slide as-is
+          newSlides.push(existing);
+          continue;
+        }
+
+        const slide: ManifestSlide = { file: filename };
+
+        // Infer title from HTML if requested
+        if (options.inferTitles) {
+          try {
+            const htmlPath = path.join(folderPath, filename);
+            const htmlContent = await fs.readFile(htmlPath, 'utf-8');
+            const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/i);
+            if (titleMatch && titleMatch[1]) {
+              slide.title = titleMatch[1].trim();
+            }
+          } catch (_error) {
+            // Ignore errors reading HTML
+          }
+        }
+
+        // Infer group from filename prefix (e.g., api-reference.html -> api group)
+        if (options.inferGroups) {
+          const parts = filename.split('-');
+          if (parts.length > 1) {
+            const prefix = parts[0];
+            slide.group = prefix;
+
+            // Auto-create group if it doesn't exist
+            if (manifest.groups && !manifest.groups[prefix]) {
+              const existingOrders = Object.values(manifest.groups).map((g) => g.order);
+              const nextOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 1;
+              manifest.groups[prefix] = {
+                label: this.formatName(prefix),
+                order: nextOrder,
+              };
+            }
+          }
+        }
+
+        // Merge with existing metadata if strategy is merge
+        if (strategy === 'merge' && existing) {
+          // Keep existing metadata, only update what's not set
+          newSlides.push({
+            ...existing,
+            title: existing.title || slide.title,
+            group: existing.group || slide.group,
+          });
+        } else {
+          newSlides.push(slide);
+        }
+      }
+
+      manifest.slides = newSlides;
+
+      // Update timestamp
+      if (!manifest.meta) manifest.meta = {};
+      manifest.meta.updated = new Date().toISOString().split('T')[0];
+
+      // Write manifest
+      await this.writeManifest(folderPath, manifest);
+
+      // Invalidate cache
+      this.invalidateCache(presentationId);
+    });
   }
 
   /**
@@ -735,21 +756,23 @@ export class ManifestService {
       throw new Error(`Presentation not found: ${presentationId}`);
     }
 
-    // Read existing manifest
-    const currentManifest = await this.readManifest(folderPath);
+    await this.withWriteLock(presentationId, async () => {
+      // Read existing manifest
+      const currentManifest = await this.readManifest(folderPath);
 
-    // Apply template
-    const newManifest = applyManifestTemplate(currentManifest, template, merge);
+      // Apply template
+      const newManifest = applyManifestTemplate(currentManifest, template, merge);
 
-    // Update timestamp
-    if (!newManifest.meta) newManifest.meta = {};
-    newManifest.meta.updated = new Date().toISOString().split('T')[0];
+      // Update timestamp
+      if (!newManifest.meta) newManifest.meta = {};
+      newManifest.meta.updated = new Date().toISOString().split('T')[0];
 
-    // Write manifest
-    await this.writeManifest(folderPath, newManifest);
+      // Write manifest
+      await this.writeManifest(folderPath, newManifest);
 
-    // Invalidate cache
-    this.invalidateCache(presentationId);
+      // Invalidate cache
+      this.invalidateCache(presentationId);
+    });
   }
 
   // ============================================================
@@ -806,164 +829,166 @@ export class ManifestService {
     const isTabbed = inferTabs && tabbedIndexFiles.length > 0;
     result.format = isTabbed ? 'tabbed' : 'flat';
 
-    // Read existing manifest or start fresh
-    let manifest: FlideckManifest;
-    if (strategy === 'replace') {
-      manifest = { groups: {}, slides: [], tabs: [] };
-    } else {
-      manifest = (await this.readManifest(folderPath)) || { groups: {}, slides: [], tabs: [] };
-      if (!manifest.groups) manifest.groups = {};
-      if (!manifest.slides) manifest.slides = [];
-      if (!manifest.tabs) manifest.tabs = [];
-    }
-
-    // Build map of existing slides for merge
-    const existingSlideMap = new Map(manifest.slides?.map((s) => [s.file, s]) || []);
-
-    // Track which slides are assigned to avoid duplicates
-    const assignedSlides = new Set<string>();
-
-    if (isTabbed && parseCards) {
-      // Process each tabbed index file
-      const parsedResults: ParsedIndexResult[] = [];
-
-      for (const indexFile of tabbedIndexFiles) {
-        const parsed = await this.parseIndexHtml(folderPath, indexFile, result.warnings);
-        if (parsed) {
-          parsedResults.push(parsed);
-        }
+    return await this.withWriteLock(presentationId, async () => {
+      // Read existing manifest or start fresh
+      let manifest: FlideckManifest;
+      if (strategy === 'replace') {
+        manifest = { groups: {}, slides: [], tabs: [] };
+      } else {
+        manifest = (await this.readManifest(folderPath)) || { groups: {}, slides: [], tabs: [] };
+        if (!manifest.groups) manifest.groups = {};
+        if (!manifest.slides) manifest.slides = [];
+        if (!manifest.tabs) manifest.tabs = [];
       }
 
-      // Sort by filename to get consistent order
-      parsedResults.sort((a, b) => a.file.localeCompare(b.file));
+      // Build map of existing slides for merge
+      const existingSlideMap = new Map(manifest.slides?.map((s) => [s.file, s]) || []);
 
-      // Create/update tabs
-      for (let i = 0; i < parsedResults.length; i++) {
-        const parsed = parsedResults[i];
-        const existingTab = manifest.tabs?.find((t) => t.id === parsed.tabId);
+      // Track which slides are assigned to avoid duplicates
+      const assignedSlides = new Set<string>();
 
-        if (existingTab) {
-          // Update existing tab
-          existingTab.label = parsed.label;
-          existingTab.file = parsed.file;
-          existingTab.order = i + 1;
-          result.tabs.updated.push(parsed.tabId);
-        } else {
-          // Create new tab
-          const newTab: TabDefinition = {
-            id: parsed.tabId,
-            label: parsed.label,
-            file: parsed.file,
-            order: i + 1,
-          };
-          if (!manifest.tabs) manifest.tabs = [];
-          manifest.tabs.push(newTab);
-          result.tabs.created.push(parsed.tabId);
+      if (isTabbed && parseCards) {
+        // Process each tabbed index file
+        const parsedResults: ParsedIndexResult[] = [];
+
+        for (const indexFile of tabbedIndexFiles) {
+          const parsed = await this.parseIndexHtml(folderPath, indexFile, result.warnings);
+          if (parsed) {
+            parsedResults.push(parsed);
+          }
         }
 
-        // Create group for this tab's slides
-        const groupId = `${parsed.tabId}-slides`;
-        const existingGroup = manifest.groups?.[groupId];
+        // Sort by filename to get consistent order
+        parsedResults.sort((a, b) => a.file.localeCompare(b.file));
 
-        if (existingGroup) {
-          // Update existing group
-          existingGroup.tabId = parsed.tabId;
-          result.groups.updated.push(groupId);
-        } else {
-          // Create new group
-          if (!manifest.groups) manifest.groups = {};
-          manifest.groups[groupId] = {
-            label: parsed.label,
-            order: i + 1,
-            tabId: parsed.tabId,
-          };
-          result.groups.created.push(groupId);
-        }
+        // Create/update tabs
+        for (let i = 0; i < parsedResults.length; i++) {
+          const parsed = parsedResults[i];
+          const existingTab = manifest.tabs?.find((t) => t.id === parsed.tabId);
 
-        // Assign slides from this index to the group
-        for (const card of parsed.cards) {
-          if (assignedSlides.has(card.file)) {
-            // Slide already assigned to another tab (first wins)
-            result.warnings.push(
-              `Slide '${card.file}' found in multiple index files, assigned to first`
-            );
-            continue;
+          if (existingTab) {
+            // Update existing tab
+            existingTab.label = parsed.label;
+            existingTab.file = parsed.file;
+            existingTab.order = i + 1;
+            result.tabs.updated.push(parsed.tabId);
+          } else {
+            // Create new tab
+            const newTab: TabDefinition = {
+              id: parsed.tabId,
+              label: parsed.label,
+              file: parsed.file,
+              order: i + 1,
+            };
+            if (!manifest.tabs) manifest.tabs = [];
+            manifest.tabs.push(newTab);
+            result.tabs.created.push(parsed.tabId);
           }
 
-          const existingSlide = existingSlideMap.get(card.file);
+          // Create group for this tab's slides
+          const groupId = `${parsed.tabId}-slides`;
+          const existingGroup = manifest.groups?.[groupId];
 
-          // Get title: prefer HTML <title> tag (canonical), fall back to card title
-          const slideFilePath = path.join(folderPath, card.file);
-          const htmlTitle = await this.extractTitleFromHtmlFile(slideFilePath);
-          const slideTitle = htmlTitle || card.title;
+          if (existingGroup) {
+            // Update existing group
+            existingGroup.tabId = parsed.tabId;
+            result.groups.updated.push(groupId);
+          } else {
+            // Create new group
+            if (!manifest.groups) manifest.groups = {};
+            manifest.groups[groupId] = {
+              label: parsed.label,
+              order: i + 1,
+              tabId: parsed.tabId,
+            };
+            result.groups.created.push(groupId);
+          }
 
-          if (existingSlide) {
-            // Update existing slide
-            existingSlide.group = groupId;
-            if (strategy === 'merge') {
-              // For merge: HTML title (canonical) always wins, card title only fills gaps
-              if (htmlTitle) {
-                existingSlide.title = htmlTitle;
-              } else if (card.title && !existingSlide.title) {
-                existingSlide.title = card.title;
+          // Assign slides from this index to the group
+          for (const card of parsed.cards) {
+            if (assignedSlides.has(card.file)) {
+              // Slide already assigned to another tab (first wins)
+              result.warnings.push(
+                `Slide '${card.file}' found in multiple index files, assigned to first`
+              );
+              continue;
+            }
+
+            const existingSlide = existingSlideMap.get(card.file);
+
+            // Get title: prefer HTML <title> tag (canonical), fall back to card title
+            const slideFilePath = path.join(folderPath, card.file);
+            const htmlTitle = await this.extractTitleFromHtmlFile(slideFilePath);
+            const slideTitle = htmlTitle || card.title;
+
+            if (existingSlide) {
+              // Update existing slide
+              existingSlide.group = groupId;
+              if (strategy === 'merge') {
+                // For merge: HTML title (canonical) always wins, card title only fills gaps
+                if (htmlTitle) {
+                  existingSlide.title = htmlTitle;
+                } else if (card.title && !existingSlide.title) {
+                  existingSlide.title = card.title;
+                }
+              } else {
+                if (slideTitle) existingSlide.title = slideTitle;
               }
             } else {
-              if (slideTitle) existingSlide.title = slideTitle;
+              // Create new slide entry - prefer HTML title (canonical)
+              const newSlide: ManifestSlide = {
+                file: card.file,
+                group: groupId,
+              };
+              if (htmlTitle) {
+                newSlide.title = htmlTitle;
+              } else if (card.title) {
+                newSlide.title = card.title;
+              }
+              manifest.slides!.push(newSlide);
+              existingSlideMap.set(card.file, newSlide);
             }
-          } else {
-            // Create new slide entry - prefer HTML title (canonical)
-            const newSlide: ManifestSlide = {
-              file: card.file,
-              group: groupId,
-            };
-            if (htmlTitle) {
-              newSlide.title = htmlTitle;
-            } else if (card.title) {
-              newSlide.title = card.title;
+
+            assignedSlides.add(card.file);
+            result.slides.assigned++;
+          }
+        }
+      }
+
+      // Count orphaned slides (HTML files not in any index)
+      const nonIndexHtmlFiles = htmlFiles.filter((f) => !f.match(/^index(-[\w-]+)?\.html$/));
+      for (const file of nonIndexHtmlFiles) {
+        if (!assignedSlides.has(file)) {
+          result.slides.orphaned++;
+
+          // For merge strategy, ensure orphaned slides are in manifest
+          if (strategy === 'merge' && !existingSlideMap.has(file)) {
+            // Try to extract title from the HTML file itself
+            const filePath = path.join(folderPath, file);
+            const extractedTitle = await this.extractTitleFromHtmlFile(filePath);
+
+            const newSlide: ManifestSlide = { file };
+            if (extractedTitle) {
+              newSlide.title = extractedTitle;
             }
             manifest.slides!.push(newSlide);
-            existingSlideMap.set(card.file, newSlide);
+            result.warnings.push(`Slide '${file}' not found in any index file`);
           }
-
-          assignedSlides.add(card.file);
-          result.slides.assigned++;
         }
       }
-    }
 
-    // Count orphaned slides (HTML files not in any index)
-    const nonIndexHtmlFiles = htmlFiles.filter((f) => !f.match(/^index(-[\w-]+)?\.html$/));
-    for (const file of nonIndexHtmlFiles) {
-      if (!assignedSlides.has(file)) {
-        result.slides.orphaned++;
+      // Update timestamp
+      if (!manifest.meta) manifest.meta = {};
+      manifest.meta.updated = new Date().toISOString().split('T')[0];
 
-        // For merge strategy, ensure orphaned slides are in manifest
-        if (strategy === 'merge' && !existingSlideMap.has(file)) {
-          // Try to extract title from the HTML file itself
-          const filePath = path.join(folderPath, file);
-          const extractedTitle = await this.extractTitleFromHtmlFile(filePath);
+      // Write manifest
+      await this.writeManifest(folderPath, manifest);
 
-          const newSlide: ManifestSlide = { file };
-          if (extractedTitle) {
-            newSlide.title = extractedTitle;
-          }
-          manifest.slides!.push(newSlide);
-          result.warnings.push(`Slide '${file}' not found in any index file`);
-        }
-      }
-    }
+      // Invalidate cache
+      this.invalidateCache(presentationId);
 
-    // Update timestamp
-    if (!manifest.meta) manifest.meta = {};
-    manifest.meta.updated = new Date().toISOString().split('T')[0];
-
-    // Write manifest
-    await this.writeManifest(folderPath, manifest);
-
-    // Invalidate cache
-    this.invalidateCache(presentationId);
-
-    return result;
+      return result;
+    });
   }
 
   /**
