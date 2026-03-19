@@ -1,11 +1,21 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 44 | Pending: 4 | In Progress: 0 | Done: 38 | Deferred: 0 | Rejected: 0
+**Total**: 51 | Pending: 11 | In Progress: 0 | Done: 38 | Deferred: 0 | Rejected: 0
 
 ---
 
 ## Pending
+
+### From flideck-docs-cleanup quality audit (2026-03-19)
+
+- [ ] B045 — Fix route collision: `PUT /:id/tabs/order` unreachable — move before `PUT /:id/tabs/:tabId` in presentations.ts (2-line fix) | Priority: critical
+- [ ] B046 — Fix proto-pollution test (4th attempt): `({} as any).polluted` assertion proves guard; B040 fix still vacuous due to V8 prototype semantics | Priority: high
+- [ ] B047 — Write lock for PresentationService: 16 unguarded fs.writeJson calls need serialisation (same pattern as ManifestService.patchManifest) | Priority: high
+- [ ] B048 — Delete sample.test.ts (F-grade scaffolding: `1+1===2`) | Priority: low
+- [ ] B049 — Test applySlideMetadata field propagation: title/group/description/viewportLock on returned Asset objects | Priority: medium
+- [ ] B050 — Tests for syncFromIndex (~200 lines of cheerio parsing, completely untested) | Priority: medium
+- [ ] B051 — Tests for removeSlide, updateSlide, deleteGroup cascade + renumbering | Priority: medium
 
 ### From flideck-cleanup-2026
 
