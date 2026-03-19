@@ -1535,27 +1535,25 @@ export class PresentationService extends EventEmitter {
 
     const result = { ...target };
 
-    for (const key in source) {
-      if (Object.prototype.hasOwnProperty.call(source, key)) {
-        const sourceValue = source[key];
-        const targetValue = result[key];
+    for (const key of Object.keys(source)) {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+      const sourceValue = source[key];
+      const targetValue = result[key];
 
-        if (Array.isArray(sourceValue)) {
-          // Arrays are replaced, not merged
-          result[key] = sourceValue;
-        } else if (sourceValue && typeof sourceValue === 'object') {
-          // Deep merge objects
-          result[key] =
-            targetValue && typeof targetValue === 'object'
-              ? this.deepMerge(
-                  targetValue as Record<string, unknown>,
-                  sourceValue as Record<string, unknown>
-                )
-              : sourceValue;
-        } else {
-          // Primitives are replaced
-          result[key] = sourceValue;
-        }
+      if (Array.isArray(sourceValue)) {
+        // Arrays are replaced, not merged
+        result[key] = sourceValue;
+      } else if (sourceValue && typeof sourceValue === 'object') {
+        // Deep merge objects
+        result[key] = this.deepMerge(
+          (targetValue && typeof targetValue === 'object' && !Array.isArray(targetValue)
+            ? targetValue
+            : {}) as Record<string, unknown>,
+          sourceValue as Record<string, unknown>
+        );
+      } else {
+        // Primitives are replaced
+        result[key] = sourceValue;
       }
     }
 
