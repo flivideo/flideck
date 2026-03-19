@@ -1,6 +1,6 @@
 import express from 'express';
 import request from 'supertest';
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import os from 'os';
 import path from 'path';
 import fs from 'fs-extra';
@@ -35,6 +35,10 @@ beforeAll(async () => {
 
   // Invalidate the cache so the new root is picked up
   service.invalidateCache();
+});
+
+afterAll(() => {
+  PresentationService.getInstance().setRoot('');
 });
 
 describe('GET /:presentationId/:assetId', () => {

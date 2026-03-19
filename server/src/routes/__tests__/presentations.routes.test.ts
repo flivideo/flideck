@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import express from 'express';
 import request from 'supertest';
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { Server } from 'socket.io';
 import { errorHandler } from '../../middleware/errorHandler.js';
 import { createPresentationRoutes } from '../presentations.js';
@@ -33,6 +33,10 @@ beforeAll(async () => {
   app.use(express.json());
   app.use('/', createPresentationRoutes({ io: mockIo }));
   app.use(errorHandler);
+});
+
+afterAll(() => {
+  PresentationService.getInstance().setRoot('');
 });
 
 describe('presentations routes', () => {
