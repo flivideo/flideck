@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import type { Server } from 'socket.io';
 import type {
   CreatePresentationRequest,
@@ -1053,11 +1053,11 @@ export function createPresentationRoutes({ io }: RouteConfig): Router {
       const presentation = await presentationService.getById(id);
       if (!presentation) throw new AppError('Presentation not found', 404);
 
-      exec(`open "${presentation.path}"`, (error) => {
+      execFile('open', [presentation.path], (error) => {
         if (error) {
           res.status(500).json({ success: false, error: 'Failed to open folder in Finder' });
         } else {
-          res.json({ success: true, path: presentation.path });
+          res.json({ success: true });
         }
       });
     })

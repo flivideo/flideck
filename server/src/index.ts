@@ -134,11 +134,7 @@ const io = new Server(httpServer, {
 });
 
 // Middleware
-app.use(
-  helmet({
-    contentSecurityPolicy: false, // Disable CSP for serving HTML assets
-  })
-);
+app.use(helmet());
 app.use(compression());
 app.use(cors({ origin: CLIENT_URL }));
 app.use(express.json());
@@ -324,16 +320,17 @@ function gracefulShutdown(signal: string): void {
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
-function cleanupPort(port: number | string): void {
+async function cleanupPort(port: number | string): Promise<void> {
   try {
     const result = execSync(`lsof -ti:${port} 2>/dev/null || true`, { encoding: 'utf-8' });
     const pids = result.trim().split('\n').filter(Boolean);
-    if (pids.length > 0) {
-      console.log(`[startup] Cleaning up port ${port}: killing PIDs ${pids.join(', ')}`);
-      for (const pid of pids) {
-        try { execSync(`kill -9 ${pid} 2>/dev/null || true`); } catch { /* already gone */ }
+    const safePids = pids.filter((pid) => /^\d+$/.test(pid.trim()) && Number(pid) > 0);
+    if (safePids.length > 0) {
+      console.log(`[startup] Cleaning up port ${port}: killing PIDs ${safePids.join(', ')}`);
+      for (const pid of safePids) {
+        try { execSync(`kill -9 ${pid.trim()} 2>/dev/null || true`); } catch { /* already gone */ }
       }
-      execSync('sleep 0.5');
+      await new Promise<void>((resolve) => setTimeout(resolve, 500));
     }
   } catch { /* lsof unavailable, continue */ }
 }
@@ -342,7 +339,7 @@ function cleanupPort(port: number | string): void {
 async function start(): Promise<void> {
   try {
     await initialize();
-    cleanupPort(PORT);
+    await cleanupPort(PORT);
 
     httpServer.listen(PORT, () => {
       console.log(`
