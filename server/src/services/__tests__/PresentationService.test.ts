@@ -247,4 +247,21 @@ describe('PresentationService', () => {
       );
     });
   });
+
+  // ============================================================
+  // assertSafeId — cache-warm traversal prevention
+  // ============================================================
+
+  describe('assertSafeId — cache-warm traversal prevention', () => {
+    it('getById blocks traversal even when cache is warm', async () => {
+      // Warm the cache with a valid presentation
+      const folderPath = join(tempDir, 'valid-deck');
+      await mkdir(folderPath);
+      await writeFile(join(folderPath, 'presentation.html'), '<h1>test</h1>');
+      await service.getById('valid-deck'); // populates cache
+
+      // Path traversal attempt must still throw AppError 400 even with a warm cache
+      await expect(service.getById('../etc/passwd')).rejects.toMatchObject({ statusCode: 400 });
+    });
+  });
 });

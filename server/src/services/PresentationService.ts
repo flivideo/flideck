@@ -208,13 +208,13 @@ export class PresentationService extends EventEmitter {
    * Get a single presentation by ID (folder name).
    */
   async getById(id: string): Promise<Presentation | null> {
-    // Check cache first
+    const folderPath = path.join(this.presentationsRoot, id);
+    this.assertSafeId(folderPath);
+
+    // Check cache after security validation
     if (this.cache.has(id)) {
       return this.cache.get(id)!;
     }
-
-    const folderPath = path.join(this.presentationsRoot, id);
-    this.assertSafeId(folderPath);
 
     // Check if folder exists
     if (!(await fs.pathExists(folderPath))) {
