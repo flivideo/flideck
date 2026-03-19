@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 43 | Pending: 8 | In Progress: 0 | Done: 34 | Deferred: 0 | Rejected: 0
+**Total**: 43 | Pending: 7 | In Progress: 0 | Done: 35 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -13,7 +13,7 @@
 ### From flideck-route-integration-tests audit (2026-03-19)
 
 - [x] B042 — Fix PresentationService singleton isolation: afterAll reset added to 3 route test files + pool: 'forks' added to server/vitest.config.ts; no timing regression (~2.6s) | Completed: flideck-singleton-isolation
-- [ ] B043 — Strengthen weak assertions: schema test OR-condition, asset content verification, config history array, capabilities api_summary key | Priority: low
+- [x] B043 — Strengthen weak assertions: schema (3 concrete value checks), assets (content match + correct error-path URL), capabilities (api_summary keys + tips[0] type) | Completed: flideck-assertion-strengthening
 
 ### From flideck-api-envelope audit (2026-03-19)
 - [ ] B015 — Review and sign off 292 unchecked acceptance criteria across 34 PRD files | Priority: medium

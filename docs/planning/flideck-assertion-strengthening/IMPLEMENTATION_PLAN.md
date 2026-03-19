@@ -5,13 +5,13 @@
 **Target**: All 139 tests pass. Each fixed assertion would catch a real regression if the code broke.
 
 ## Summary
-- Total: 1 | Complete: 0 | In Progress: 0 | Pending: 1 | Failed: 0
+- Total: 1 | Complete: 1 | In Progress: 0 | Pending: 0 | Failed: 0
 
 ---
 
 ## Pending
 
-- [ ] strengthen-assertions — Fix 6 weak assertions across 3 test files (see AGENTS.md for exact changes)
+(none)
 
 ---
 
@@ -20,6 +20,8 @@
 ---
 
 ## Complete
+
+- [x] strengthen-assertions — 6 assertions fixed across schema (1), assets (2), capabilities (2) test files; 139 tests pass. (2026-03-19)
 
 ---
 
