@@ -154,35 +154,28 @@ describe('ManifestService', () => {
       expect(Object.prototype.hasOwnProperty.call(written, '__proto__')).toBe(false);
     });
 
-    it('concurrent calls serialize (write lock): two concurrent patches each land without data loss', async () => {
+    it('concurrent calls serialize (write lock): both additive meta patches land without data loss', async () => {
       const deckPath = join(tempDir, 'concurrent-deck');
       await mkdir(deckPath);
       await writeFile(join(deckPath, 'presentation.html'), '<h1>test</h1>');
-      const initial: FlideckManifest = {
-        slides: [],
-      };
-      await writeFile(join(deckPath, 'index.json'), JSON.stringify(initial, null, 2));
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
 
-      // Fire two concurrent patches — each sets a different slide entry
+      // Each patch adds a DIFFERENT key to meta.
+      // deepMerge merges objects by key (does not replace), so with the write lock:
+      //   patch A reads {}, writes {meta: {name: 'patch-a'}}
+      //   patch B reads {meta: {name: 'patch-a'}}, writes {meta: {name: 'patch-a', purpose: 'patch-b'}}
+      // Without the lock both patches race to read {}, and only one key survives.
       await Promise.all([
-        service.patchManifest('concurrent-deck', {
-          slides: [{ file: 'slide-a.html', title: 'A' }],
-        }),
-        service.patchManifest('concurrent-deck', {
-          slides: [{ file: 'slide-b.html', title: 'B' }],
-        }),
+        service.patchManifest('concurrent-deck', { meta: { name: 'patch-a' } }),
+        service.patchManifest('concurrent-deck', { meta: { purpose: 'patch-b' } }),
       ]);
 
-      // The file must be valid JSON and one of the two patches must have won (no corruption)
       const raw = await readFile(join(deckPath, 'index.json'), 'utf-8');
       const final = JSON.parse(raw) as FlideckManifest;
 
-      expect(Array.isArray(final.slides)).toBe(true);
-      // The winner is non-deterministic but must be exactly one of the two valid states
-      const files = final.slides!.map((s) => s.file);
-      const isValidState =
-        (files.length === 1 && (files[0] === 'slide-a.html' || files[0] === 'slide-b.html'));
-      expect(isValidState).toBe(true);
+      // With write lock serialising the reads+writes, both keys must survive
+      expect(final.meta?.name).toBe('patch-a');
+      expect(final.meta?.purpose).toBe('patch-b');
     });
   });
 
