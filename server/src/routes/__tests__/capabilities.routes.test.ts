@@ -25,16 +25,19 @@ describe('GET /api/capabilities', () => {
     expect(res.body.data.name).toBe('FliDeck Presentation Server');
   });
 
-  it('returns data.api_summary as an object', async () => {
+  it('returns data.api_summary as an object with known keys', async () => {
     const res = await request(buildApp()).get('/');
     expect(res.body.data.api_summary).toBeDefined();
     expect(typeof res.body.data.api_summary).toBe('object');
     expect(Array.isArray(res.body.data.api_summary)).toBe(false);
+    expect(res.body.data.api_summary).toHaveProperty('presentations');
+    expect(res.body.data.api_summary).toHaveProperty('capabilities');
   });
 
-  it('returns data.tips as an array', async () => {
+  it('returns data.tips as a non-empty array of strings', async () => {
     const res = await request(buildApp()).get('/');
     expect(Array.isArray(res.body.data.tips)).toBe(true);
     expect(res.body.data.tips.length).toBeGreaterThan(0);
+    expect(typeof res.body.data.tips[0]).toBe('string');
   });
 });

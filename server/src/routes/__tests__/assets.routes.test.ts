@@ -48,11 +48,11 @@ describe('GET /:presentationId/:assetId', () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data).toBeDefined();
-    expect(typeof res.body.data.content).toBe('string');
+    expect(res.body.data.content).toContain('test presentation');
   });
 
-  it('returns 404 for a nonexistent presentation', async () => {
-    const res = await request(buildApp()).get('/nonexistent-deck/nonexistent.html');
+  it('returns 404 for a nonexistent asset in a known presentation', async () => {
+    const res = await request(buildApp()).get('/test-deck/nonexistent');
     expect(res.status).toBe(404);
     expect(res.body.success).toBe(false);
     expect(typeof res.body.error).toBe('string');

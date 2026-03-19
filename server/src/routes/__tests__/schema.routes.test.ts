@@ -22,11 +22,8 @@ describe('GET /api/schema/manifest', () => {
 
   it('returns data as a JSON Schema object', async () => {
     const res = await request(buildApp()).get('/manifest');
-    expect(typeof res.body.data).toBe('object');
-    expect(Array.isArray(res.body.data)).toBe(false);
-    // JSON Schema has $schema or type property
-    const hasSchemaMarker =
-      res.body.data.$schema !== undefined || res.body.data.type !== undefined;
-    expect(hasSchemaMarker).toBe(true);
+    expect(res.body.data.$schema).toBe('http://json-schema.org/draft-07/schema#');
+    expect(res.body.data.type).toBe('object');
+    expect(res.body.data.title).toBe('FliDeck Presentation Manifest');
   });
 });
