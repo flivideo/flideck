@@ -135,18 +135,23 @@ describe('ManifestService', () => {
       ).rejects.toBeInstanceOf(AppError);
     });
 
-    it('proto-pollution guard: __proto__ key in PATCH payload does NOT pollute Object.prototype', async () => {
+    it('proto-pollution guard: __proto__ key in PATCH payload does NOT appear in written manifest', async () => {
       const deckPath = join(tempDir, 'proto-guard-deck');
       await mkdir(deckPath);
       await writeFile(join(deckPath, 'presentation.html'), '<h1>test</h1>');
 
-      // Attempt to inject __proto__ via patch — deepMerge must skip it
-      await service.patchManifest('proto-guard-deck', {
-        '__proto__': { polluted: true },
-      } as unknown as Partial<FlideckManifest>);
+      // Use JSON.parse to create a payload where __proto__ is a real own enumerable key
+      // (object literal syntax { '__proto__': ... } does NOT create an own property — the engine
+      // treats it as a prototype assignment. JSON.parse does create an own property.)
+      const maliciousPayload = JSON.parse('{"__proto__":{"polluted":true}}') as Partial<FlideckManifest>;
 
-      // Object.prototype must not be polluted
-      expect((Object.prototype as Record<string, unknown>)['polluted']).toBeUndefined();
+      await service.patchManifest('proto-guard-deck', maliciousPayload);
+
+      // Read the written JSON and confirm __proto__ is NOT a key in the object
+      const raw = await readFile(join(deckPath, 'index.json'), 'utf-8');
+      const written = JSON.parse(raw) as Record<string, unknown>;
+      // The guard must have skipped the __proto__ key — it must not appear in the output
+      expect(Object.prototype.hasOwnProperty.call(written, '__proto__')).toBe(false);
     });
 
     it('concurrent calls serialize (write lock): two concurrent patches each land without data loss', async () => {
