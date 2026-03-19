@@ -95,7 +95,7 @@ Hide FliDeck chrome (header + sidebar) so only the iframe content is visible.
 - [x] Progress indicator (hidden in presentation mode for clean display)
 - [x] Keyboard controls work even when iframe has focus
 - [x] Presentation's internal controls (arrows, etc.) not blocked
-- [ ] Touch/swipe support (optional - deferred to future FR)
+- [-] Touch/swipe support (optional - deferred to future FR) <!-- dismissed: deferred -->
 
 ## Technical Notes
 

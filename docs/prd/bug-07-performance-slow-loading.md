@@ -198,9 +198,9 @@
 ## Acceptance Criteria
 
 - [x] Identify root cause of slowdown
-- [x] Measure current performance with benchmarks
+- [ ] Measure current performance with benchmarks
 - [x] Implement targeted optimizations
-- [x] Re-measure to verify improvements
+- [ ] Re-measure to verify improvements
 - [x] "Loading assets" spinner appears < 500ms only on initial load
 - [x] Asset switching feels instant (< 100ms)
 - [x] Display mode switching is smooth (< 200ms)

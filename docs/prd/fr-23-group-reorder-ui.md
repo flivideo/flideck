@@ -123,29 +123,29 @@ API is already implemented in FR-17, no backend changes needed.
 
 ### Grouped Mode
 
-- [ ] Group headers show drag handle (⋮⋮) on hover
-- [ ] Group headers are draggable (not just the icon)
-- [ ] Dragging group header shows visual feedback (transparency)
-- [ ] Drop zones appear between groups during drag
-- [ ] Dropping updates group order optimistically in UI
-- [ ] API call persists order to manifest
-- [ ] Order persists after page refresh
-- [ ] Other users see updated order via Socket.io event
-- [ ] Undo action available if drag was accidental (toast with "Undo"?)
+- [-] Group headers show drag handle (⋮⋮) on hover <!-- dismissed: FR-23 entirely deferred -->
+- [-] Group headers are draggable (not just the icon) <!-- dismissed: FR-23 entirely deferred -->
+- [-] Dragging group header shows visual feedback (transparency) <!-- dismissed: FR-23 entirely deferred -->
+- [-] Drop zones appear between groups during drag <!-- dismissed: FR-23 entirely deferred -->
+- [-] Dropping updates group order optimistically in UI <!-- dismissed: FR-23 entirely deferred -->
+- [-] API call persists order to manifest <!-- dismissed: FR-23 entirely deferred -->
+- [-] Order persists after page refresh <!-- dismissed: FR-23 entirely deferred -->
+- [-] Other users see updated order via Socket.io event <!-- dismissed: FR-23 entirely deferred -->
+- [-] Undo action available if drag was accidental (toast with "Undo"?) <!-- dismissed: FR-23 entirely deferred -->
 
 ### Edge Cases
 
-- [ ] Cannot drag group above index.html asset
-- [ ] Dragging group doesn't interfere with asset drag-and-drop
-- [ ] Works with collapsed groups (group stays collapsed after reorder)
-- [ ] Works with empty groups (groups with no assets)
-- [ ] Works when sidebar is filtered by container tab (FR-24)
+- [-] Cannot drag group above index.html asset <!-- dismissed: FR-23 entirely deferred -->
+- [-] Dragging group doesn't interfere with asset drag-and-drop <!-- dismissed: FR-23 entirely deferred -->
+- [-] Works with collapsed groups (group stays collapsed after reorder) <!-- dismissed: FR-23 entirely deferred -->
+- [-] Works with empty groups (groups with no assets) <!-- dismissed: FR-23 entirely deferred -->
+- [-] Works when sidebar is filtered by container tab (FR-24) <!-- dismissed: FR-23 entirely deferred -->
 
 ### Accessibility
 
-- [ ] Keyboard alternative for reordering (up/down arrows on focused group?)
-- [ ] Screen reader announces drag state ("Dragging Introduction group")
-- [ ] Screen reader announces drop zones ("Drop before Getting Started")
+- [-] Keyboard alternative for reordering (up/down arrows on focused group?) <!-- dismissed: FR-23 entirely deferred -->
+- [-] Screen reader announces drag state ("Dragging Introduction group") <!-- dismissed: FR-23 entirely deferred -->
+- [-] Screen reader announces drop zones ("Drop before Getting Started") <!-- dismissed: FR-23 entirely deferred -->
 
 ## Technical Notes
 

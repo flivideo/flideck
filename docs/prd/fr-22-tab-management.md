@@ -186,7 +186,7 @@ Complete the deferred group reorder from FR-17:
 - [x] Context menu on tab headers (rename, delete)
 - [x] Inline rename for tabs
 - [x] Delete tab shows confirmation if it has children
-- [x] Drag tab headers to reorder (deferred - less critical)
+- [-] Drag tab headers to reorder (deferred - less critical) <!-- dismissed: explicitly deferred in FR-22 -->
 
 ### Group-Tab API
 
@@ -204,9 +204,9 @@ Complete the deferred group reorder from FR-17:
 
 ### Group Reorder UI (FR-17 completion)
 
-- [x] Drag group headers to reorder in grouped mode (deferred)
-- [x] Drag group headers to reorder within tab in tabbed mode (deferred)
-- [x] Visual drop zone indicators (deferred)
+- [-] Drag group headers to reorder in grouped mode (deferred) <!-- dismissed: explicitly deferred in FR-22 -->
+- [-] Drag group headers to reorder within tab in tabbed mode (deferred) <!-- dismissed: explicitly deferred in FR-22 -->
+- [-] Visual drop zone indicators (deferred) <!-- dismissed: explicitly deferred in FR-22 -->
 
 ## Technical Notes
 

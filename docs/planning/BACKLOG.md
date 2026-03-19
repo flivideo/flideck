@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 43 | Pending: 7 | In Progress: 0 | Done: 35 | Deferred: 0 | Rejected: 0
+**Total**: 43 | Pending: 6 | In Progress: 0 | Done: 36 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -16,7 +16,7 @@
 - [x] B043 — Strengthen weak assertions: schema (3 concrete value checks), assets (content match + correct error-path URL), capabilities (api_summary keys + tips[0] type) | Completed: flideck-assertion-strengthening
 
 ### From flideck-api-envelope audit (2026-03-19)
-- [ ] B015 — Review and sign off 292 unchecked acceptance criteria across 34 PRD files | Priority: medium
+- [x] B015 — Review and sign off 292 unchecked acceptance criteria across 34 PRD files | Completed: flideck-ac-signoff
 - [ ] B016 — Write 13 missing changelog entries (FR-16 through FR-28 from late-Dec build burst) | Priority: low
 
 ### From flideck-test-quality-fixes audit (2026-03-19)

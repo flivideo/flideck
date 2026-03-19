@@ -181,18 +181,18 @@ Current layout uses fixed sidebar width in Tailwind classes. Update to use inlin
 
 ## Acceptance Criteria
 
-- [x] Drag handle visible at right edge of sidebar on hover
-- [x] Cursor changes to `col-resize` when hovering over drag handle
-- [x] Clicking and dragging the handle resizes the sidebar in real-time
-- [x] Sidebar cannot be resized smaller than 200px
-- [x] Sidebar cannot be resized larger than 600px
+- [ ] Drag handle visible at right edge of sidebar on hover <!-- superseded: drag handle replaced by S/M/L preset buttons in Major Redesign (2026-01-07) -->
+- [ ] Cursor changes to `col-resize` when hovering over drag handle <!-- superseded: no drag handle in current implementation -->
+- [ ] Clicking and dragging the handle resizes the sidebar in real-time <!-- superseded: drag replaced by preset button clicks -->
+- [ ] Sidebar cannot be resized smaller than 200px <!-- superseded: presets are 280/380/480px; minimum is 280px, not 200px -->
+- [ ] Sidebar cannot be resized larger than 600px <!-- superseded: presets are 280/380/480px; maximum is 480px, not 600px -->
 - [x] Width preference persists to localStorage
 - [x] Width preference restored on page load
 - [x] Works across all display modes (Flat, Grouped, Tabbed)
 - [x] Main content area adjusts automatically (flex-1 behavior)
-- [x] No horizontal scrollbar appears during resize
-- [x] Drag handle has appropriate visual feedback (color change during drag)
-- [x] Releasing mouse commits the new width
+- [ ] No horizontal scrollbar appears during resize <!-- runtime AC: cannot verify from source -->
+- [ ] Drag handle has appropriate visual feedback (color change during drag) <!-- superseded: no drag handle in current implementation -->
+- [ ] Releasing mouse commits the new width <!-- superseded: width committed immediately on button click, no mouse-up needed -->
 
 ## Technical Notes
 

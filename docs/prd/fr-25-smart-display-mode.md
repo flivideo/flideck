@@ -181,8 +181,8 @@ When container tabs are active, show which tab context the sidebar is displaying
 
 ### Visual Feedback
 
-- [x] Sidebar header shows active tab context (optional, nice-to-have)
-- [x] Switching tabs has smooth transition (optional)
+- [ ] Sidebar header shows active tab context (optional, nice-to-have)
+- [ ] Switching tabs has smooth transition (optional)
 
 ## Technical Notes
 
