@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 43 | Pending: 9 | In Progress: 0 | Done: 33 | Deferred: 0 | Rejected: 0
+**Total**: 43 | Pending: 8 | In Progress: 0 | Done: 34 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -12,7 +12,7 @@
 - [ ] B013 — Vite 7 upgrade: client package.json 2-line change (vite 6.4.1 → 7.3.1, plugin-react v4 → v5) | Priority: low
 ### From flideck-route-integration-tests audit (2026-03-19)
 
-- [ ] B042 — Fix PresentationService singleton isolation in route tests: add afterAll reset in query/assets/presentations test files (or configure vitest pool: 'forks'); latent CI flakiness risk | Priority: high
+- [x] B042 — Fix PresentationService singleton isolation: afterAll reset added to 3 route test files + pool: 'forks' added to server/vitest.config.ts; no timing regression (~2.6s) | Completed: flideck-singleton-isolation
 - [ ] B043 — Strengthen weak assertions: schema test OR-condition, asset content verification, config history array, capabilities api_summary key | Priority: low
 
 ### From flideck-api-envelope audit (2026-03-19)

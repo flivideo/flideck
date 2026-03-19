@@ -5,13 +5,13 @@
 **Target**: No test file leaves PresentationService.root set after it completes. All 139 tests still pass. 0 TS errors.
 
 ## Summary
-- Total: 1 | Complete: 0 | In Progress: 0 | Pending: 1 | Failed: 0
+- Total: 1 | Complete: 1 | In Progress: 0 | Pending: 0 | Failed: 0
 
 ---
 
 ## Pending
 
-- [ ] singleton-afterall — Add `afterAll(() => PresentationService.getInstance().setRoot(''))` to `query.routes.test.ts`, `assets.routes.test.ts`, `presentations.routes.test.ts`; also add `afterAll` import to each file's import line; consider adding `pool: 'forks'` to `server/vitest.config.ts` for deeper isolation
+(none)
 
 ---
 
@@ -20,6 +20,8 @@
 ---
 
 ## Complete
+
+- [x] singleton-afterall — afterAll reset added to all 3 files; pool: 'forks' added to vitest.config.ts (2.6s — no slowdown); 139 tests pass. (2026-03-19)
 
 ---
 
