@@ -5,34 +5,29 @@
 **Target**: ≥ 35 new tests. All 101 existing tests still pass. 0 TS errors.
 
 ## Summary
-- Total: 5 | Complete: 0 | In Progress: 0 | Pending: 5 | Failed: 0
+- Total: 5 | Complete: 5 | In Progress: 0 | Pending: 0 | Failed: 0
 
 ---
 
 ## Pending
 
-### Wave 1 — 3 agents in parallel (non-overlapping files)
-
-- [ ] responsehelper-unit — Unit tests for `createApiResponse` + `createErrorResponse` in `server/src/utils/__tests__/responseHelper.test.ts` (≥6 tests: data shape, null data, context merge, error shape, type inference)
-- [ ] light-static-routes — Integration tests for `capabilities`, `schema`, `templates` routes in `server/src/routes/__tests__/` (3 files, ≥9 tests: envelope shape, status 200, 404 on missing template)
-- [ ] query-routes — Integration tests for `query` routes in `server/src/routes/__tests__/query.routes.test.ts` (≥6 tests: envelope shape on /routes, /routes/:route, /presentations/:id; 404 on unknown route)
-
-### Wave 2 — 2 agents in parallel (non-overlapping files)
-
-- [ ] assets-config-routes — Integration tests for `assets` + `config` routes in `server/src/routes/__tests__/` (≥6 tests: config GET envelope, assets 404 on missing file)
-- [ ] presentations-routes — Integration tests for key `presentations` endpoints: GET /, GET /refresh, GET /:id (envelope + _context shape), GET /:id/manifest (≥8 tests, not all 28 handlers — focus on read paths and envelope correctness)
+(none)
 
 ---
 
 ## In Progress
 
-(coordinator moves items here with [~])
+(none)
 
 ---
 
 ## Complete
 
-(coordinator moves items here with [x], adds outcome notes)
+- [x] responsehelper-unit — 9 unit tests in `server/src/utils/__tests__/responseHelper.test.ts`; all shape/null/context/error cases covered. (2026-03-19)
+- [x] light-static-routes — 11 tests across capabilities (4), schema (2), templates (5); dynamically resolves template IDs via `getTemplates()`. (2026-03-19)
+- [x] query-routes — 6 tests in `query.routes.test.ts`; tmpdir + PresentationService.setRoot() pattern proven. (2026-03-19)
+- [x] assets-config-routes — 4 tests (assets: 2, config: 2); key learning: asset IDs strip `.html` extension (use `index` not `index.html`). (2026-03-19)
+- [x] presentations-routes — 10 tests covering GET /, GET /:id, GET /:id/manifest, POST /refresh, POST /:id/slides (valid + invalid); _context shape verified. (2026-03-19)
 
 ---
 

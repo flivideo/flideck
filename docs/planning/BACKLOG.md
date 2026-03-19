@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 41 | Pending: 9 | In Progress: 0 | Done: 32 | Deferred: 0 | Rejected: 0
+**Total**: 43 | Pending: 9 | In Progress: 0 | Done: 33 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -10,9 +10,12 @@
 ### From flideck-cleanup-2026
 
 - [ ] B013 — Vite 7 upgrade: client package.json 2-line change (vite 6.4.1 → 7.3.1, plugin-react v4 → v5) | Priority: low
-### From flideck-api-envelope audit (2026-03-19)
+### From flideck-route-integration-tests audit (2026-03-19)
 
-- [ ] B041 — Route integration tests: add supertest-based HTTP tests for envelope shape + status codes across all 7 route files; also add createApiResponse unit tests in responseHelper.test.ts (supertest already installed as devDep) | Priority: medium
+- [ ] B042 — Fix PresentationService singleton isolation in route tests: add afterAll reset in query/assets/presentations test files (or configure vitest pool: 'forks'); latent CI flakiness risk | Priority: high
+- [ ] B043 — Strengthen weak assertions: schema test OR-condition, asset content verification, config history array, capabilities api_summary key | Priority: low
+
+### From flideck-api-envelope audit (2026-03-19)
 - [ ] B015 — Review and sign off 292 unchecked acceptance criteria across 34 PRD files | Priority: medium
 - [ ] B016 — Write 13 missing changelog entries (FR-16 through FR-28 from late-Dec build burst) | Priority: low
 
@@ -69,6 +72,7 @@
 - [x] B038 — Fix concurrent write-lock test: replaced mutually-exclusive overwrites with additive meta key patches (name + purpose); mutation-resistant — both keys must survive | Completed: flideck-test-quality-fixes
 - [x] B039 — Add empty-root guard to getById: guard added, AppError(400) thrown when root is empty, consistent with discoverAll | Completed: flideck-test-quality-fixes
 - [x] B014 — API response envelope standardisation: createApiResponse adopted across all 7 route files (43 responses); 0 inline envelopes remain; _context preserved on 4 presentation GET endpoints | Completed: flideck-api-envelope
+- [x] B041 — Route integration tests: 40 new supertest HTTP tests across 7 route files + responseHelper unit tests; 139 total tests (was 101) | Completed: flideck-route-integration-tests
 
 ---
 

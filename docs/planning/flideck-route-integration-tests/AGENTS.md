@@ -273,3 +273,41 @@ Note: `.js` extension required in ESM TypeScript (even though file is `.ts`).
 ### presentations.ts specifics
 - `GET /`, `GET /:id`, `GET /:id/manifest` all include `_context: { presentationsRoot }`
 - `POST /refresh` returns `{ success: true, data: presentations[] }`
+
+### Asset ID convention (discovered in flideck-route-integration-tests)
+- Asset IDs strip the `.html` extension: `index.html` → request as `GET /api/assets/my-deck/index`
+- Error path tests must also use the no-extension form when testing "presentation exists, asset missing"
+
+### PresentationService singleton isolation (CRITICAL for test campaigns)
+- `PresentationService.getInstance()` is a process-wide singleton — `setRoot()` mutates it globally
+- Any test file calling `setRoot()` MUST reset it in `afterAll`:
+  ```typescript
+  afterAll(() => { PresentationService.getInstance().setRoot(''); });
+  ```
+- Without this, test files sharing a Vitest worker will contaminate each other
+
+### Minimal test app pattern (proven pattern — use this)
+```typescript
+function buildApp() {
+  const app = express();
+  app.use(express.json());
+  app.use('/', createXxxRoutes({ io: mockIo }));
+  app.use(errorHandler);  // REQUIRED — without this, AppError → unhandled rejection not 4xx
+  return app;
+}
+```
+
+### io mock (for routes that accept io but rarely use it in GET handlers)
+```typescript
+const mockIo = {
+  to: () => ({ emit: () => {} }),
+  emit: () => {},
+  in: () => ({ emit: () => {} }),
+} as unknown as Server;  // use `as unknown as Server`, NOT `as any`
+```
+
+### WatcherManager mock (for config.ts)
+```typescript
+import type { WatcherManager } from '../../WatcherManager.js';
+const mockWatcherManager = { watch: () => {}, unwatch: () => {}, stop: () => {} } as unknown as WatcherManager;
+```
