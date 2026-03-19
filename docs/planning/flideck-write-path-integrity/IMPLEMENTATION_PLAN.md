@@ -5,7 +5,7 @@
 **Target**: `assertSafeId` runs unconditionally in `getById`; ManifestService write path covered by ≥12 tests; PresentationService write path covered by ≥8 new tests; total test count ≥107 (79 baseline + 28 new).
 
 ## Summary
-- Total: 3 | Complete: 0 | In Progress: 0 | Pending: 3 | Failed: 0
+- Total: 3 | Complete: 3 | In Progress: 0 | Pending: 0 | Failed: 0
 
 ---
 
@@ -13,12 +13,12 @@
 
 ### Wave 1 — Security fix (1 agent)
 
-- [ ] fix-assertsafeid-cache — `server/src/services/PresentationService.ts`: in `getById` (lines 210–233), move `assertSafeId(folderPath)` call to BEFORE the `this.cache.has(id)` check so path traversal is blocked even on cache hits; add a test to `PresentationService.test.ts` confirming traversal is blocked when the cache is warm
+- [x] fix-assertsafeid-cache — assertSafeId moved before cache check; warm-cache traversal test added; 79→80 tests. Commit: see worktree. (2026-03-19)
 
 ### Wave 2 — Test coverage (2 agents in parallel, non-overlapping files)
 
-- [ ] test-manifest-service — create `server/src/services/__tests__/ManifestService.test.ts`; minimum 12 tests covering: `getManifest` (null when missing, reads index.json, falls back to flideck.json legacy), `patchManifest` (merges fields preserving untouched keys, validates before writing, atomic write via lock), `bulkAddSlides` (skip conflict, replace conflict, rename conflict counter), `deepMerge` proto-pollution guard via patchManifest (PATCH payload with `__proto__` key must not pollute Object.prototype)
-- [ ] test-write-path — add to `server/src/services/__tests__/PresentationService.test.ts`; minimum 8 new tests covering: `addSlide` (appends to manifest, deduplicates by file, migrates legacy assets.order format to slides array), `saveAssetOrder` with an existing slides-format manifest (must use reorderSlides branch not legacy assets.order branch), `deleteTab` cascade strategy (removes tab, removes child groups, clears group field from affected slides)
+- [x] test-manifest-service — ManifestService.test.ts created, 12 tests: getManifest (null/index.json/flideck.json), patchManifest (merge/nested/validation/proto-pollution/write-lock), bulkAddSlides (skip/replace/rename). (2026-03-19)
+- [x] test-write-path — 8 tests appended to PresentationService.test.ts: addSlide (append/dedup/legacy migration/group field), saveAssetOrder slides-format branch (reorder + metadata), deleteTab cascade + orphan strategies. (2026-03-19)
 
 ---
 
