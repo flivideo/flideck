@@ -5,15 +5,13 @@
 **Target**: All three tests correctly fail when the production code they cover is deleted. Total test count stays ≥ 99 (no regressions).
 
 ## Summary
-- Total: 3 | Complete: 0 | In Progress: 0 | Pending: 3 | Failed: 0
+- Total: 3 | Complete: 3 | In Progress: 0 | Pending: 0 | Failed: 0
 
 ---
 
 ## Pending
 
-- [ ] fix-proto-pollution-test — Replace Object.prototype assertion with written-output inspection: after patching with `__proto__` key, read index.json and assert the dangerous key is absent from the JSON (B037)
-- [ ] fix-write-lock-test — Replace mutually-exclusive slide overwrites with additive `tags` array patches; both patches must be present in the final file — missing lock would produce only one (B038)
-- [ ] fix-empty-root-guard — Add `if (!this.presentationsRoot) throw new AppError('Root not configured', 400)` at the top of `getById` (consistent with `discoverAll`); add a test that calls `getById` before `setRoot` and expects AppError(400) (B039)
+(none)
 
 ---
 
@@ -25,7 +23,9 @@
 
 ## Complete
 
-(coordinator moves items here with [x], adds outcome notes)
+- [x] fix-proto-pollution-test — Replaced Object.prototype assertion with written-output inspection using JSON.parse payload; test quality audit identified remaining weakness (B040 raised for next campaign). (2026-03-19)
+- [x] fix-write-lock-test — Replaced with additive meta key patches (name + purpose); both keys must survive; mutation-resistant. (2026-03-19)
+- [x] fix-empty-root-guard — Guard added to getById; test confirms AppError(400) on empty root; root restored after test. (2026-03-19)
 
 ---
 

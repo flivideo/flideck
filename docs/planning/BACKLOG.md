@@ -1,7 +1,7 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-19
-**Total**: 39 | Pending: 11 | In Progress: 0 | Done: 28 | Deferred: 0 | Rejected: 0
+**Total**: 40 | Pending: 9 | In Progress: 0 | Done: 31 | Deferred: 0 | Rejected: 0
 
 ---
 
@@ -14,11 +14,9 @@
 - [ ] B015 — Review and sign off 292 unchecked acceptance criteria across 34 PRD files | Priority: medium
 - [ ] B016 — Write 13 missing changelog entries (FR-16 through FR-28 from late-Dec build burst) | Priority: low
 
-### From flideck-write-path-integrity audit (2026-03-19)
+### From flideck-test-quality-fixes audit (2026-03-19)
 
-- [ ] B037 — Fix proto-pollution guard test: current test passes even without the guard (V8 prevents __proto__ assignment natively); replace with written-output inspection — assert the dangerous key does NOT appear in the manifest JSON after patch | Priority: medium
-- [ ] B038 — Fix concurrent write-lock test: current test uses mutually exclusive overwrites which don't prove serialization; replace with additive/cumulative patches (e.g. push to a tags array) so the only correct outcome is both items present | Priority: medium
-- [ ] B039 — Add empty-root guard to `getById`: `discoverAll` throws when `presentationsRoot` is empty; `getById` does not — assertSafeId vacuously passes (resolves to process.cwd()); add consistent `if (!this.presentationsRoot) throw new AppError(400, ...)` guard | Priority: medium
+- [ ] B040 — Fix proto-pollution guard test (third attempt): written-output inspection still doesn't prove the guard (V8 intercepts `obj['__proto__'] = value` as prototype assignment, so JSON.stringify never serializes it regardless); fix via null-prototype base object in deepMerge OR document as untestable by normal means | Priority: low
 
 ### From flideck-harness-migration
 
@@ -65,6 +63,9 @@
 - [x] B034 — Fix `assertSafeId` called only on cache miss in `getById` — moved before cache check; warm-cache traversal test added | Completed: flideck-write-path-integrity
 - [x] B035 — ManifestService test coverage: 12 tests (getManifest, patchManifest, bulkAddSlides ×3 strategies, proto-pollution, write-lock) | Completed: flideck-write-path-integrity
 - [x] B036 — PresentationService write-path tests: 8 tests (addSlide, dedup, legacy migration, saveAssetOrder slides-format, deleteTab cascade + orphan) | Completed: flideck-write-path-integrity
+- [x] B037 — Fix proto-pollution guard test: replaced Object.prototype assertion with written-output inspection using JSON.parse payload; test quality audit found remaining weakness (B040 raised) | Completed: flideck-test-quality-fixes
+- [x] B038 — Fix concurrent write-lock test: replaced mutually-exclusive overwrites with additive meta key patches (name + purpose); mutation-resistant — both keys must survive | Completed: flideck-test-quality-fixes
+- [x] B039 — Add empty-root guard to getById: guard added, AppError(400) thrown when root is empty, consistent with discoverAll | Completed: flideck-test-quality-fixes
 
 ---
 
