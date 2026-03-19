@@ -6,5 +6,6 @@ export default defineConfig({
     testTimeout: 10000,
     hookTimeout: 10000,
     pool: 'forks',
+    exclude: ['**/node_modules/**', '**/dist/**'],
   },
 });
