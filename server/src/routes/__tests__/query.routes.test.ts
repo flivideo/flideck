@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import express from 'express';
 import request from 'supertest';
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { errorHandler } from '../../middleware/errorHandler.js';
 import { createQueryRoutes } from '../query.js';
 import { PresentationService } from '../../services/PresentationService.js';
@@ -27,6 +27,10 @@ beforeAll(async () => {
   app.use(express.json());
   app.use('/', createQueryRoutes());
   app.use(errorHandler);
+});
+
+afterAll(() => {
+  PresentationService.getInstance().setRoot('');
 });
 
 describe('GET /routes', () => {
