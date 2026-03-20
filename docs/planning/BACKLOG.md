@@ -1,17 +1,12 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-20
-**Total**: 60 | Pending: 0 | In Progress: 0 | Done: 58 | Deferred: 0 | Rejected: 0
+**Total**: 60 | Pending: 0 | In Progress: 0 | Done: 60 | Deferred: 0 | Rejected: 0
 
 ---
 
 ## Pending
 
-### From flideck-manifest-locks quality audit (2026-03-19)
-
-### From flideck-cleanup-2026
-
-- [ ] B013 — Vite 7 upgrade: client package.json 2-line change (vite 6.4.1 → 7.3.1, plugin-react v4 → v5) | Priority: low
 ### From flideck-route-integration-tests audit (2026-03-19)
 
 - [x] B042 — Fix PresentationService singleton isolation: afterAll reset added to 3 route test files + pool: 'forks' added to server/vitest.config.ts; no timing regression (~2.6s) | Completed: flideck-singleton-isolation
@@ -76,6 +71,7 @@
 - [x] B039 — Add empty-root guard to getById: guard added, AppError(400) thrown when root is empty, consistent with discoverAll | Completed: flideck-test-quality-fixes
 - [x] B014 — API response envelope standardisation: createApiResponse adopted across all 7 route files (43 responses); 0 inline envelopes remain; _context preserved on 4 presentation GET endpoints | Completed: flideck-api-envelope
 - [x] B041 — Route integration tests: 40 new supertest HTTP tests across 7 route files + responseHelper unit tests; 139 total tests (was 101) | Completed: flideck-route-integration-tests
+- [x] B013 — Vite 7 upgrade: already done in commit 4e28a2f (vite 6→7, plugin-react v4→v5); backlog closed retroactively | Completed: flideck-cleanup-2026
 - [x] B057 — deleteGroup: toHaveLength(3) added to cascade test proving slides ungrouped not deleted | Completed: flideck-b057-b060
 - [x] B058 — syncFromIndex: index-mary.html/index-work.html test added asserting tabIds 'mary' and 'work' | Completed: flideck-b057-b060
 - [x] B059 — removeSlide: file-still-exists assertion added (readFile resolves after manifest removal) | Completed: flideck-b057-b060
