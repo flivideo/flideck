@@ -554,6 +554,9 @@ describe('PresentationService', () => {
       );
       expect(manifest.groups).toHaveProperty('group-a');
       expect(manifest.groups).toHaveProperty('group-b');
+      // Write lock ensures order values are computed sequentially — no collision
+      const orders = [manifest.groups['group-a'].order, manifest.groups['group-b'].order];
+      expect(new Set(orders).size).toBe(2); // both orders are distinct
     });
 
     it('both field updates survive when two updateSlide calls race on the same slide', async () => {

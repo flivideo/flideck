@@ -300,7 +300,28 @@ describe('ManifestService', () => {
       expect(renamed!.file).toMatch(/^slide-\d+\.html$/);
       expect(renamed!.title).toBe('Renamed Copy');
     });
+
+    it('rename strategy does not mutate the caller input array elements', async () => {
+      const deckPath = join(tempDir, 'no-mutate-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>test</h1>');
+      const initial: FlideckManifest = {
+        slides: [{ file: 'slide.html', title: 'Original' }],
+      };
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify(initial, null, 2));
+
+      const inputSlides = [{ file: 'slide.html', title: 'Copy' }];
+      const originalFile = inputSlides[0].file;
+
+      await service.bulkAddSlides('no-mutate-deck', inputSlides, {
+        onConflict: { duplicateFile: 'rename' },
+      });
+
+      // Caller's object must be unchanged
+      expect(inputSlides[0].file).toBe(originalFile);
+    });
   });
+
 
   // ============================================================
   // syncFromIndex() — FR-26: sync manifest from filesystem

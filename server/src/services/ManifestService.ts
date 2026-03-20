@@ -355,8 +355,9 @@ export class ManifestService {
 
       const slidesToAdd: ManifestSlide[] = [];
 
-      // Process each slide
-      for (const slide of slides) {
+      // Process each slide — copy to avoid mutating the caller's input array elements
+      for (const rawSlide of slides) {
+        const slide = { ...rawSlide };
         const existingIndex = manifest.slides.findIndex((s) => s.file === slide.file);
         const conflictStrategy = options.onConflict?.duplicateFile || 'skip';
 

@@ -1,16 +1,13 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-20
-**Total**: 60 | Pending: 10 | In Progress: 0 | Done: 48 | Deferred: 0 | Rejected: 0
+**Total**: 60 | Pending: 8 | In Progress: 0 | Done: 50 | Deferred: 0 | Rejected: 0
 
 ---
 
 ## Pending
 
 ### From flideck-manifest-locks quality audit (2026-03-19)
-
-- [ ] B055 — bulkAddSlides rename strategy mutates caller input array in place; fix by operating on a copy ({ ...slide }) | Priority: medium
-- [ ] B056 — createGroup order collision: two concurrent calls both compute order:1 from empty groups; low impact in practice | Priority: low
 
 ### From flideck-missing-tests quality audit (2026-03-20)
 
@@ -86,6 +83,8 @@
 - [x] B039 — Add empty-root guard to getById: guard added, AppError(400) thrown when root is empty, consistent with discoverAll | Completed: flideck-test-quality-fixes
 - [x] B014 — API response envelope standardisation: createApiResponse adopted across all 7 route files (43 responses); 0 inline envelopes remain; _context preserved on 4 presentation GET endpoints | Completed: flideck-api-envelope
 - [x] B041 — Route integration tests: 40 new supertest HTTP tests across 7 route files + responseHelper unit tests; 139 total tests (was 101) | Completed: flideck-route-integration-tests
+- [x] B055 — bulkAddSlides rename strategy mutates caller input array; fixed by copying each slide ({ ...rawSlide }) at loop entry; no-mutate test added | Completed: flideck-b055-b056
+- [x] B056 — createGroup order collision: write lock already serialises the read-modify-write; order assertion added to concurrent test to prove distinct values | Completed: flideck-b055-b056
 - [x] B049 — Tests for applySlideMetadata: 8 tests covering all 5 fields + ordering + remaining fallback + no-title default | Completed: flideck-missing-tests
 - [x] B050 — Tests for syncFromIndex: 9 tests covering flat/tabbed, merge/replace, inferTitles, tab groups | Completed: flideck-missing-tests
 - [x] B051 — Tests for removeSlide (4), updateSlide (4), deleteGroup cascade+renumber (5) | Completed: flideck-missing-tests
