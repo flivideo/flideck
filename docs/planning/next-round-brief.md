@@ -1,37 +1,35 @@
-# Next Round Brief — B049/B050/B051: Missing Test Coverage
+# Next Round Brief — B055/B056: Input Mutation + Concurrent Order Collision
 
-**Goal**: Fill the three largest test coverage gaps identified in the quality audits: `applySlideMetadata` field propagation, `syncFromIndex` (~200 lines of cheerio parsing), and `removeSlide`/`updateSlide`/`deleteGroup` cascade logic.
+**Goal**: Fix two small correctness bugs surfaced during the write-lock campaign audits. Both are in ManifestService. Neither requires test infrastructure changes — just a source fix + a targeted test.
 
-**Background**: The write-lock campaigns are complete. The remaining pending items are all about test coverage for existing production code that has no tests. These are straightforward unit tests — no source code changes required.
+**Background**: Write-lock and missing-test campaigns are complete (137 tests, tsc clean). These are the two remaining pending items before the backlog is clear of medium/high-priority work.
 
-## B049 — Test applySlideMetadata field propagation (MEDIUM)
+## B055 — bulkAddSlides mutates caller input array (MEDIUM)
 
-`applySlideMetadata` maps manifest fields (title, group, description, viewportLock) onto the `Asset` objects returned by the API. Currently untested.
+`bulkAddSlides` in `ManifestService` operates on the caller's input array directly in the rename/conflict path instead of working on a copy. If the caller holds a reference to the array, its elements are silently mutated.
 
-**What to verify**: Given a manifest with slides that have `title`, `group`, `description`, and `viewportLock` fields, the returned `Asset` objects should carry those values. Read the implementation before writing tests.
+**Fix**: shallow-copy each slide object before modifying — `{ ...slide }` — at the point where rename/conflict resolution writes back to the element.
 
-**File**: Likely in `PresentationService.ts` — search for `applySlideMetadata`.
+**Test**: pass an array of slides with a filename collision, capture the original array, call `bulkAddSlides`, assert the original elements are unchanged.
 
-## B050 — Tests for syncFromIndex (MEDIUM)
+**Files**: `server/src/services/ManifestService.ts`, `server/src/services/__tests__/ManifestService.test.ts`
 
-`syncFromIndex` parses `index-*.html` files using cheerio to detect tabs and card elements, then populates the manifest. ~200 lines of logic, completely untested.
+---
 
-**What to verify**: flat vs tabbed detection, tab creation from `index-tab-*.html` files, group/slide assignment from card elements, merge vs replace strategies.
+## B056 — createGroup concurrent order collision (LOW)
 
-**File**: `ManifestService.ts` (`syncFromIndex` method, ~line 768). Reference the method's options interface and return type (`SyncFromIndexResponse`) before writing tests.
+Two concurrent `createGroup` calls both read `groups` before either writes, compute `order: 1` from an empty map, and both write `order: 1`. The second write wins but both groups end up with the same order value until the next explicit reorder.
 
-## B051 — Tests for removeSlide, updateSlide, deleteGroup cascade (MEDIUM)
+**Fix**: compute order inside the write lock, after acquiring it — so the second call sees the first group already written.
 
-Three PresentationService methods with no or minimal tests:
-- `removeSlide` — removes slide from manifest; does NOT delete the HTML file
-- `updateSlide` — updates title/group/description/recommended fields
-- `deleteGroup` — cascade: clears `group` field on affected slides; orphan: leaves slides
+**Test**: fire two concurrent `createGroup` calls, await both, assert the resulting groups have distinct `order` values (0 and 1, or 1 and 2 — whatever the convention is).
 
-**File**: `PresentationService.test.ts`
+**Files**: `server/src/services/ManifestService.ts`, `server/src/services/__tests__/ManifestService.test.ts`
 
-## Session state (as of 2026-03-19)
+---
 
-- 107 server tests passing, 35 client tests — total 142
-- Main branch clean (`98a5591`)
-- All write-lock work complete (B047, B052, B053, B054)
-- No source code changes needed for this campaign — tests only
+## Suggested Approach
+
+Run both as a single agent — same file pair, low risk, no parallelism benefit. Estimated additions: ~20 lines of source, ~15 lines of tests.
+
+After fixing B055/B056, the backlog has only low-priority items (B057–B060, all assertion tightening). A good stopping point for the current work cycle.
