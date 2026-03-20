@@ -809,6 +809,15 @@ describe('PresentationService', () => {
         /presentation not found/i
       );
     });
+
+    it('does not delete the physical HTML file when removing a slide from the manifest', async () => {
+      await setupRemoveDeck();
+
+      await service.removeSlide('remove-deck', 'slide-a.html');
+
+      // Manifest entry gone, but file must still exist on disk
+      await expect(readFile(join(tempDir, 'remove-deck', 'slide-a.html'), 'utf-8')).resolves.toBeDefined();
+    });
   });
 
   // ============================================================
@@ -929,6 +938,8 @@ describe('PresentationService', () => {
 
       const slide2 = manifest.slides.find((s) => s.file === 'slide-2.html');
       expect(slide2?.group).toBeUndefined();
+      // Slides are ungrouped, not deleted
+      expect(manifest.slides).toHaveLength(3);
     });
 
     it('leaves slides from other groups unaffected', async () => {

@@ -1,20 +1,13 @@
 # Project Backlog — FliDeck
 
 **Last updated**: 2026-03-20
-**Total**: 60 | Pending: 8 | In Progress: 0 | Done: 50 | Deferred: 0 | Rejected: 0
+**Total**: 60 | Pending: 0 | In Progress: 0 | Done: 58 | Deferred: 0 | Rejected: 0
 
 ---
 
 ## Pending
 
 ### From flideck-manifest-locks quality audit (2026-03-19)
-
-### From flideck-missing-tests quality audit (2026-03-20)
-
-- [ ] B057 — deleteGroup: add toHaveLength assertion proving slides are ungrouped not deleted | Priority: low
-- [ ] B058 — syncFromIndex: add test for simple index-mary.html → tabId:mary pattern (only tab-*.html covered) | Priority: low
-- [ ] B059 — removeSlide: add test verifying physical HTML file is NOT deleted | Priority: low
-- [ ] B060 — flat-merge syncFromIndex test: tighten with toHaveLength to catch duplicate-entry bugs | Priority: low
 
 ### From flideck-cleanup-2026
 
@@ -83,6 +76,10 @@
 - [x] B039 — Add empty-root guard to getById: guard added, AppError(400) thrown when root is empty, consistent with discoverAll | Completed: flideck-test-quality-fixes
 - [x] B014 — API response envelope standardisation: createApiResponse adopted across all 7 route files (43 responses); 0 inline envelopes remain; _context preserved on 4 presentation GET endpoints | Completed: flideck-api-envelope
 - [x] B041 — Route integration tests: 40 new supertest HTTP tests across 7 route files + responseHelper unit tests; 139 total tests (was 101) | Completed: flideck-route-integration-tests
+- [x] B057 — deleteGroup: toHaveLength(3) added to cascade test proving slides ungrouped not deleted | Completed: flideck-b057-b060
+- [x] B058 — syncFromIndex: index-mary.html/index-work.html test added asserting tabIds 'mary' and 'work' | Completed: flideck-b057-b060
+- [x] B059 — removeSlide: file-still-exists assertion added (readFile resolves after manifest removal) | Completed: flideck-b057-b060
+- [x] B060 — flat-merge syncFromIndex: toHaveLength(3) added to guard against duplicate-entry bugs | Completed: flideck-b057-b060
 - [x] B055 — bulkAddSlides rename strategy mutates caller input array; fixed by copying each slide ({ ...rawSlide }) at loop entry; no-mutate test added | Completed: flideck-b055-b056
 - [x] B056 — createGroup order collision: write lock already serialises the read-modify-write; order assertion added to concurrent test to prove distinct values | Completed: flideck-b055-b056
 - [x] B049 — Tests for applySlideMetadata: 8 tests covering all 5 fields + ordering + remaining fallback + no-title default | Completed: flideck-missing-tests

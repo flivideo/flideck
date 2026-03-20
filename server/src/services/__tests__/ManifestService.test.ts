@@ -363,6 +363,7 @@ describe('ManifestService', () => {
       expect(files).toContain('presentation.html');
       expect(files).toContain('slide-a.html');
       expect(files).toContain('slide-b.html');
+      expect(manifest.slides).toHaveLength(3); // guards against duplicate-entry bugs
     });
 
     it('preserves existing slide metadata on merge strategy', async () => {
@@ -483,6 +484,21 @@ describe('ManifestService', () => {
       );
       expect(slide).toBeDefined();
       expect(slide!.title).toBe('My Slide Title');
+    });
+
+    it('extracts tabId directly from index-mary.html (no tab- prefix)', async () => {
+      const deckPath = join(tempDir, 'index-bare-deck');
+      await mkdir(deckPath);
+      // index-mary.html → tabId: 'mary', index-work.html → tabId: 'work'
+      await writeFile(join(deckPath, 'index-mary.html'), '<html><body></body></html>');
+      await writeFile(join(deckPath, 'index-work.html'), '<html><body></body></html>');
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
+
+      const result = await service.syncFromIndex('index-bare-deck');
+
+      expect(result.format).toBe('tabbed');
+      expect(result.tabs.created).toContain('mary');
+      expect(result.tabs.created).toContain('work');
     });
   });
 });
