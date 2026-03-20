@@ -301,4 +301,167 @@ describe('ManifestService', () => {
       expect(renamed!.title).toBe('Renamed Copy');
     });
   });
+
+  // ============================================================
+  // syncFromIndex() — FR-26: sync manifest from filesystem
+  // ============================================================
+
+  describe('syncFromIndex()', () => {
+    it('throws when presentation does not exist', async () => {
+      await expect(service.syncFromIndex('nonexistent-deck')).rejects.toThrow(
+        'Presentation not found: nonexistent-deck'
+      );
+    });
+
+    it('detects flat format when no index-tab-*.html files are present', async () => {
+      const deckPath = join(tempDir, 'flat-detect-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>entry</h1>');
+      await writeFile(join(deckPath, 'slide-a.html'), '<h1>a</h1>');
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
+
+      const result = await service.syncFromIndex('flat-detect-deck');
+
+      expect(result.format).toBe('flat');
+      expect(result.success).toBe(true);
+    });
+
+    it('adds all non-index HTML files as slides with merge strategy (default)', async () => {
+      const deckPath = join(tempDir, 'flat-merge-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>entry</h1>');
+      await writeFile(join(deckPath, 'slide-a.html'), '<h1>slide a</h1>');
+      await writeFile(join(deckPath, 'slide-b.html'), '<h1>slide b</h1>');
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
+
+      await service.syncFromIndex('flat-merge-deck');
+
+      const raw = await readFile(join(deckPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(raw) as FlideckManifest;
+      const files = manifest.slides!.map((s: { file: string }) => s.file);
+      expect(files).toContain('presentation.html');
+      expect(files).toContain('slide-a.html');
+      expect(files).toContain('slide-b.html');
+    });
+
+    it('preserves existing slide metadata on merge strategy', async () => {
+      const deckPath = join(tempDir, 'flat-preserve-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>entry</h1>');
+      await writeFile(join(deckPath, 'slide-a.html'), '<h1>slide a</h1>');
+      const initial: FlideckManifest = {
+        slides: [{ file: 'slide-a.html', title: 'Preserved Title', description: 'kept' }],
+      };
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify(initial, null, 2));
+
+      await service.syncFromIndex('flat-preserve-deck', { strategy: 'merge' });
+
+      const raw = await readFile(join(deckPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(raw) as FlideckManifest;
+      // slide-a.html was already in manifest — should not be re-added (existingSlideMap.has check)
+      const slideA = manifest.slides!.find((s: { file: string }) => s.file === 'slide-a.html');
+      expect(slideA).toBeDefined();
+      expect(slideA!.description).toBe('kept');
+    });
+
+    it('replace strategy starts fresh, discarding existing manifest content', async () => {
+      const deckPath = join(tempDir, 'flat-replace-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>entry</h1>');
+      const initial: FlideckManifest = {
+        groups: { 'old-group': { label: 'Old Group', order: 1 } },
+        slides: [{ file: 'presentation.html', title: 'Old Title', group: 'old-group' }],
+      };
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify(initial, null, 2));
+
+      await service.syncFromIndex('flat-replace-deck', { strategy: 'replace' });
+
+      const raw = await readFile(join(deckPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(raw) as FlideckManifest;
+      // Replace strategy: starts with empty manifest, existing groups discarded
+      expect(manifest.groups).not.toHaveProperty('old-group');
+      // Orphan slides (non-index HTML files) are NOT added to manifest in replace mode —
+      // only merge mode auto-adds orphans. So slides array should be empty after replace.
+      expect(manifest.slides ?? []).toHaveLength(0);
+    });
+
+    it('detects tabbed format when index-tab-*.html files are present', async () => {
+      const deckPath = join(tempDir, 'tabbed-detect-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'index-tab-intro.html'), '<h1>intro tab</h1>');
+      await writeFile(join(deckPath, 'index-tab-main.html'), '<h1>main tab</h1>');
+      await writeFile(join(deckPath, 'slide-a.html'), '<h1>slide a</h1>');
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
+
+      const result = await service.syncFromIndex('tabbed-detect-deck');
+
+      expect(result.format).toBe('tabbed');
+    });
+
+    it('creates tabs from index-tab-*.html filenames in tabbed format', async () => {
+      const deckPath = join(tempDir, 'tabbed-tabs-deck');
+      await mkdir(deckPath);
+      // index-tab-intro.html and index-tab-summary.html trigger tabbed format
+      // cards with data-file attribute link to slides
+      const introHtml = `<html><body>
+        <a href="slide-a.html" class="card">Slide A</a>
+      </body></html>`;
+      const summaryHtml = `<html><body>
+        <a href="slide-b.html" class="card">Slide B</a>
+      </body></html>`;
+      await writeFile(join(deckPath, 'index-tab-intro.html'), introHtml);
+      await writeFile(join(deckPath, 'index-tab-summary.html'), summaryHtml);
+      await writeFile(join(deckPath, 'slide-a.html'), '<h1>a</h1>');
+      await writeFile(join(deckPath, 'slide-b.html'), '<h1>b</h1>');
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
+
+      const result = await service.syncFromIndex('tabbed-tabs-deck');
+
+      expect(result.format).toBe('tabbed');
+      // The regex /^index-([\w-]+)\.html$/ captures 'tab-intro' from 'index-tab-intro.html'
+      expect(result.tabs.created).toContain('tab-intro');
+      expect(result.tabs.created).toContain('tab-summary');
+    });
+
+    it('creates tab-specific groups from index-tab-*.html filenames', async () => {
+      const deckPath = join(tempDir, 'tabbed-groups-deck');
+      await mkdir(deckPath);
+      const introHtml = `<html><body>
+        <a href="slide-a.html" class="card">Slide A</a>
+      </body></html>`;
+      await writeFile(join(deckPath, 'index-tab-overview.html'), introHtml);
+      await writeFile(join(deckPath, 'slide-a.html'), '<h1>a</h1>');
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
+
+      const result = await service.syncFromIndex('tabbed-groups-deck');
+
+      // tabId extracted as 'tab-overview', group ID is '${tabId}-slides' = 'tab-overview-slides'
+      expect(result.groups.created).toContain('tab-overview-slides');
+
+      const raw = await readFile(join(deckPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(raw) as FlideckManifest;
+      expect(manifest.groups).toHaveProperty('tab-overview-slides');
+      expect(manifest.groups!['tab-overview-slides'].tabId).toBe('tab-overview');
+    });
+
+    it('extracts <title> tag from HTML files as slide title (automatic on all calls)', async () => {
+      const deckPath = join(tempDir, 'title-extract-deck');
+      await mkdir(deckPath);
+      await writeFile(
+        join(deckPath, 'slide-titled.html'),
+        '<html><head><title>My Slide Title</title></head><body><h1>content</h1></body></html>'
+      );
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({}, null, 2));
+
+      await service.syncFromIndex('title-extract-deck', { strategy: 'merge' });
+
+      const raw = await readFile(join(deckPath, 'index.json'), 'utf-8');
+      const manifest = JSON.parse(raw) as FlideckManifest;
+      const slide = manifest.slides!.find(
+        (s: { file: string }) => s.file === 'slide-titled.html'
+      );
+      expect(slide).toBeDefined();
+      expect(slide!.title).toBe('My Slide Title');
+    });
+  });
 });

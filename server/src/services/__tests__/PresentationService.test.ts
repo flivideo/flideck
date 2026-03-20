@@ -623,4 +623,347 @@ describe('PresentationService', () => {
       expect(files).toContain('new-slide.html');
     });
   });
+
+  // ============================================================
+  // applySlideMetadata() — metadata field propagation (B049)
+  // ============================================================
+
+  describe('applySlideMetadata()', () => {
+    async function setupMetaDeck(manifestSlides: object[]): Promise<void> {
+      const deckPath = join(tempDir, 'meta-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>entry</h1>');
+      await writeFile(join(deckPath, 'slide-a.html'), '<h1>a</h1>');
+      await writeFile(join(deckPath, 'slide-b.html'), '<h1>b</h1>');
+      await writeFile(join(deckPath, 'index.json'), JSON.stringify({ slides: manifestSlides }, null, 2));
+    }
+
+    it('applies title to both asset.name and asset.title', async () => {
+      await setupMetaDeck([
+        { file: 'slide-a.html', title: 'Slide A Title' },
+      ]);
+
+      const presentation = await service.getById('meta-deck');
+      const slideA = presentation!.assets.find((a) => a.filename === 'slide-a.html')!;
+
+      expect(slideA.name).toBe('Slide A Title');
+      expect(slideA.title).toBe('Slide A Title');
+    });
+
+    it('applies group to asset.group', async () => {
+      await setupMetaDeck([
+        { file: 'slide-a.html', group: 'intro' },
+      ]);
+
+      const presentation = await service.getById('meta-deck');
+      const slideA = presentation!.assets.find((a) => a.filename === 'slide-a.html')!;
+
+      expect(slideA.group).toBe('intro');
+    });
+
+    it('applies description to asset.description', async () => {
+      await setupMetaDeck([
+        { file: 'slide-a.html', description: 'First slide description' },
+      ]);
+
+      const presentation = await service.getById('meta-deck');
+      const slideA = presentation!.assets.find((a) => a.filename === 'slide-a.html')!;
+
+      expect(slideA.description).toBe('First slide description');
+    });
+
+    it('applies recommended to asset.recommended', async () => {
+      await setupMetaDeck([
+        { file: 'slide-a.html', recommended: true },
+      ]);
+
+      const presentation = await service.getById('meta-deck');
+      const slideA = presentation!.assets.find((a) => a.filename === 'slide-a.html')!;
+
+      expect(slideA.recommended).toBe(true);
+    });
+
+    it('applies viewportLock to asset.viewportLock', async () => {
+      await setupMetaDeck([
+        { file: 'slide-a.html', viewportLock: true },
+      ]);
+
+      const presentation = await service.getById('meta-deck');
+      const slideA = presentation!.assets.find((a) => a.filename === 'slide-a.html')!;
+
+      expect(slideA.viewportLock).toBe(true);
+    });
+
+    it('orders assets by manifest slides array order', async () => {
+      await setupMetaDeck([
+        { file: 'slide-b.html', title: 'B First' },
+        { file: 'slide-a.html', title: 'A Second' },
+        { file: 'presentation.html', title: 'Entry Last' },
+      ]);
+
+      const presentation = await service.getById('meta-deck');
+      const filenames = presentation!.assets.map((a) => a.filename);
+
+      expect(filenames[0]).toBe('slide-b.html');
+      expect(filenames[1]).toBe('slide-a.html');
+      expect(filenames[2]).toBe('presentation.html');
+    });
+
+    it('appends slides not in manifest at end (remaining assets fallback)', async () => {
+      // Only slide-a.html is in the manifest; slide-b.html and presentation.html are not
+      await setupMetaDeck([
+        { file: 'slide-a.html', title: 'A' },
+      ]);
+
+      const presentation = await service.getById('meta-deck');
+      const filenames = presentation!.assets.map((a) => a.filename);
+
+      // slide-a is first (from manifest)
+      expect(filenames[0]).toBe('slide-a.html');
+      // remaining files appended after
+      expect(filenames).toContain('slide-b.html');
+      expect(filenames).toContain('presentation.html');
+      // remaining come after the manifest entry
+      expect(filenames.indexOf('slide-a.html')).toBeLessThan(filenames.indexOf('slide-b.html'));
+      expect(filenames.indexOf('slide-a.html')).toBeLessThan(filenames.indexOf('presentation.html'));
+    });
+
+    it('slide without title keeps its default formatted name from filename', async () => {
+      await setupMetaDeck([
+        { file: 'slide-a.html' }, // no title field
+      ]);
+
+      const presentation = await service.getById('meta-deck');
+      const slideA = presentation!.assets.find((a) => a.filename === 'slide-a.html')!;
+
+      // name should be formatted from filename ('slide-a' → 'Slide A'), not blank
+      expect(slideA.name).toBe('Slide A');
+      expect(slideA.title).toBeUndefined();
+    });
+  });
+
+  // ============================================================
+  // removeSlide() — manifest slide removal (B051)
+  // ============================================================
+
+  describe('removeSlide()', () => {
+    async function setupRemoveDeck(): Promise<void> {
+      const deckPath = join(tempDir, 'remove-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>entry</h1>');
+      await writeFile(join(deckPath, 'slide-a.html'), '<h1>a</h1>');
+      await writeFile(join(deckPath, 'slide-b.html'), '<h1>b</h1>');
+      await writeFile(
+        join(deckPath, 'index.json'),
+        JSON.stringify({
+          slides: [
+            { file: 'presentation.html' },
+            { file: 'slide-a.html', title: 'Slide A' },
+            { file: 'slide-b.html', title: 'Slide B' },
+          ],
+        }, null, 2)
+      );
+    }
+
+    it('removes the slide from the manifest', async () => {
+      await setupRemoveDeck();
+
+      await service.removeSlide('remove-deck', 'slide-a.html');
+
+      const manifest = JSON.parse(
+        await readFile(join(tempDir, 'remove-deck', 'index.json'), 'utf-8')
+      ) as { slides: Array<{ file: string }> };
+
+      const files = manifest.slides.map((s) => s.file);
+      expect(files).not.toContain('slide-a.html');
+      expect(files).toContain('slide-b.html');
+      expect(files).toContain('presentation.html');
+    });
+
+    it('accepts slideId without .html extension', async () => {
+      await setupRemoveDeck();
+
+      // Pass ID without extension — method should normalise to slide-a.html
+      await service.removeSlide('remove-deck', 'slide-a');
+
+      const manifest = JSON.parse(
+        await readFile(join(tempDir, 'remove-deck', 'index.json'), 'utf-8')
+      ) as { slides: Array<{ file: string }> };
+
+      expect(manifest.slides.map((s) => s.file)).not.toContain('slide-a.html');
+    });
+
+    it('throws when slide not found', async () => {
+      await setupRemoveDeck();
+
+      await expect(service.removeSlide('remove-deck', 'nonexistent.html')).rejects.toThrow(
+        /slide not found/i
+      );
+    });
+
+    it('throws when presentation not found', async () => {
+      await expect(service.removeSlide('does-not-exist', 'slide-a.html')).rejects.toThrow(
+        /presentation not found/i
+      );
+    });
+  });
+
+  // ============================================================
+  // updateSlide() — field updates (B051)
+  // ============================================================
+
+  describe('updateSlide() — field updates', () => {
+    async function setupUpdateDeck(): Promise<void> {
+      const deckPath = join(tempDir, 'update-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>entry</h1>');
+      await writeFile(
+        join(deckPath, 'index.json'),
+        JSON.stringify({
+          slides: [
+            { file: 'presentation.html' },
+            { file: 'slide-a.html', title: 'Original Title' },
+          ],
+        }, null, 2)
+      );
+    }
+
+    it('updates title field', async () => {
+      await setupUpdateDeck();
+
+      await service.updateSlide('update-deck', 'slide-a.html', { title: 'New Title' });
+
+      const manifest = JSON.parse(
+        await readFile(join(tempDir, 'update-deck', 'index.json'), 'utf-8')
+      ) as { slides: Array<{ file: string; title?: string }> };
+
+      const slide = manifest.slides.find((s) => s.file === 'slide-a.html');
+      expect(slide?.title).toBe('New Title');
+    });
+
+    it('updates group field', async () => {
+      await setupUpdateDeck();
+
+      await service.updateSlide('update-deck', 'slide-a.html', { group: 'chapter-1' });
+
+      const manifest = JSON.parse(
+        await readFile(join(tempDir, 'update-deck', 'index.json'), 'utf-8')
+      ) as { slides: Array<{ file: string; group?: string }> };
+
+      const slide = manifest.slides.find((s) => s.file === 'slide-a.html');
+      expect(slide?.group).toBe('chapter-1');
+    });
+
+    it('clears title when empty string passed', async () => {
+      await setupUpdateDeck();
+
+      await service.updateSlide('update-deck', 'slide-a.html', { title: '' });
+
+      const manifest = JSON.parse(
+        await readFile(join(tempDir, 'update-deck', 'index.json'), 'utf-8')
+      ) as { slides: Array<{ file: string; title?: string }> };
+
+      const slide = manifest.slides.find((s) => s.file === 'slide-a.html');
+      // Empty string is coerced to undefined by the implementation
+      expect(slide?.title).toBeUndefined();
+    });
+
+    it('throws when slide not found', async () => {
+      await setupUpdateDeck();
+
+      await expect(
+        service.updateSlide('update-deck', 'nonexistent.html', { title: 'X' })
+      ).rejects.toThrow(/slide not found/i);
+    });
+  });
+
+  // ============================================================
+  // deleteGroup() — group removal and cascade (B051)
+  // ============================================================
+
+  describe('deleteGroup()', () => {
+    async function setupGroupDeck(): Promise<void> {
+      const deckPath = join(tempDir, 'group-deck');
+      await mkdir(deckPath);
+      await writeFile(join(deckPath, 'presentation.html'), '<h1>entry</h1>');
+      await writeFile(
+        join(deckPath, 'index.json'),
+        JSON.stringify({
+          groups: {
+            'group-a': { label: 'Group A', order: 1 },
+            'group-b': { label: 'Group B', order: 2 },
+            'group-c': { label: 'Group C', order: 3 },
+          },
+          slides: [
+            { file: 'slide-1.html', group: 'group-a' },
+            { file: 'slide-2.html', group: 'group-b' },
+            { file: 'slide-3.html', group: 'group-c' },
+          ],
+        }, null, 2)
+      );
+    }
+
+    it('removes the group from manifest.groups', async () => {
+      await setupGroupDeck();
+
+      await service.deleteGroup('group-deck', 'group-b');
+
+      const manifest = JSON.parse(
+        await readFile(join(tempDir, 'group-deck', 'index.json'), 'utf-8')
+      ) as { groups: Record<string, unknown>; slides: Array<{ file: string; group?: string }> };
+
+      expect(manifest.groups).not.toHaveProperty('group-b');
+    });
+
+    it('clears group field from slides that were in the deleted group', async () => {
+      await setupGroupDeck();
+
+      await service.deleteGroup('group-deck', 'group-b');
+
+      const manifest = JSON.parse(
+        await readFile(join(tempDir, 'group-deck', 'index.json'), 'utf-8')
+      ) as { slides: Array<{ file: string; group?: string }> };
+
+      const slide2 = manifest.slides.find((s) => s.file === 'slide-2.html');
+      expect(slide2?.group).toBeUndefined();
+    });
+
+    it('leaves slides from other groups unaffected', async () => {
+      await setupGroupDeck();
+
+      await service.deleteGroup('group-deck', 'group-b');
+
+      const manifest = JSON.parse(
+        await readFile(join(tempDir, 'group-deck', 'index.json'), 'utf-8')
+      ) as { slides: Array<{ file: string; group?: string }> };
+
+      const slide1 = manifest.slides.find((s) => s.file === 'slide-1.html');
+      const slide3 = manifest.slides.find((s) => s.file === 'slide-3.html');
+      expect(slide1?.group).toBe('group-a');
+      expect(slide3?.group).toBe('group-c');
+    });
+
+    it('renumbers remaining groups to fill gaps in order values', async () => {
+      await setupGroupDeck();
+
+      // Delete group-b (order: 2) — remaining are group-a (1) and group-c (3)
+      await service.deleteGroup('group-deck', 'group-b');
+
+      const manifest = JSON.parse(
+        await readFile(join(tempDir, 'group-deck', 'index.json'), 'utf-8')
+      ) as { groups: Record<string, { label: string; order: number }> };
+
+      // After renumbering, group-a stays 1, group-c should become 2
+      expect(manifest.groups['group-a'].order).toBe(1);
+      expect(manifest.groups['group-c'].order).toBe(2);
+    });
+
+    it('throws when group not found', async () => {
+      await setupGroupDeck();
+
+      await expect(service.deleteGroup('group-deck', 'nonexistent-group')).rejects.toThrow(
+        /group not found/i
+      );
+    });
+  });
 });
