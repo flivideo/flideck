@@ -1,35 +1,51 @@
-# Next Round Brief — B055/B056: Input Mutation + Concurrent Order Collision
+# Next Round Brief — B057–B060: Assertion Tightening
 
-**Goal**: Fix two small correctness bugs surfaced during the write-lock campaign audits. Both are in ManifestService. Neither requires test infrastructure changes — just a source fix + a targeted test.
+**Goal**: Tighten four existing tests with stronger assertions. All are low-priority — each is a one-liner addition that closes a gap where a test could pass despite a real regression.
 
-**Background**: Write-lock and missing-test campaigns are complete (137 tests, tsc clean). These are the two remaining pending items before the backlog is clear of medium/high-priority work.
+**Background**: B055/B056 are done. The backlog now has only these four low-priority items. No source code changes required — test files only.
 
-## B055 — bulkAddSlides mutates caller input array (MEDIUM)
+## B057 — deleteGroup: prove slides are ungrouped not deleted
 
-`bulkAddSlides` in `ManifestService` operates on the caller's input array directly in the rename/conflict path instead of working on a copy. If the caller holds a reference to the array, its elements are silently mutated.
+In the existing `deleteGroup` cascade test, we assert that slides previously assigned to the deleted group no longer have a `group` field. We don't assert that the slides themselves still exist.
 
-**Fix**: shallow-copy each slide object before modifying — `{ ...slide }` — at the point where rename/conflict resolution writes back to the element.
+**Fix**: Add `expect(manifest.slides).toHaveLength(n)` to confirm slide count is unchanged after group deletion.
 
-**Test**: pass an array of slides with a filename collision, capture the original array, call `bulkAddSlides`, assert the original elements are unchanged.
-
-**Files**: `server/src/services/ManifestService.ts`, `server/src/services/__tests__/ManifestService.test.ts`
+**File**: `server/src/services/__tests__/PresentationService.test.ts`
 
 ---
 
-## B056 — createGroup concurrent order collision (LOW)
+## B058 — syncFromIndex: index-mary.html → tabId:mary pattern
 
-Two concurrent `createGroup` calls both read `groups` before either writes, compute `order: 1` from an empty map, and both write `order: 1`. The second write wins but both groups end up with the same order value until the next explicit reorder.
+The existing syncFromIndex tabbed tests use `index-tab-*.html` naming. The `index-mary.html` pattern (without the `tab-` prefix) is also supported but not tested.
 
-**Fix**: compute order inside the write lock, after acquiring it — so the second call sees the first group already written.
+**Fix**: Add a test with `index-mary.html` / `index-work.html` files and assert that the resulting tabs get IDs `mary` and `work`.
 
-**Test**: fire two concurrent `createGroup` calls, await both, assert the resulting groups have distinct `order` values (0 and 1, or 1 and 2 — whatever the convention is).
+**File**: `server/src/services/__tests__/ManifestService.test.ts`
 
-**Files**: `server/src/services/ManifestService.ts`, `server/src/services/__tests__/ManifestService.test.ts`
+---
+
+## B059 — removeSlide: physical file is NOT deleted
+
+removeSlide removes a slide from the manifest. It should not touch the filesystem. Currently no test verifies the HTML file still exists after removal.
+
+**Fix**: After calling `removeSlide`, assert `fs.pathExists(join(deckPath, 'slide.html'))` returns true.
+
+**File**: `server/src/services/__tests__/PresentationService.test.ts`
+
+---
+
+## B060 — flat-merge syncFromIndex: toHaveLength guard
+
+The existing flat-merge test checks that specific slides are present in `manifest.slides` but doesn't assert the total length. A bug that duplicates entries would pass.
+
+**Fix**: Add `expect(manifest.slides).toHaveLength(n)` matching the number of HTML files in the fixture.
+
+**File**: `server/src/services/__tests__/ManifestService.test.ts`
 
 ---
 
 ## Suggested Approach
 
-Run both as a single agent — same file pair, low risk, no parallelism benefit. Estimated additions: ~20 lines of source, ~15 lines of tests.
+Single agent, both test files. All four are additive assertions — no structural changes, no setup changes. Estimated: ~10 lines total across both files.
 
-After fixing B055/B056, the backlog has only low-priority items (B057–B060, all assertion tightening). A good stopping point for the current work cycle.
+After B057–B060 the backlog has zero pending items. Clean slate.
