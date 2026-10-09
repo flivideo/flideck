@@ -1,6 +1,6 @@
 # CLAUDE.md - FliDeck
 
-**System context**: See [CONTEXT.md](CONTEXT.md) for purpose, domain concepts, design rationale, and scope boundaries.
+**System context**: See [CONTEXT.md](CONTEXT.md) for purpose, core abstractions, key workflows, design decisions, non-obvious constraints, expert mental model, scope limits, and failure modes.
 
 ## Project Overview
 

@@ -1,0 +1,27 @@
+{
+  "pattern": "rvets",
+  "globs": {
+    "docs": ["docs/**/*.md"],
+    "types": ["shared/src/**/*.ts"],
+    "config": ["*.config.*", "config.json", "config.example.json", ".env.example"],
+    "services": ["server/src/services/**/*.ts"],
+    "routes": ["server/src/routes/**/*.ts"],
+    "components": ["client/src/components/**/*.tsx"],
+    "views": ["client/src/pages/**/*.tsx"],
+    "styles": ["client/src/**/*.css"],
+    "tests": ["client/src/test/**/*.test.*", "server/src/services/__tests__/**/*.ts", "server/src/routes/__tests__/**/*.ts"],
+    "context": ["CLAUDE.md", "CONTEXT.md"],
+    "planning": ["docs/prd/**/*.md", "docs/planning/**/*.md"]
+  },
+  "aliases": {
+    "backend": ["services", "routes"],
+    "frontend": ["components", "views", "styles"],
+    "api": ["routes", "types"],
+    "ui": ["components", "views", "styles"]
+  },
+  "composites": {
+    "understand": ["context", "docs", "types", "config"],
+    "codebase": ["services", "routes", "components", "views"],
+    "full": ["*"]
+  }
+}
