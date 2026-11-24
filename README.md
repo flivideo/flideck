@@ -51,6 +51,6 @@ Set `presentationsRoot` (the folder that holds your presentations) in `config.js
 
 ## Status
 
-**Inactive and parked.** Checked against the repo at `63fbdef` (2026-11-24); no code has changed since 2026-10-09.
+**Inactive and parked.** Checked on 2026-11-24 against the repo at `63fbdef` (2026-10-09), its last commit.
 
 Public repo `flivideo/flideck`
