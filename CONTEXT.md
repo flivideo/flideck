@@ -30,6 +30,8 @@ regenerate: "Run /system-context in the repo root"
 
 # FliDeck — System Context
 
+> **Status: inactive** (as of 2026-11-24). This snapshot is from 2026-04-05 (the source repo has not changed since 2026-10-09, and only a CLAUDE.md pointer changed after this was generated).
+
 ## Purpose
 Local-first viewer for navigating folders of generated HTML slides (produced by Claude Code agents) without juggling browser tabs or manual file management.
 

@@ -2,6 +2,8 @@
 
 Documentation for FliDeck - Local-first presentation harness for folder-based HTML artifacts.
 
+> **Status: inactive.** FliDeck is not in active development (last commit 2026-10-09; backlog closed, 60/60 done). There is no `uat/` folder.
+
 ---
 
 ## Quick Links
@@ -19,12 +21,16 @@ Documentation for FliDeck - Local-first presentation harness for folder-based HT
 
 ```
 docs/
-├── prd/                  # Individual requirement specs (FR-XX, NFR-XX)
-├── planning/             # Architecture, initial requirements
-├── uat/                  # User Acceptance Testing results
+├── prd/                  # Individual requirement specs (FR-XX, NFR-XX, bugs)
+├── planning/             # Architecture, requirements, BACKLOG.md, and one folder per work round
+├── architecture/         # Knowledge base, sidebar/page relationships
+├── api-examples/         # Worked API examples
+├── agent-guide.md        # Creating or modifying presentations as an agent
+├── harness-authoring-standard.md  # How a slide must be written to render
 ├── backlog.md            # Requirements index (status tracking)
-├── changelog.md          # Version history
+├── changelog.md          # Implementation history
 ├── brainstorming-notes.md
+├── developer-handover-2025-12-24*.md, analysis-2025-12-24-tab-architecture.md, flihub-migration-instructions.md  # Dated historical notes
 └── README.md             # This file
 ```
 
